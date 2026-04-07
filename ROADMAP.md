@@ -65,7 +65,7 @@
 | ライセンス | Apache-2.0 | 2026-04-07 | Rust エコシステムと作法を揃える + 特許保護 |
 | 設定ファイルパス | tauri-plugin-store デフォルト | 2026-04-07 | `~/Library/Application Support/io.github.chieeeeno.grove/`。詳細は ADR-0005 |
 | 設定スキーマバージョニング | TBD | - | migration 戦略 |
-| 配布形態（M1） | TBD | - | GitHub Releases? |
+| 配布形態（M1） | GitHub Releases のみ・署名なし | 2026-04-07 | M2 移行時に署名を再検討。詳細は ADR-0007 |
 | 対応OS（M0/M1） | macOS のみ | 2026-04-07 | 開発者が macOS のみ所有。詳細は ADR-0004 |
 | テレメトリ | 実装しない（将来 opt-in 追加余地あり） | 2026-04-07 | 詳細は ADR-0006 |
 
