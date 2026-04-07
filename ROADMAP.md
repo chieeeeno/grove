@@ -344,27 +344,81 @@ Tauri の `tauri.conf.json` で必須。逆ドメイン形式が慣習。後か�
 技術的な未知を潰した記録。「やってみて分かったこと」を残す。
 
 ### Claude Code 検知の実現可能性
-**ステータス**: 一次調査済み（要追加検証）
+**ステータス**: 二次調査完了
 **最終更新**: 2026-04-07
 **目的**: Phase 2 の前提が成立するか確認
 
-**調査項目と結果**:
-- [x] `~/.claude/` の構造把握 — **未達**（権限の制約でアクセスできず、要再調査）
-- [x] `claude` プロセスの観測（ps, lsof）— **可能**（UNIX 標準手法で確実）
-- [ ] `--output-format stream-json` の出力先・永続性 — **未確定**（実機検証必要）
-- [x] Rust（sysinfo crate）からプロセスの cwd 取得 — **可能**（lsof 経由でも代替可）
-- [ ] エージェントチーム構造のログからの復元可能性 — **不可の見込み**（スキーマ非公開）
+#### 確定した事実
 
-**現時点の結論**: ⚠️ **一部修正が必要**
+**1. `~/.claude/projects/` の命名規約が判明**
+- worktree の絶対パスの `/` を `-` に置換した名前で projects 配下にディレクトリが作られる
+- 例: `/Users/tomoki/work/private/grove-app` → `~/.claude/projects/-Users-tomoki-work-private-grove-app/`
+- **これにより Grove は worktree のパスから対応する Claude セッションデータの場所を計算で求められる**
 
-プロセス検知ベースで Phase 2 の核（worktree ごとの Claude Code 稼働検知）は実現可能。ただし以下は野心の下方修正が必要:
-- Lead/Sub エージェントの詳細可視化 → 「稼働中/待機中」のシンプル表示に縮小
-- コミット帰属の自動判定 → コミットメッセージ規約による手動運用に変更
+**2. セッションログの形式**
+- `~/.claude/projects/<encoded-path>/<session-uuid>.jsonl` に保存される
+- JSONL 形式（1 行 1 イベント）
+- リアルタイムに追記されるため tail で監視可能
+- ファイル名 = セッション UUID（複数セッションが同一プロジェクト下に並ぶ）
+- 同じディレクトリに `<session-uuid>/` サブフォルダもある（補助データ）
 
-**残課題（次の調査で潰す）**:
-- `~/.claude/` の実構造の確認
-- `claude --output-format stream-json` の実際の出力フォーマット観察
-- Agent SDK のイベントスキーマ調査
+**3. 稼働中の claude プロセス検知**
+- `ps aux | grep claude` で claude プロセスを列挙可能
+- メインプロセスとサブエージェントは引数で区別できる
+  - メインプロセス: シンプルな `claude` 起動
+  - サブエージェント: `claude --output-format stream-json --verbose --input-format stream-json --model ... --disallowedTools ... --permission-mode default`
+- `lsof -p <pid> | grep cwd` でメインプロセスの cwd（= worktree のパス）が取れる
+
+**4. worktree とプロセスの紐付け**
+- メインプロセスの cwd が worktree の絶対パスと一致する
+- Grove は worktree のパス一覧を持っているため、cwd と照合するだけで「どの worktree で claude が動いているか」を判定可能
+
+#### 未確定 / 制約あり
+
+**1. サブエージェントの cwd 取得**
+- 二次調査時点で、サブエージェント（PID 別）の `lsof | grep cwd` は出力なし
+- 親プロセスの cwd と同じはずなので、メインプロセス経由で十分判定可能と推定
+- 実装時に再検証が必要
+
+**2. stream-json のスキーマ**
+- 公式ドキュメントが取得できておらず、ログ内のイベント構造の詳細は未確認
+- ただし JSONL 形式が確定したため、実機で1イベントずつパースして仕様を逆算可能
+- Agent SDK が発行するイベント種別、Lead/Sub の関係表現方法は実装段階で確認する
+
+**3. エージェントチーム（Lead/Sub）の詳細復元**
+- スキーマ非公開のため依然として確証なし
+- ただし JSONL ファイルは取得可能で、サブエージェント起動引数（`stream-json` モード）も判明したため、実装時にイベントを観察すれば一定の復元は可能と推定
+
+#### 結論
+
+**✅ 実現可能（一部修正前提）**
+
+一次調査時点の「⚠️ 一部修正が必要」から **「✅ 実現可能（一部修正前提）」** に格上げ。
+
+Phase 2 の核となる「worktree ごとの Claude Code 稼働検知」「セッションログの読み取り」は実現可能で、実装方針も具体化できた。エージェントチームの詳細可視化は依然として実装時の検証次第だが、根拠となるデータ（JSONL ログ）は確実にアクセスできる。
+
+#### 実装指針（Phase 2 着手時の参考）
+
+1. **稼働検知**: `ps aux | grep claude` + `lsof -p <pid> | grep cwd` を Tauri command でラップ
+2. **セッションデータ参照**: worktree path から `~/.claude/projects/<encoded>/` を計算してアクセス
+3. **リアルタイム更新**: `<session-uuid>.jsonl` を tail（`notify` crate でファイル監視）
+4. **エージェント詳細**: 実装初期にスパイクして JSONL イベントの種別を仕様化、設計書を更新
+
+#### スパイクで使った調査コマンド（再現用）
+
+```bash
+# claude プロセス一覧
+ps aux | grep -i claude | grep -v grep
+
+# プロセスの cwd 取得
+lsof -p <pid> | grep cwd
+
+# プロジェクトディレクトリ確認
+ls ~/.claude/projects/
+
+# セッションログ確認
+ls -la ~/.claude/projects/<encoded-path>/
+```
 
 ---
 
