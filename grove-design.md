@@ -1,8 +1,14 @@
-# Grove（仮） — 設計書
+# Grove — 設計書
 
 > Git Worktree Manager GUI アプリケーション
-> Version: 0.1.0 (Draft)
+> Version: 0.2.0 (Draft)
 > 最終更新: 2026-04-07
+
+> **このドキュメントの位置付け**
+>
+> 本設計書は Grove の「全体像と技術的な構造」を記述する。
+> 個別の意思決定の根拠は [docs/adr/](./docs/adr/)、マイルストーン定義とスコープは [ROADMAP.md](./ROADMAP.md) を参照。
+> 各種決定の理由・検討した選択肢・却下した代替案は ADR が一次情報。設計書と ADR で齟齬がある場合は **ADR を優先** する。
 
 ---
 
@@ -97,14 +103,21 @@ Grove は、Git worktree をGUIで直感的に管理するデスクトップア�
 
 #### Worktree カードに表示する情報
 
-| 項目 | 説明 |
-|---|---|
-| ブランチ名 | カラードットと共に表示 |
-| ステータスバッジ | primary / Claude Code / idle |
-| 最終コミット | 相対時間 + コミットメッセージ |
-| 変更ファイル数 | modified の数 |
-| ahead/behind | リモートとの差分 |
-| アクションボタン | VS Code / Terminal / Diff / Remove |
+| 項目 | 説明 | M0 |
+|---|---|---|
+| ラベル（編集可能） | デフォルトは worktree のディレクトリ名。ユーザーが上書き可能。詳細は ADR-0008 | ✅ |
+| ブランチ名 | ラベルの副次情報として小さく表示 | ✅ |
+| ステータスバッジ | primary / Claude Code / idle | Phase 2 |
+| 最終コミット | 相対時間 + コミットメッセージ | ✅ |
+| 変更ファイル数 | 合計値のみ。種別（modified/added/deleted）には分けない（ADR-0011） | ✅ |
+| ahead/behind | リモートとの差分 | ❌ M1+（ADR-0010） |
+| アクションボタン | VS Code / Remove（M0）<br>Terminal / Diff は M1 以降 | 一部 |
+
+ラベル編集の操作仕様（ADR-0008）:
+- 鉛筆アイコンクリック → インライン編集モード
+- 確定ボタン or Cmd+Enter で確定
+- Esc キー or × アイコンでキャンセル
+- Enter 単独では確定しない（誤操作防止）
 
 #### カードの状態による表示分け
 
@@ -160,12 +173,36 @@ Grove は、Git worktree をGUIで直感的に管理するデスクトップア�
 
 ### 4.4 Claude Code エージェント連携（Phase 2）
 
-| 機能 | 説明 |
-|---|---|
-| 稼働検知 | 各 worktree で Claude Code プロセスが動いているかを検知 |
-| ステータス表示 | `--output-format stream-json` の出力をパースしてリアルタイム表示 |
-| エージェントチーム可視化 | Lead agent / Sub-agent の一覧と各タスクの進捗を表示 |
-| コミット帰属 | どのエージェントがどのコミットを行ったかを表示 |
+スパイク調査（ROADMAP.md「検証ログ」セクション参照）により、以下のデータソースに依存する実装方針が確立した。公式ドキュメント裏付けあり。
+
+#### データソース
+
+| 種類 | 場所 | 用途 |
+|---|---|---|
+| プロセス情報 | `ps aux \| grep claude` + `lsof` | 稼働中の claude プロセスを列挙、cwd で worktree と紐付け |
+| プロジェクト別セッション | `~/.claude/projects/<encoded-path>/` | パスの `/` を `-` に置換した名前のディレクトリ |
+| セッションログ | `<encoded-path>/<session-uuid>.jsonl` | リアルタイム追記される JSONL。`cwd`, `parentUuid`, `sessionId`, `timestamp` 等を含む |
+| セッションメタデータ | `<encoded-path>/sessions-index.json` | git branch, message count, auto summary, timestamps |
+| Agent Team 設定 | `~/.claude/teams/{team-name}/config.json` | `members` 配列に teammate 名・agent ID・agent type |
+| Agent Team タスク | `~/.claude/tasks/{team-name}/` | 共有タスクリストの状態 |
+| グローバル履歴 | `~/.claude/history.jsonl` | プロンプト・タイムスタンプ・プロジェクトパス・セッションID |
+
+#### 機能一覧
+
+| 機能 | 説明 | 実装方針 |
+|---|---|---|
+| 稼働検知 | 各 worktree で Claude Code プロセスが動いているか | プロセス cwd と worktree path のマッチング |
+| メタデータ表示 | セッション数・最終アクセス時刻・サマリー等 | `sessions-index.json` から取得 |
+| リアルタイム状態 | 直近のメッセージや tool 使用状況 | 最新 `<session-uuid>.jsonl` を tail（`notify` crate） |
+| エージェントチーム可視化 | Lead / Teammate の一覧と各タスクの進捗 | `~/.claude/teams/*/config.json` + `~/.claude/tasks/*/` |
+| Subagent 検知 | サブエージェントの稼働 | 親プロセスの引数（`--output-format stream-json`）から判定 |
+| コミット帰属 | どのエージェントがどのコミットを行ったか | 自動判定は困難。コミットメッセージ規約での運用を推奨 |
+
+#### 注意点
+
+- **Agent Teams は実験的機能**: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` で有効化される。API が将来変わる可能性があるため、Grove 側で抽象化レイヤーを設けて変更に追従できるようにする
+- **JSONL の正式スキーマは未公開**: third-party 記事ベースで実装しつつ、実機で逆算する
+- **2 種類の worktree に対応**: ユーザー独自スキルで作成された worktree と、`claude --worktree` で作成された worktree（`<repo>/.claude/worktrees/<name>`）の両方を検出する
 
 ---
 
@@ -211,16 +248,45 @@ interface Worktree {
 // エージェント状態（Phase 2）
 interface AgentStatus {
   isRunning: boolean;
-  agents: Agent[];
+  // 単一セッション (subagent も含む)
+  session?: ClaudeSession;
+  // Agent Team が存在する場合
+  team?: AgentTeam;
 }
 
-interface Agent {
+interface ClaudeSession {
+  sessionId: string;        // UUID
+  pid?: number;             // 稼働中なら PID
+  cwd: string;              // 各メッセージの cwd フィールドから取得
+  lastActivity: string;     // ISO 8601
+  messageCount: number;     // sessions-index.json から取得
+  gitBranch: string;        // sessions-index.json から取得
+  autoSummary: string;      // sessions-index.json から取得
+}
+
+interface AgentTeam {
+  teamName: string;
+  configPath: string;       // ~/.claude/teams/<team-name>/config.json
+  members: AgentTeamMember[];
+  tasks: AgentTeamTask[];
+}
+
+interface AgentTeamMember {
+  name: string;
+  agentId: string;
+  agentType: string;
+  isLead: boolean;
+}
+
+interface AgentTeamTask {
   id: string;
-  role: "lead" | "sub";
-  status: "active" | "waiting" | "completed";
-  currentTask: string;
+  description: string;
+  status: "pending" | "in_progress" | "completed";
+  assignee?: string;        // teammate 名
 }
 ```
+
+> **注**: Agent Teams は実験的機能 (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` で有効化) のため、上記スキーマは公式仕様ではなく実装時に逆算する必要がある。スキーマ変更に追従しやすいよう、Rust 側でデータ取得層を抽象化して切り替え可能にする。
 
 ---
 
@@ -266,17 +332,36 @@ fn open_in_editor(path: String) -> Result<(), String>
 ### 6.2 Phase 2 で追加するコマンド
 
 ```rust
-// Claude Code プロセス検知
+// 稼働中の claude プロセスを列挙
 #[tauri::command]
-fn detect_claude_code_processes(
-    worktree_path: String,
-) -> Result<Vec<AgentInfo>, String>
+fn list_claude_processes() -> Result<Vec<ClaudeProcess>, String>
 
-// Claude Code ログ監視開始
+// worktree path から ~/.claude/projects 配下のセッションメタデータを取得
 #[tauri::command]
-fn start_agent_monitor(
-    worktree_path: String,
-) -> Result<(), String>
+fn get_session_metadata(worktree_path: String) -> Result<SessionMetadata, String>
+
+// 最新セッションログ (JSONL) の tail を開始 (notify crate でファイル監視)
+#[tauri::command]
+fn watch_session_log(worktree_path: String) -> Result<(), String>
+
+// Agent Team の設定とタスクを取得
+#[tauri::command]
+fn list_agent_teams() -> Result<Vec<AgentTeam>, String>
+
+// Agent Team config.json を解析
+#[tauri::command]
+fn read_agent_team(team_name: String) -> Result<AgentTeam, String>
+```
+
+#### 6.3 worktree path → projects ディレクトリの変換
+
+`~/.claude/projects/` の命名規約は「絶対パスの `/` を `-` に置換」。Grove はこの変換ロジックを Rust ヘルパーとして実装する:
+
+```rust
+fn worktree_path_to_projects_dir(worktree_path: &str) -> PathBuf {
+    let encoded = worktree_path.replace('/', "-");
+    dirs::home_dir().unwrap().join(".claude/projects").join(encoded)
+}
 ```
 
 ---
@@ -337,34 +422,55 @@ interface AppStore {
 
 ## 8. 開発フェーズ
 
+> **マイルストーン定義は [ROADMAP.md](./ROADMAP.md) を参照**
+>
+> 本セクションは技術的な「Phase」（実装の論理的な塊）を示す。「いつまでに何をやるか」のマイルストーン（M0/M1/M2）は ROADMAP.md で管理する。
+>
+> 対応関係:
+> - Phase 1（基本機能）→ M0 + M1 で段階的に実装
+> - Phase 2（Claude Code 連携）→ M0 完成後、M1 / M2 にまたがって実装
+> - Phase 3（Polish）→ M2 で実装
+
 ### Phase 1 — MVP（基本機能）
 
-リポジトリ管理と worktree の基本的な CRUD 操作を実装する。
+リポジトリ管理と worktree の基本的な操作を実装する。
 
-- [ ] Tauri 2 + React + TypeScript プロジェクトのセットアップ
-- [ ] 左サイドバー（リポジトリ一覧）
+- [ ] Tauri 2 + React 19 + TypeScript + Tailwind v4 プロジェクトのセットアップ
+- [ ] 左サイドバー（リポジトリ一覧、複数リポジトリ対応）
 - [ ] メインエリア（worktree カード Grid 表示）
-- [ ] worktree の新規作成ダイアログ
-- [ ] worktree の削除（確認ダイアログ付き）
-- [ ] Git status 情報の表示（変更数、ahead/behind）
-- [ ] VS Code で開くボタン
-- [ ] リポジトリ登録の永続化（tauri-plugin-store）
-- [ ] 自動リフレッシュ（ポーリング）
+- [ ] worktree カードのラベル機能（ADR-0008）
+- [ ] worktree の削除（確認ダイアログ付き、ブランチ削除オプション含む）
+- [ ] worktree の新規作成ダイアログ（M1 で実装、ADR-0008 関連）
+- [ ] worktree の rename 機能（M1 で実装、ADR-0008）
+- [ ] Git status 情報の表示（変更数のみ、ADR-0011）
+- [ ] ahead/behind 表示（M1 以降、ADR-0010）
+- [ ] VS Code で開くボタン + preflight チェック（ADR-0012）
+- [ ] リポジトリ登録の永続化（tauri-plugin-store、ADR-0005）
+- [ ] ウィンドウサイズ・位置の永続化（tauri-plugin-window-state）
+- [ ] 自動リフレッシュ（ポーリング → ファイル監視に進化、ADR-0013）
+- [ ] 手動リフレッシュボタン + Cmd+R ショートカット
+- [ ] UI は日本語のみ（ADR-0009）
+- [ ] エラーハンドリングは preflight 原則に従う（ADR-0012）
 
 ### Phase 2 — Agent（Claude Code 連携）
 
 Claude Code エージェントの状況をリアルタイムに可視化する。
+スパイク調査により公式ドキュメント裏付けを得て、設計書当初の野心通りに実装可能と判明（ROADMAP.md「検証ログ」参照）。
 
-- [ ] Claude Code プロセスの稼働検知
-- [ ] 作業内容のリアルタイム表示
-- [ ] エージェントチーム（Lead / Sub）の可視化
+- [ ] Claude Code プロセスの稼働検知（`ps` + `lsof`）
+- [ ] worktree path → `~/.claude/projects/` の変換ロジック
+- [ ] `sessions-index.json` からのメタデータ取得
+- [ ] 最新 JSONL の tail 監視（`notify` crate）
 - [ ] 詳細パネル（右カラム）の実装
-- [ ] 変更ファイル一覧の表示
-- [ ] コミット履歴とエージェント帰属の表示
+- [ ] Agent Teams 検知（`~/.claude/teams/*/config.json`）
+- [ ] Lead / Teammate の一覧と各タスクの進捗表示
+- [ ] Subagent 検知（親プロセスの引数解析）
+- [ ] コミット履歴の表示
+- [ ] コミット帰属の手動運用ガイド（自動判定は困難なため）
 
 ### Phase 3 — Polish（拡張・改善）
 
-ユーザー体験の向上と機能拡張を行う。
+ユーザー体験の向上と機能拡張を行う。M2 段階で実装する。
 
 - [ ] エディタ選択機能（VS Code / Cursor / その他）
 - [ ] ターミナル起動ボタン
@@ -372,7 +478,12 @@ Claude Code エージェントの状況をリアルタイムに可視化する�
 - [ ] 通知機能（エージェント完了時など）
 - [ ] テーマ対応（ライト / ダーク / システム連動）
 - [ ] 設定画面
-- [ ] キーボードショートカット
+- [ ] キーボードショートカットの拡充
+- [ ] i18n / 英語対応（ADR-0009）
+- [ ] テレメトリ（opt-in、ADR-0006）
+- [ ] 自動更新機能
+- [ ] Homebrew tap での配布（ADR-0007）
+- [ ] コード署名（M2 で再判断、ADR-0007）
 
 ---
 
