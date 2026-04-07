@@ -559,6 +559,503 @@ grove/
 
 ---
 
+## 11. 処理フロー・シーケンス図
+
+実装時に「ここの分岐どうするんやっけ」「リフレッシュのトリガーどこから来るんやっけ」を防ぐため、主要な処理フローを図示する。Mermaid 形式で記述（GitHub で自動レンダリングされる）。
+
+---
+
+### 11.1 トリガー一覧
+
+Grove で発生する全てのトリガー（イベント・タイマー・ライフサイクル）の一覧。実装時はこれを潰し漏れなく対応する。
+
+| # | トリガー | 種別 | 発生条件 | 起動する処理 | フェーズ |
+|---|---|---|---|---|---|
+| T01 | アプリ起動 | ライフサイクル | ユーザーが Grove を起動 | 設定読込 → preflight チェック → worktree 一覧取得 → ポーリング開始 | M0 |
+| T02 | アプリ終了 | ライフサイクル | ウィンドウクローズ | ポーリング停止 → ファイル監視解除 → store flush | M0 |
+| T03 | ポーリングタイマー | タイマー | 5 秒間隔（ADR-0013） | 全リポジトリの worktree 一覧 + git status を再取得 | M0 |
+| T04 | プロセススキャンタイマー | タイマー | 3 秒間隔（仮、Phase 2） | `ps aux | grep claude` で claude プロセス列挙 → cwd 取得 → worktree マッチング | Phase 2 |
+| T05 | JSONL ファイル変更 | ファイル監視 | `~/.claude/projects/<encoded>/<uuid>.jsonl` への追記 | 新規行を tail → JSONL parse → ClaudeSession 更新 | Phase 2 |
+| T06 | リポジトリ追加ボタン クリック | ユーザー | サイドバーの「+ Add repository」 | ディレクトリ選択ダイアログ → validate → store 保存 → worktree 一覧取得 | M0 |
+| T07 | リポジトリ選択 | ユーザー | サイドバー上のリポジトリ項目クリック | 選択中リポジトリ ID 更新 → メインエリアに対応 worktree カードを表示 | M0 |
+| T08 | worktree カード選択 | ユーザー | カードクリック | 詳細パネル表示（M1 以降） | M1+ |
+| T09 | VS Code ボタン クリック | ユーザー | カード上の VS Code アイコン | preflight 通過済みなら `open_in_editor(path)` を実行 | M0 |
+| T10 | Remove ボタン クリック | ユーザー | カード上の Remove アイコン | 確認ダイアログ表示 → 削除実行 | M0 |
+| T11 | 削除ダイアログ 確定 | ユーザー | ダイアログ内「削除」ボタン | `remove_worktree` 実行（force / branch 削除フラグ含む） | M0 |
+| T12 | 削除ダイアログ キャンセル | ユーザー | ダイアログ内「キャンセル」/ Esc / × | ダイアログ閉じる、何もしない | M0 |
+| T13 | ラベル鉛筆 クリック | ユーザー | カードの鉛筆アイコン | 編集モードに遷移（インライン input 表示） | M0 |
+| T14 | ラベル確定 ボタン | ユーザー | 編集モード中の確定アイコン | 新しいラベルを store に保存 → 表示モードに戻る | M0 |
+| T15 | ラベル確定 Cmd+Enter | キーボード | 編集モード中の Cmd+Enter | T14 と同じ | M0 |
+| T16 | ラベルキャンセル × | ユーザー | 編集モード中の × アイコン | 編集破棄、表示モードに戻る | M0 |
+| T17 | ラベルキャンセル Esc | キーボード | 編集モード中の Esc キー | T16 と同じ | M0 |
+| T18 | 手動リフレッシュ ボタン | ユーザー | 上部の更新アイコン | T03 と同じ処理を即座に実行（タイマーをリセットしない） | M0 |
+| T19 | 手動リフレッシュ Cmd+R | キーボード | グローバルショートカット | T18 と同じ | M0 |
+| T20 | ウィンドウリサイズ | ウィンドウ | ユーザーがリサイズ | tauri-plugin-window-state が自動でサイズ・位置を保存 | M0 |
+| T21 | ウィンドウ移動 | ウィンドウ | ユーザーがウィンドウ移動 | T20 と同じ | M0 |
+
+> **メモ**: T05 のファイル監視は M0 ではポーリング（T03）に統合される。M1 早期で notify crate に切り替える際に独立したトリガーとして実装する（ADR-0013）。
+
+---
+
+### 11.2 全体アーキテクチャ図
+
+レイヤー構成と責務分担。
+
+```mermaid
+graph TD
+    User[👤 User]
+
+    subgraph Frontend["Frontend (React + TypeScript)"]
+        Components[React Components]
+        Store[Zustand Store]
+        TauriClient[Tauri invoke / event API]
+    end
+
+    subgraph Backend["Backend (Rust + Tauri)"]
+        Commands[Tauri Commands]
+        GitModule[Git モジュール<br/>git2 crate]
+        ProcessModule[Process モジュール<br/>std::process::Command]
+        StoreModule[Store モジュール<br/>tauri-plugin-store]
+        WatcherModule[Watcher モジュール<br/>notify crate / M1+]
+    end
+
+    subgraph OS["OS / 外部リソース"]
+        FS[ファイルシステム]
+        Git[Git リポジトリ<br/>worktree 群]
+        Claude[~/.claude/<br/>projects/teams/tasks]
+        VSCode[VS Code<br/>code コマンド]
+    end
+
+    User -->|操作| Components
+    Components -->|state 参照/更新| Store
+    Components -->|invoke| TauriClient
+    Store -->|invoke| TauriClient
+    TauriClient -->|IPC| Commands
+
+    Commands --> GitModule
+    Commands --> ProcessModule
+    Commands --> StoreModule
+    Commands --> WatcherModule
+
+    GitModule --> Git
+    ProcessModule -->|ps/lsof/code| FS
+    ProcessModule -->|起動| VSCode
+    StoreModule --> FS
+    WatcherModule -->|監視| Claude
+    WatcherModule -->|監視| Git
+
+    WatcherModule -.->|emit event| TauriClient
+```
+
+---
+
+### 11.3 アプリ起動シーケンス（T01）
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Tauri as Tauri (main)
+    participant FE as Frontend (React)
+    participant Store as Zustand
+    participant Cmd as Tauri Commands (Rust)
+    participant PStore as tauri-plugin-store
+    participant Git
+    participant FS as File System
+
+    User->>Tauri: アプリ起動
+    Tauri->>Tauri: ウィンドウ生成<br/>(tauri-plugin-window-state がサイズ・位置を復元)
+    Tauri->>FE: WebView ロード
+    FE->>FE: コンポーネント mount
+
+    Note over FE: 初期化フェーズ開始
+
+    FE->>Cmd: invoke("load_config")
+    Cmd->>PStore: read config
+    PStore->>FS: ~/Library/Application Support/<br/>io.github.chieeeeno.grove/config.json 読込
+    FS-->>PStore: config JSON
+    PStore-->>Cmd: AppConfig
+    Cmd-->>FE: { repositories: [...] }
+    FE->>Store: setRepositories(repos)
+
+    par preflight チェック
+        FE->>Cmd: invoke("check_code_command")
+        Cmd->>FS: which code
+        FS-->>Cmd: path or not found
+        Cmd-->>FE: bool
+        FE->>Store: setCodeAvailable(bool)
+    and worktree 一覧取得
+        loop 各リポジトリ
+            FE->>Cmd: invoke("list_worktrees", { repo_path })
+            Cmd->>Git: git worktree list (porcelain)
+            Git-->>Cmd: worktree list
+            Cmd->>Git: git status (各 worktree)
+            Git-->>Cmd: status info
+            Cmd-->>FE: Worktree[]
+            FE->>Store: setWorktrees(repoId, worktrees)
+        end
+    end
+
+    Note over FE: 初期化完了
+
+    FE->>FE: ポーリングタイマー開始 (5秒)
+    FE->>User: UI 表示
+```
+
+---
+
+### 11.4 リポジトリ追加フロー（T06）
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant FE as Frontend
+    participant Store as Zustand
+    participant Cmd as Tauri Commands
+    participant Dialog as Tauri Dialog API
+    participant Git
+    participant PStore as tauri-plugin-store
+
+    User->>FE: 「+ Add repository」 クリック
+    FE->>Dialog: openDirectory()
+    Dialog->>User: ディレクトリ選択ダイアログ表示
+    User->>Dialog: ディレクトリ選択
+    Dialog-->>FE: 選択パス
+
+    FE->>Cmd: invoke("validate_repository", { path })
+    Cmd->>Git: Repository::open(path)
+    alt 有効な Git リポジトリ
+        Git-->>Cmd: Repository
+        Cmd-->>FE: { name, path, isValid: true }
+
+        FE->>Store: addRepository(repo)
+        Store->>Cmd: invoke("save_config")
+        Cmd->>PStore: write config
+        PStore-->>Cmd: ok
+        Cmd-->>Store: ok
+
+        FE->>Cmd: invoke("list_worktrees", { repo_path })
+        Cmd-->>FE: Worktree[]
+        FE->>Store: setWorktrees(repoId, worktrees)
+        FE->>User: サイドバーに新リポジトリ表示
+    else 無効
+        Git-->>Cmd: Error
+        Cmd-->>FE: { isValid: false, error }
+        FE->>User: エラーメッセージ表示
+    end
+```
+
+---
+
+### 11.5 worktree 一覧 + 自動リフレッシュ（T03 / T18 / T19）
+
+ポーリング方式（M0）。M1 でファイル監視に差し替える際の入れ替え点を明示。
+
+```mermaid
+sequenceDiagram
+    participant Timer as Polling Timer<br/>(setInterval 5s)
+    participant FE as Frontend
+    participant Store as Zustand
+    participant Cmd as Tauri Commands
+    participant Git
+
+    rect rgba(200,200,200,0.2)
+        Note over Timer,Git: M0: ポーリング方式
+        loop 5 秒ごと
+            Timer->>FE: tick
+            FE->>FE: refreshWorktrees() を実行
+
+            loop 全登録リポジトリ
+                FE->>Cmd: invoke("list_worktrees", { repo_path })
+                Cmd->>Git: git worktree list
+                Git-->>Cmd: worktree list
+                Cmd-->>FE: Worktree[] (基本情報)
+
+                loop 各 worktree
+                    FE->>Cmd: invoke("get_worktree_status", { worktree_path })
+                    Cmd->>Git: git status --porcelain
+                    Git-->>Cmd: status output
+                    Cmd-->>FE: { modifiedCount, ... }
+                end
+            end
+
+            FE->>FE: 前回 state と diff 取得
+            alt 変化あり
+                FE->>Store: updateWorktrees(...)
+                Store->>FE: re-render
+            else 変化なし
+                Note over FE: re-render しない
+            end
+        end
+    end
+
+    rect rgba(255,230,200,0.3)
+        Note over Timer,Git: M1+: ファイル監視方式（差し替え点）
+        Note over Timer: setInterval を解除
+        Note over FE: notify crate からの<br/>ファイル変更イベント購読に変更<br/>(Tauri event listener)
+        Note over Cmd: ファイル監視は Rust 側で開始<br/>変化があれば emit event
+    end
+```
+
+**手動リフレッシュ（T18 / T19）**: ボタンクリック または Cmd+R で `refreshWorktrees()` を即時実行。タイマーはリセットせず、次の自動 tick はそのまま走る。
+
+---
+
+### 11.6 worktree 削除シーケンス（T10 / T11）
+
+force と branch 削除の分岐を明示。
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant FE as Frontend
+    participant Dialog as 確認ダイアログ
+    participant Cmd as Tauri Commands
+    participant Git
+    participant Store as Zustand
+
+    User->>FE: Remove ボタン クリック
+    FE->>Cmd: invoke("get_worktree_status", { worktree_path })
+    Cmd->>Git: git status --porcelain
+    Git-->>Cmd: status
+    Cmd-->>FE: { modifiedCount, hasUncommitted }
+
+    FE->>Dialog: 表示<br/>(uncommitted ありなら警告メッセージ)
+    Dialog->>User: 確認ダイアログ<br/>(ブランチ削除チェックボックス含む)
+
+    alt キャンセル (T12)
+        User->>Dialog: キャンセル / Esc / ×
+        Dialog-->>FE: cancelled
+        Note over FE: 何もしない
+    else 削除確定 (T11)
+        User->>Dialog: 「削除」 (ブランチ削除 ☑/☐)
+        Dialog-->>FE: { confirmed: true, deleteBranch: bool }
+
+        FE->>Cmd: invoke("remove_worktree", { worktree_path, force: hasUncommitted })
+
+        Cmd->>Git: git worktree remove [--force] <path>
+        alt 成功
+            Git-->>Cmd: ok
+            opt deleteBranch == true
+                Cmd->>Git: git branch -D <branch>
+                Git-->>Cmd: ok
+            end
+            Cmd-->>FE: ok
+            FE->>Store: removeWorktree(path)
+            Note over Store: ラベル store からも該当エントリを削除
+            FE->>User: カード消える
+        else 失敗
+            Git-->>Cmd: Error
+            Cmd-->>FE: Error
+            FE->>User: エラー表示
+        end
+    end
+```
+
+---
+
+### 11.7 ラベル編集の状態遷移（T13〜T17）
+
+ADR-0008 のラベル機能。状態遷移図で誤操作・整合性ロジックを潰す。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+
+    Idle --> Editing : 鉛筆クリック (T13)
+
+    Editing --> Idle : × クリック (T16)
+    Editing --> Idle : Esc キー (T17)
+    Editing --> Saving : 確定ボタン (T14)
+    Editing --> Saving : Cmd+Enter (T15)
+
+    Saving --> Idle : 保存成功
+    Saving --> Editing : 保存失敗 (リトライ可能)
+
+    note right of Editing
+        - インライン input 表示
+        - 鉛筆アイコンが確定アイコンに切り替わる
+        - × アイコンが横に出る
+        - Enter 単独では確定しない (誤操作防止)
+    end note
+
+    note right of Saving
+        Zustand store と
+        tauri-plugin-store の両方を更新
+    end note
+```
+
+---
+
+### 11.8 VS Code 起動 + preflight チェック（T09）
+
+ADR-0012 の preflight 原則に従う。起動時のチェックとボタンクリック時のフローを分けて図示。
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as アプリ起動シーケンス
+    participant FE as Frontend
+    participant Store as Zustand
+    participant Cmd as Tauri Commands
+    participant Shell as シェル
+
+    Note over App,Shell: 起動時の preflight (11.3 参照)
+    App->>Cmd: invoke("check_code_command")
+    Cmd->>Shell: which code
+    alt code が PATH にある
+        Shell-->>Cmd: /usr/local/bin/code
+        Cmd-->>FE: { available: true }
+        FE->>Store: setCodeAvailable(true)
+        Note over FE: 全カードの<br/>VS Code ボタン enabled
+    else code が無い
+        Shell-->>Cmd: not found
+        Cmd-->>FE: { available: false }
+        FE->>Store: setCodeAvailable(false)
+        Note over FE: アプリ上部にバナー警告表示
+        Note over FE: 全カードの<br/>VS Code ボタン disabled<br/>+ ホバー時ツールチップ
+    end
+
+    Note over User,Shell: クリック時 (T09)
+    User->>FE: VS Code ボタン クリック
+    alt codeAvailable == true
+        FE->>Cmd: invoke("open_in_editor", { path })
+        Cmd->>Shell: code <worktree-path>
+        Shell-->>Cmd: spawned
+        Cmd-->>FE: ok
+        Note over FE: 何もしない<br/>(VS Code が裏で起動)
+    else codeAvailable == false
+        Note over FE: ボタンが disabled なので<br/>そもそも click イベント発火しない
+    end
+```
+
+---
+
+### 11.9 ウィンドウサイズ・位置の永続化（T20 / T21）
+
+実装は tauri-plugin-window-state にほぼ任せる。設計上の挙動だけ明示。
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Tauri
+    participant Plugin as tauri-plugin-window-state
+    participant FS as File System
+
+    Note over Tauri,FS: 起動時
+    Tauri->>Plugin: init
+    Plugin->>FS: 前回の state 読込
+    FS-->>Plugin: { width, height, x, y, maximized }
+    Plugin->>Tauri: ウィンドウサイズ・位置を復元
+
+    Note over User,FS: 使用中 (T20 / T21)
+    loop ウィンドウイベント
+        User->>Tauri: リサイズ / 移動
+        Tauri->>Plugin: window event
+        Plugin->>Plugin: debounce (内部)
+        Plugin->>FS: state 保存
+    end
+
+    Note over User,FS: 終了時
+    User->>Tauri: ウィンドウクローズ
+    Tauri->>Plugin: window close event
+    Plugin->>FS: 最終 state 保存
+```
+
+---
+
+### 11.10 Phase 2: claude プロセス検知（T04）
+
+```mermaid
+sequenceDiagram
+    participant Timer as Process Scan Timer<br/>(setInterval 3s)
+    participant FE as Frontend
+    participant Cmd as Tauri Commands
+    participant Shell as シェル
+    participant Store as Zustand
+
+    loop 3 秒ごと (Phase 2)
+        Timer->>FE: tick
+        FE->>Cmd: invoke("list_claude_processes")
+
+        Cmd->>Shell: ps aux | grep claude
+        Shell-->>Cmd: process list
+
+        loop 各 PID
+            Cmd->>Shell: lsof -p <pid> | grep cwd
+            Shell-->>Cmd: cwd path
+            Cmd->>Cmd: 引数から sub-agent / main を判別
+        end
+
+        Cmd-->>FE: ClaudeProcess[]<br/>[{ pid, cwd, isSubAgent, ...}]
+
+        FE->>FE: cwd と worktree path をマッチング
+        loop 各 worktree
+            alt 紐付くプロセスあり
+                FE->>Store: setAgentStatus(worktreeId, { isRunning: true, ... })
+            else 無し
+                FE->>Store: setAgentStatus(worktreeId, { isRunning: false })
+            end
+        end
+
+        Note over FE: 変化のあった worktree カードのみ re-render
+    end
+```
+
+> **メモ**: ポーリング間隔（3 秒）は実装時に調整する。プロセススキャンは worktree リフレッシュ（5 秒）と独立したタイマーにする方が、責務分離と頻度調整の自由度が上がる。
+
+---
+
+### 11.11 Phase 2: セッションログ監視（T05）
+
+JSONL の tail を notify crate で実装。Tauri event を経由して Frontend に通知。
+
+```mermaid
+sequenceDiagram
+    actor User as ユーザー操作<br/>(Phase 2 検知時に自動開始)
+    participant FE as Frontend
+    participant Cmd as Tauri Commands
+    participant Watcher as Rust Watcher<br/>(notify crate)
+    participant FS as File System
+    participant Store as Zustand
+
+    Note over FE,Store: セッション検知時に開始
+    FE->>Cmd: invoke("watch_session_log", { worktree_path })
+    Cmd->>Cmd: worktree_path → encoded path 計算
+    Cmd->>FS: ~/.claude/projects/<encoded>/ を ls
+    FS-->>Cmd: <session-uuid>.jsonl の一覧
+    Cmd->>Cmd: 最新のセッションファイルを選択
+    Cmd->>Watcher: ファイル監視開始 (notify::Watcher)
+    Watcher->>FS: inode 監視 (FSEvents)
+    Cmd-->>FE: ok
+
+    Note over Watcher,Store: 以降、ファイル変化があるたびに
+
+    loop ファイル追記イベント
+        FS->>Watcher: file modified event
+        Watcher->>Watcher: debounce (100ms)
+        Watcher->>FS: 前回の offset から差分読込
+        FS-->>Watcher: 新規 lines
+        Watcher->>Watcher: 各行を JSON parse
+        Watcher->>Cmd: SessionEvent[]
+        Cmd->>FE: emit("session_log_event", { worktree_path, events })
+        FE->>FE: Tauri event listener で受信
+        FE->>Store: appendSessionEvents(worktreeId, events)
+        Note over Store: ClaudeSession.lastActivity 更新<br/>messageCount インクリメント など
+    end
+
+    Note over FE,Store: worktree 削除時 / アプリ終了時
+    FE->>Cmd: invoke("unwatch_session_log", { worktree_path })
+    Cmd->>Watcher: 監視解除
+    Watcher->>FS: unwatch
+```
+
+> **メモ**:
+> - 同一 worktree で複数セッションが並行することがある（`claude --resume` 等）。実装時は最新セッションだけでなく「直近 N 件のアクティブセッション」を監視する設計を検討する
+> - リソースリーク防止のため、worktree 削除時には必ず `unwatch_session_log` を呼ぶ
+> - notify crate の挙動は OS 依存。macOS の FSEvents は深いディレクトリで重くなることがあるため、監視対象は `<session-uuid>.jsonl` ファイル単位に絞る（プロジェクトディレクトリ全体は監視しない）
+
+---
+
 ## 付録
 
 ### A. 参考リンク
