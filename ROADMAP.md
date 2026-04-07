@@ -63,7 +63,7 @@
 | アプリ名 | Grove | 2026-04-07 | 確定 |
 | アプリ識別子 | `io.github.chieeeeno.grove` | 2026-04-07 | GitHub アカウント名前空間 |
 | ライセンス | Apache-2.0 | 2026-04-07 | Rust エコシステムと作法を揃える + 特許保護 |
-| 設定ファイルパス | TBD | - | tauri-plugin-store のデフォルト or カスタム |
+| 設定ファイルパス | tauri-plugin-store デフォルト | 2026-04-07 | `~/Library/Application Support/io.github.chieeeeno.grove/`。詳細は ADR-0005 |
 | 設定スキーマバージョニング | TBD | - | migration 戦略 |
 | 配布形態（M1） | TBD | - | GitHub Releases? |
 | 対応OS（M0/M1） | macOS のみ | 2026-04-07 | 開発者が macOS のみ所有。詳細は ADR-0004 |
