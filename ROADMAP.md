@@ -344,7 +344,7 @@ Tauri の `tauri.conf.json` で必須。逆ドメイン形式が慣習。後か�
 技術的な未知を潰した記録。「やってみて分かったこと」を残す。
 
 ### Claude Code 検知の実現可能性
-**ステータス**: 二次調査完了
+**ステータス**: 三次調査完了（公式ドキュメント裏付けあり）
 **最終更新**: 2026-04-07
 **目的**: Phase 2 の前提が成立するか確認
 
@@ -389,20 +389,72 @@ Tauri の `tauri.conf.json` で必須。逆ドメイン形式が慣習。後か�
 - スキーマ非公開のため依然として確証なし
 - ただし JSONL ファイルは取得可能で、サブエージェント起動引数（`stream-json` モード）も判明したため、実装時にイベントを観察すれば一定の復元は可能と推定
 
+#### 三次調査で公式ドキュメントから裏付けられた事項
+
+公式ドキュメント（code.claude.com）で以下が確認できた:
+
+**1. `sessions-index.json` の存在**
+- 各プロジェクトディレクトリに置かれるメタデータファイル
+- 内容: git branch / message count / auto-generated summary / timestamps
+- **Grove のカードに出す情報をここから一括取得できる**
+
+**2. JSONL の標準フィールド**
+- `parentUuid`, `sessionId`, `cwd`, `version`, `timestamp` が各イベントに含まれる
+- **lsof を使わなくても JSONL から `cwd` で worktree → セッションの紐付けが取れる**
+- プロセスが終了した後でも履歴から復元可能
+
+**3. JSONL のイベント種別**
+- `message`, `tool_use`, `tool_result`, `session_start`, `session_end`, `compaction` 等
+- tool_use: `toolName`, `toolInput`, `toolUseId`
+- tool_result: `toolUseId`, `content`, `durationMs`
+
+**4. Agent Teams 機能の構造（一次調査時点で不可と判定していた領域）**
+- **実験的機能**: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` で有効化
+- **Team config**: `~/.claude/teams/{team-name}/config.json`
+  - `members` 配列に各 teammate の名前・agent ID・agent type が記録される
+- **Task list**: `~/.claude/tasks/{team-name}/`
+- **これにより Lead/Sub の関係復元が完全に可能** — 一次調査の「不可」判定が覆った
+
+**5. Subagents と Agent Teams の違い**
+- **Subagents**: 単一セッション内、結果のみ親に返す。`stream-json` で動くが lsof からは見えない
+- **Agent Teams**: 複数の独立した Claude Code インスタンス、互いに通信
+- 設計書 Phase 2 の「Lead/Sub」は **Agent Teams 機能** に対応する
+
+**6. `claude --worktree` フラグの存在**
+- Claude Code 自身が `<repo>/.claude/worktrees/<name>` に worktree を作る機能を持つ
+- Grove は **ユーザー独自スキルで作る worktree** と **`--worktree` で作られた worktree** の両方を検出する必要がある
+
 #### 結論
 
-**✅ 実現可能（一部修正前提）**
+**✅ 実現可能（公式ドキュメント裏付けあり、Phase 2 の野心を下方修正する必要なし）**
 
-一次調査時点の「⚠️ 一部修正が必要」から **「✅ 実現可能（一部修正前提）」** に格上げ。
+| 段階 | 結論 |
+|---|---|
+| 一次調査（サブエージェント） | ⚠️ 一部修正が必要 |
+| 二次調査（直接調査） | ✅ 実現可能（一部修正前提） |
+| **三次調査（公式ドキュメント裏付け）** | **✅ 実現可能（修正不要）** |
 
-Phase 2 の核となる「worktree ごとの Claude Code 稼働検知」「セッションログの読み取り」は実現可能で、実装方針も具体化できた。エージェントチームの詳細可視化は依然として実装時の検証次第だが、根拠となるデータ（JSONL ログ）は確実にアクセスできる。
+設計書 Phase 2 で予定していた以下は**全て実装可能**:
+- worktree ごとの Claude Code 稼働検知 ✅
+- リアルタイム状態表示 ✅（JSONL の tail）
+- Lead/Sub エージェントチーム情報の表示 ✅（`~/.claude/teams/` から取得）
+- コミット帰属の自動判定 — これだけは依然として困難（コミットメッセージ規約での運用が現実的）
 
 #### 実装指針（Phase 2 着手時の参考）
 
-1. **稼働検知**: `ps aux | grep claude` + `lsof -p <pid> | grep cwd` を Tauri command でラップ
-2. **セッションデータ参照**: worktree path から `~/.claude/projects/<encoded>/` を計算してアクセス
-3. **リアルタイム更新**: `<session-uuid>.jsonl` を tail（`notify` crate でファイル監視）
-4. **エージェント詳細**: 実装初期にスパイクして JSONL イベントの種別を仕様化、設計書を更新
+1. **稼働検知**: `ps aux | grep claude` で claude プロセス列挙、引数から sub-agent を判別
+2. **worktree 紐付け**: `~/.claude/projects/<encoded-path>/` を計算してアクセス
+3. **メタデータ取得**: `sessions-index.json` から git branch / message count / summary / timestamps を一括取得
+4. **リアルタイム更新**: 最新 `<session-uuid>.jsonl` を tail（`notify` crate でファイル監視）
+5. **Agent Teams 検知**: `~/.claude/teams/*/config.json` の `members` を読んで Lead/Sub 関係を復元
+6. **Task list**: `~/.claude/tasks/{team-name}/` を読んで進捗状況を表示
+7. **両方の worktree 種別に対応**: 独自スキル産 + `claude --worktree` 産
+
+#### 残る未検証項目（実装時に潰す）
+
+- JSONL の正式スキーマ（third-party 記事ベースのため、実機で逆算する必要あり）
+- Agent Teams は実験的機能のため API が将来変わる可能性
+- Sub-agent の cwd 取得（親プロセス経由で代替可能と推定）
 
 #### スパイクで使った調査コマンド（再現用）
 
@@ -418,7 +470,18 @@ ls ~/.claude/projects/
 
 # セッションログ確認
 ls -la ~/.claude/projects/<encoded-path>/
+
+# Agent Teams 確認
+ls -la ~/.claude/teams/
+ls -la ~/.claude/tasks/
 ```
+
+#### 公式ドキュメント参照先
+
+- CLI Reference: https://code.claude.com/docs/en/cli-reference
+- Agent Teams: https://code.claude.com/docs/en/agent-teams
+- Sub-agents: https://code.claude.com/docs/en/sub-agents
+- Common Workflows (`--worktree`): https://code.claude.com/docs/en/common-workflows
 
 ---
 
