@@ -66,7 +66,7 @@
 | 設定ファイルパス | TBD | - | tauri-plugin-store のデフォルト or カスタム |
 | 設定スキーマバージョニング | TBD | - | migration 戦略 |
 | 配布形態（M1） | TBD | - | GitHub Releases? |
-| 対応OS（M0/M1） | TBD | - | macOS のみ? |
+| 対応OS（M0/M1） | macOS のみ | 2026-04-07 | 開発者が macOS のみ所有。詳細は ADR-0004 |
 | テレメトリ | TBD | - | 入れる/入れへん |
 
 ---
