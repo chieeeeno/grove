@@ -1,0 +1,1428 @@
+{
+  "version": "2.10",
+  "children": [
+    {
+      "type": "frame",
+      "id": "Klfj2",
+      "x": 0,
+      "y": 0,
+      "name": "Grove - Main Screen",
+      "width": 1280,
+      "height": 800,
+      "fill": "$bg-app",
+      "children": [
+        {
+          "type": "frame",
+          "id": "sYrxe",
+          "name": "Sidebar",
+          "width": 220,
+          "height": "fill_container",
+          "fill": "$bg-sidebar",
+          "stroke": {
+            "thickness": {
+              "right": 1
+            },
+            "fill": "$border-default"
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            20,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "YZ7Hl",
+              "name": "Logo",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "BYzkC",
+                  "name": "logoIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "trees",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-green"
+                },
+                {
+                  "type": "text",
+                  "id": "AiV0c",
+                  "name": "logoText",
+                  "fill": "$text-primary",
+                  "content": "Grove",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "5WsoF",
+                  "name": "logoVersion",
+                  "fill": "$text-muted",
+                  "content": "v0.1.0",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "Jkun8",
+              "name": "divider1",
+              "fill": "$border-default",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "text",
+              "id": "q1qK3",
+              "name": "repoLabel",
+              "fill": "$text-muted",
+              "content": "リポジトリ",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5
+            },
+            {
+              "type": "frame",
+              "id": "0NuDn",
+              "name": "RepoList",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "WdUAK",
+                  "name": "RepoItem-Active",
+                  "width": "fill_container",
+                  "fill": "$bg-card",
+                  "cornerRadius": "$radius-sm",
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "uqxsA",
+                      "name": "repo1Icon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "git-branch",
+                      "iconFontFamily": "lucide",
+                      "fill": "$accent-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "VBvLR",
+                      "name": "repo1Name",
+                      "fill": "$text-primary",
+                      "content": "grove-app",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "y83l8",
+                      "name": "repo1Badge",
+                      "fill": "$accent-primary",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        6
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qPsLN",
+                          "name": "repo1BadgeText",
+                          "fill": "$text-inverse",
+                          "content": "3",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PQne9",
+                  "name": "RepoItem",
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-sm",
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "aBYPT",
+                      "name": "repo2Icon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "git-branch",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "UpgoW",
+                      "name": "repo2Name",
+                      "fill": "$text-secondary",
+                      "content": "my-portfolio",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZKpgg",
+                      "name": "repo2Badge",
+                      "fill": "$border-default",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        6
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lzO9u",
+                          "name": "repo2BadgeText",
+                          "fill": "$text-secondary",
+                          "content": "5",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Q14dR",
+                  "name": "RepoItem",
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-sm",
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "j88VO",
+                      "name": "repo3Icon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "git-branch",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "cvrwQ",
+                      "name": "repo3Name",
+                      "fill": "$text-secondary",
+                      "content": "todo-cli",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ziM1g",
+                      "name": "repo3Badge",
+                      "fill": "$border-default",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        6
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "tggrp",
+                          "name": "repo3BadgeText",
+                          "fill": "$text-secondary",
+                          "content": "2",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "yHr1D",
+              "name": "AddRepoButton",
+              "width": "fill_container",
+              "cornerRadius": "$radius-sm",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "gap": 6,
+              "padding": [
+                8,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "EBaAW",
+                  "name": "addIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "plus",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                },
+                {
+                  "type": "text",
+                  "id": "rKWbC",
+                  "name": "addText",
+                  "fill": "$text-muted",
+                  "content": "リポジトリを追加",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "TtbII",
+          "name": "MainArea",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            20,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "mGPF3",
+              "name": "MainHeader",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "75INQ",
+                  "name": "headerLeft",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "6mmha",
+                      "name": "headerIcon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "folder-git-2",
+                      "iconFontFamily": "lucide",
+                      "fill": "$accent-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "fQFDY",
+                      "name": "headerTitle",
+                      "fill": "$text-primary",
+                      "content": "grove-app",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DVwPb",
+                      "name": "headerPath",
+                      "fill": "$text-muted",
+                      "content": "/Users/tomoki/work/private/grove-app",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kEI90",
+                  "name": "headerRight",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "bcAzR",
+                      "name": "refreshBtn",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "9RQ0V",
+                          "name": "refreshIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "refresh-cw",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "l2tFI",
+              "name": "WorktreeGrid",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "oZmph",
+                  "name": "Column1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "EOUDp",
+                      "name": "Card-Main",
+                      "width": "fill_container",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xNnmj",
+                          "name": "card1Header",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "PZQzB",
+                              "name": "card1LabelRow",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Jrh24",
+                                  "name": "card1Label",
+                                  "fill": "$text-primary",
+                                  "content": "grove-app",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 15,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "gLxe8",
+                                  "name": "card1Branch",
+                                  "fill": "$text-muted",
+                                  "content": "main",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "457Ov",
+                              "name": "card1Badge",
+                              "fill": "#34D39933",
+                              "cornerRadius": 10,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "bzK7i",
+                                  "name": "card1BadgeIcon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "shield-check",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-green"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "FlOci",
+                                  "name": "card1BadgeText",
+                                  "fill": "$accent-green",
+                                  "content": "primary",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "AsEnb",
+                          "name": "card1Divider",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "y1jnL",
+                          "name": "card1Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "LjVxT",
+                              "name": "card1Commit",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "kPPyc",
+                                  "name": "card1CommitIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "git-commit-horizontal",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$text-muted"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "aNds4",
+                                  "name": "card1CommitText",
+                                  "fill": "$text-secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "docs: add §11 process flows",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "6hmYr",
+                                  "name": "card1Time",
+                                  "fill": "$text-muted",
+                                  "content": "2h ago",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "QFBQ3",
+                              "name": "card1Stats",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "sX7x0",
+                                  "name": "card1Modified",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "8jQCx",
+                                      "name": "card1ModIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "file-pen",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$text-muted"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "7wY79",
+                                      "name": "card1ModText",
+                                      "fill": "$text-muted",
+                                      "content": "0 changes",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "d6gwV",
+                          "name": "card1Actions",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "PAujO",
+                              "name": "card1VsBtn",
+                              "fill": "$accent-primary",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "laUmB",
+                                  "name": "card1VsIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "code",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#FFFFFF"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "QgRdQ",
+                                  "name": "card1VsText",
+                                  "fill": "#FFFFFF",
+                                  "content": "VS Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ievT4",
+                      "name": "Card-ClaudeActive",
+                      "width": "fill_container",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 2,
+                        "fill": "$accent-blue"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "8m9Z0",
+                          "name": "card3Header",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "xvFQp",
+                              "name": "card3LabelRow",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "5mSbm",
+                                  "name": "card3LabelGroup",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "Hc6vT",
+                                      "name": "card3Label",
+                                      "fill": "$text-primary",
+                                      "content": "DEVT-7490-e2e-test",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 15,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "cNxAn",
+                                      "name": "card3Branch",
+                                      "fill": "$text-muted",
+                                      "content": "feature/DEVT-7490-e2e-test-setup",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "TjAtG",
+                                  "name": "card3EditBtn",
+                                  "cornerRadius": "$radius-sm",
+                                  "padding": 4,
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "GpZgk",
+                                      "name": "card3EditIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "pencil",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$text-muted"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "4KzwS",
+                              "name": "card3Badge",
+                              "fill": "#60A5FA33",
+                              "cornerRadius": 10,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "iO9JP",
+                                  "name": "card3BadgeIcon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "bot",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-blue"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "1YB4A",
+                                  "name": "card3BadgeText",
+                                  "fill": "$accent-blue",
+                                  "content": "Claude Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "uQL0c",
+                          "name": "card3Div",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "jDhcS",
+                          "name": "card3Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "1dQBr",
+                              "name": "card3Commit",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "VQdZy",
+                                  "name": "card3CmtIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "git-commit-horizontal",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$text-muted"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "mtDzB",
+                                  "name": "card3CmtText",
+                                  "fill": "$text-secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "feat: add e2e test setup with Playwright",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "YPzq6",
+                                  "name": "card3CmtTime",
+                                  "fill": "$text-muted",
+                                  "content": "30m ago",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ChP8E",
+                              "name": "card3Stats",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "3tVCS",
+                                  "name": "card3Mod",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "nZoRb",
+                                      "name": "card3ModIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "file-pen",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$accent-yellow"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "qjCfl",
+                                      "name": "card3ModText",
+                                      "fill": "$accent-yellow",
+                                      "content": "7 changes",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "XVct3",
+                              "name": "card3Agent",
+                              "width": "fill_container",
+                              "fill": "#60A5FA11",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "wIaNC",
+                                  "name": "card3AgentIcon",
+                                  "width": 13,
+                                  "height": 13,
+                                  "iconFontName": "sparkles",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-blue"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "3r8mR",
+                                  "name": "card3AgentText",
+                                  "fill": "$accent-blue",
+                                  "content": "E2E テスト環境構築中...",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "COe6X",
+                          "name": "card3Actions",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "PseLS",
+                              "name": "card3VsBtn",
+                              "fill": "$accent-primary",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "DGzD0",
+                                  "name": "card3VsIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "code",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#FFFFFF"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "KNXwM",
+                                  "name": "card3VsText",
+                                  "fill": "#FFFFFF",
+                                  "content": "VS Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "aDVA8",
+                              "name": "card3RmBtn",
+                              "cornerRadius": "$radius-sm",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "$border-default"
+                              },
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "sLtaA",
+                                  "name": "card3RmIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "trash-2",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-red"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "E65ip",
+                                  "name": "card3RmText",
+                                  "fill": "$accent-red",
+                                  "content": "Remove",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "0rMUj",
+                  "name": "Column2",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wdS6t",
+                      "name": "Card-Idle",
+                      "width": "fill_container",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "JlnQl",
+                          "name": "card2Header",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "yS3Pf",
+                              "name": "card2LabelRow",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "9GP40",
+                                  "name": "card2LabelGroup",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "r2NfZ",
+                                      "name": "card2Label",
+                                      "fill": "$text-primary",
+                                      "content": "add-detail-panel",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 15,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "tRiCE",
+                                      "name": "card2Branch",
+                                      "fill": "$text-muted",
+                                      "content": "feature/detail-panel",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "WIylB",
+                                  "name": "card2EditBtn",
+                                  "cornerRadius": "$radius-sm",
+                                  "padding": 4,
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "22P28",
+                                      "name": "card2EditIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "pencil",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$text-muted"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "9gsjH",
+                              "name": "card2Badge",
+                              "fill": "#6B728033",
+                              "cornerRadius": 10,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "HLfYD",
+                                  "name": "card2BadgeText",
+                                  "fill": "$accent-gray",
+                                  "content": "idle",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "0WMPa",
+                          "name": "card2Div",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wWtwA",
+                          "name": "card2Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "urGwC",
+                              "name": "card2Commit",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "fdyzh",
+                                  "name": "card2CmtIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "git-commit-horizontal",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$text-muted"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "R76d8",
+                                  "name": "card2CmtText",
+                                  "fill": "$text-secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "feat: add detail panel component",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ElYOZ",
+                                  "name": "card2CmtTime",
+                                  "fill": "$text-muted",
+                                  "content": "5h ago",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "8OqQ4",
+                              "name": "card2Stats",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "kvN7P",
+                                  "name": "card2Mod",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "1AftA",
+                                      "name": "card2ModIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "file-pen",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$accent-yellow"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "qOY2I",
+                                      "name": "card2ModText",
+                                      "fill": "$accent-yellow",
+                                      "content": "3 changes",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "g5BSl",
+                          "name": "card2Actions",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "rVNyz",
+                              "name": "card2VsBtn",
+                              "fill": "$accent-primary",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "HZRkj",
+                                  "name": "card2VsIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "code",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#FFFFFF"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "QKYeE",
+                                  "name": "card2VsText",
+                                  "fill": "#FFFFFF",
+                                  "content": "VS Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Mhx78",
+                              "name": "card2RmBtn",
+                              "cornerRadius": "$radius-sm",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "$border-default"
+                              },
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "5RVdV",
+                                  "name": "card2RmIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "trash-2",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-red"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "DhlZ6",
+                                  "name": "card2RmText",
+                                  "fill": "$accent-red",
+                                  "content": "Remove",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "accent-blue": {
+      "type": "color",
+      "value": "#60A5FA"
+    },
+    "accent-gray": {
+      "type": "color",
+      "value": "#6B7280"
+    },
+    "accent-green": {
+      "type": "color",
+      "value": "#34D399"
+    },
+    "accent-primary": {
+      "type": "color",
+      "value": "#4F6EF7"
+    },
+    "accent-red": {
+      "type": "color",
+      "value": "#F87171"
+    },
+    "accent-yellow": {
+      "type": "color",
+      "value": "#FBBF24"
+    },
+    "bg-app": {
+      "type": "color",
+      "value": "#0F1117"
+    },
+    "bg-card": {
+      "type": "color",
+      "value": "#1C1F2E"
+    },
+    "bg-card-hover": {
+      "type": "color",
+      "value": "#242838"
+    },
+    "bg-dialog": {
+      "type": "color",
+      "value": "#1E2130"
+    },
+    "bg-input": {
+      "type": "color",
+      "value": "#232636"
+    },
+    "bg-sidebar": {
+      "type": "color",
+      "value": "#161822"
+    },
+    "border-active": {
+      "type": "color",
+      "value": "#4F6EF7"
+    },
+    "border-default": {
+      "type": "color",
+      "value": "#2A2E3F"
+    },
+    "radius-lg": {
+      "type": "number",
+      "value": 12
+    },
+    "radius-md": {
+      "type": "number",
+      "value": 8
+    },
+    "radius-sm": {
+      "type": "number",
+      "value": 6
+    },
+    "spacing-lg": {
+      "type": "number",
+      "value": 16
+    },
+    "spacing-md": {
+      "type": "number",
+      "value": 12
+    },
+    "spacing-sm": {
+      "type": "number",
+      "value": 8
+    },
+    "spacing-xl": {
+      "type": "number",
+      "value": 24
+    },
+    "spacing-xs": {
+      "type": "number",
+      "value": 4
+    },
+    "text-inverse": {
+      "type": "color",
+      "value": "#0F1117"
+    },
+    "text-muted": {
+      "type": "color",
+      "value": "#6B7280"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#E5E7EB"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#9CA3AF"
+    }
+  }
+}
