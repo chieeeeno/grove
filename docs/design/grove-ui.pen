@@ -5673,6 +5673,1347 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "JUKvh",
+      "x": 2740,
+      "y": 0,
+      "name": "Delete Dialog (Dark)",
+      "theme": {
+        "mode": "dark"
+      },
+      "width": 440,
+      "fill": "$bg-dialog",
+      "cornerRadius": "$radius-lg",
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "oF6bb",
+          "name": "delHeader",
+          "width": "fill_container",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "jOKSS",
+              "name": "delIcon",
+              "fill": "#F8717118",
+              "cornerRadius": "$radius-md",
+              "padding": 8,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "rBFMH",
+                  "name": "delIconInner",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "triangle-alert",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-red"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "RP3xl",
+              "name": "delTitleGroup",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xY7Y9",
+                  "name": "delTitle",
+                  "fill": "$text-primary",
+                  "content": "worktree を削除しますか？",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "xKGlB",
+                  "name": "delSubtitle",
+                  "fill": "$text-muted",
+                  "content": "この操作は元に戻せません",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "3QBff",
+          "name": "delDiv1",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "UzMVW",
+          "name": "delInfo",
+          "width": "fill_container",
+          "fill": "$bg-card",
+          "cornerRadius": "$radius-md",
+          "layout": "vertical",
+          "gap": 8,
+          "padding": [
+            12,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Z18nb",
+              "name": "delInfoName",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "Dd5Xh",
+                  "name": "delInfoIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "folder-git-2",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                },
+                {
+                  "type": "text",
+                  "id": "ENUY5",
+                  "name": "delInfoText",
+                  "fill": "$text-primary",
+                  "content": "add-detail-panel",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "r1Zvo",
+              "name": "delInfoPath",
+              "fill": "$text-muted",
+              "content": "/Users/tomoki/.../grove-app/.claude/worktrees/add-detail-panel",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "XmVz6",
+          "name": "delWarning",
+          "width": "fill_container",
+          "fill": "#FBBF2415",
+          "cornerRadius": "$radius-md",
+          "gap": 8,
+          "padding": [
+            10,
+            12
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "RHGbF",
+              "name": "delWarnIcon",
+              "width": 16,
+              "height": 16,
+              "iconFontName": "circle-alert",
+              "iconFontFamily": "lucide",
+              "fill": "$accent-yellow"
+            },
+            {
+              "type": "text",
+              "id": "X6OBL",
+              "name": "delWarnText",
+              "fill": "$accent-yellow",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "未コミットの変更が 3 件あります",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "500"
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "13x35",
+          "name": "delDiv2",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "YlVz6",
+          "name": "delCheck",
+          "width": "fill_container",
+          "gap": 10,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "NaSGg",
+              "name": "delCheckBox",
+              "width": 18,
+              "height": 18,
+              "cornerRadius": 4,
+              "stroke": {
+                "thickness": 2,
+                "fill": "$border-default"
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "flTkh",
+                  "name": "delCheckIcon",
+                  "width": 12,
+                  "height": 12,
+                  "iconFontName": "check",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-primary"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KoBDs",
+              "name": "delCheckGroup",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "J70RA",
+                  "name": "delCheckLabel",
+                  "fill": "$text-primary",
+                  "content": "ブランチも一緒に削除する",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "8FuKz",
+                  "name": "delCheckBranch",
+                  "fill": "$text-muted",
+                  "content": "feature/detail-panel",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "DSNw9",
+          "name": "delActions",
+          "width": "fill_container",
+          "gap": 12,
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "vXAco",
+              "name": "delCancel",
+              "cornerRadius": "$radius-md",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "padding": [
+                8,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "9Tv1w",
+                  "name": "delCancelText",
+                  "fill": "$text-secondary",
+                  "content": "キャンセル",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "69zRT",
+              "name": "delConfirm",
+              "fill": "$accent-red",
+              "cornerRadius": "$radius-md",
+              "gap": 6,
+              "padding": [
+                8,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "c82oE",
+                  "name": "delConfirmIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "trash-2",
+                  "iconFontFamily": "lucide",
+                  "fill": "#FFFFFF"
+                },
+                {
+                  "type": "text",
+                  "id": "JS8CM",
+                  "name": "delConfirmText",
+                  "fill": "#FFFFFF",
+                  "content": "削除",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qjSZq",
+      "x": 2740,
+      "y": 480,
+      "name": "Delete Dialog (Light)",
+      "theme": {
+        "mode": "light"
+      },
+      "width": 440,
+      "fill": "$bg-dialog",
+      "cornerRadius": "$radius-lg",
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "0K0kV",
+          "name": "delHeader",
+          "width": "fill_container",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "bfXHf",
+              "name": "delIcon",
+              "fill": "#F8717118",
+              "cornerRadius": "$radius-md",
+              "padding": 8,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "5ltlO",
+                  "name": "delIconInner",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "triangle-alert",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-red"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Fhdst",
+              "name": "delTitleGroup",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "74IDV",
+                  "name": "delTitle",
+                  "fill": "$text-primary",
+                  "content": "worktree を削除しますか？",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "N2mom",
+                  "name": "delSubtitle",
+                  "fill": "$text-muted",
+                  "content": "この操作は元に戻せません",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "Mzmt8",
+          "name": "delDiv1",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "RArl4",
+          "name": "delInfo",
+          "width": "fill_container",
+          "fill": "$bg-card",
+          "cornerRadius": "$radius-md",
+          "layout": "vertical",
+          "gap": 8,
+          "padding": [
+            12,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "1B4WA",
+              "name": "delInfoName",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "nOxR1",
+                  "name": "delInfoIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "folder-git-2",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                },
+                {
+                  "type": "text",
+                  "id": "yQRjC",
+                  "name": "delInfoText",
+                  "fill": "$text-primary",
+                  "content": "add-detail-panel",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "kC64z",
+              "name": "delInfoPath",
+              "fill": "$text-muted",
+              "content": "/Users/tomoki/.../grove-app/.claude/worktrees/add-detail-panel",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "SejfK",
+          "name": "delWarning",
+          "width": "fill_container",
+          "fill": "#FBBF2415",
+          "cornerRadius": "$radius-md",
+          "gap": 8,
+          "padding": [
+            10,
+            12
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "nEWgg",
+              "name": "delWarnIcon",
+              "width": 16,
+              "height": 16,
+              "iconFontName": "circle-alert",
+              "iconFontFamily": "lucide",
+              "fill": "$accent-yellow"
+            },
+            {
+              "type": "text",
+              "id": "PK2no",
+              "name": "delWarnText",
+              "fill": "$accent-yellow",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "未コミットの変更が 3 件あります",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "500"
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "PKMpX",
+          "name": "delDiv2",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "nLhcv",
+          "name": "delCheck",
+          "width": "fill_container",
+          "gap": 10,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "UENUD",
+              "name": "delCheckBox",
+              "width": 18,
+              "height": 18,
+              "cornerRadius": 4,
+              "stroke": {
+                "thickness": 2,
+                "fill": "$border-default"
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "wz4xy",
+                  "name": "delCheckIcon",
+                  "width": 12,
+                  "height": 12,
+                  "iconFontName": "check",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-primary"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "7aRiA",
+              "name": "delCheckGroup",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "RBVcX",
+                  "name": "delCheckLabel",
+                  "fill": "$text-primary",
+                  "content": "ブランチも一緒に削除する",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "MaRrz",
+                  "name": "delCheckBranch",
+                  "fill": "$text-muted",
+                  "content": "feature/detail-panel",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "gQi3q",
+          "name": "delActions",
+          "width": "fill_container",
+          "gap": 12,
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "uSDD7",
+              "name": "delCancel",
+              "cornerRadius": "$radius-md",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "padding": [
+                8,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "jyzkO",
+                  "name": "delCancelText",
+                  "fill": "$text-secondary",
+                  "content": "キャンセル",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "5Wj8G",
+              "name": "delConfirm",
+              "fill": "$accent-red",
+              "cornerRadius": "$radius-md",
+              "gap": 6,
+              "padding": [
+                8,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "t1ASP",
+                  "name": "delConfirmIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "trash-2",
+                  "iconFontFamily": "lucide",
+                  "fill": "#FFFFFF"
+                },
+                {
+                  "type": "text",
+                  "id": "Prz1G",
+                  "name": "delConfirmText",
+                  "fill": "#FFFFFF",
+                  "content": "削除",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "USJhC",
+      "x": 3240,
+      "y": 0,
+      "name": "Label Edit States (Dark)",
+      "theme": {
+        "mode": "dark"
+      },
+      "width": 500,
+      "fill": "$bg-app",
+      "cornerRadius": "$radius-lg",
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "w7GEY",
+          "name": "labelTitle",
+          "fill": "$text-primary",
+          "content": "ラベル編集の状態遷移（§11.7）",
+          "fontFamily": "Inter",
+          "fontSize": 16,
+          "fontWeight": "700"
+        },
+        {
+          "type": "rectangle",
+          "id": "JL4QT",
+          "name": "labelDiv",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "8mxrE",
+          "name": "idleSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 8,
+          "children": [
+            {
+              "type": "text",
+              "id": "Jq2Qg",
+              "name": "idleLabel",
+              "fill": "$text-primary",
+              "content": "1. 表示モード（Idle）",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "DGjPU",
+              "name": "idleCard",
+              "width": "fill_container",
+              "fill": "$bg-card",
+              "cornerRadius": "$radius-lg",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "gap": 8,
+              "padding": 14,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "2OEQD",
+                  "name": "idleLabelGroup",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Xt5Te",
+                      "name": "idleLabelText",
+                      "fill": "$text-primary",
+                      "content": "add-detail-panel",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "qNTnV",
+                      "name": "idleBranch",
+                      "fill": "$text-muted",
+                      "content": "feature/detail-panel",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bKq3f",
+                  "name": "idlePencil",
+                  "cornerRadius": "$radius-sm",
+                  "padding": 4,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "7Nwai",
+                      "name": "idlePencilIcon",
+                      "width": 13,
+                      "height": 13,
+                      "iconFontName": "pencil",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "VxKC6",
+              "name": "idleAnnotation",
+              "fill": "$text-muted",
+              "content": "→ 鉛筆アイコンクリックで編集モードへ",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "86poq",
+          "name": "editSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 8,
+          "children": [
+            {
+              "type": "text",
+              "id": "nVdIj",
+              "name": "editLabel",
+              "fill": "$text-primary",
+              "content": "2. 編集モード（Editing）",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "fDY7E",
+              "name": "editCard",
+              "width": "fill_container",
+              "fill": "$bg-card",
+              "cornerRadius": "$radius-lg",
+              "stroke": {
+                "thickness": 2,
+                "fill": "$accent-primary"
+              },
+              "gap": 8,
+              "padding": 14,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "MLa20",
+                  "name": "editInputGroup",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Fqu55",
+                      "name": "editInput",
+                      "width": "fill_container",
+                      "fill": "$bg-input",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$accent-primary"
+                      },
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "vM8eG",
+                          "name": "editInputText",
+                          "fill": "$text-primary",
+                          "content": "E2Eテスト環境セットアップ",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "N0FUF",
+                          "name": "editInputCursor",
+                          "fill": "$accent-primary",
+                          "width": 1,
+                          "height": 16
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "OIC9A",
+                      "name": "editBranch",
+                      "fill": "$text-muted",
+                      "content": "feature/detail-panel",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "TndnI",
+                  "name": "editButtons",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "0aO0e",
+                      "name": "editConfirm",
+                      "fill": "$accent-primary",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "IpUBh",
+                          "name": "editConfirmIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "check",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bqrnX",
+                      "name": "editCancelBtn",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "padding": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "wkBlb",
+                          "name": "editCancelIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "x",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "DU3fj",
+          "name": "editAnnotation",
+          "width": "fill_container",
+          "fill": "$bg-card",
+          "cornerRadius": "$radius-sm",
+          "layout": "vertical",
+          "gap": 4,
+          "padding": [
+            8,
+            12
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "agPBU",
+              "name": "ann1",
+              "fill": "$text-secondary",
+              "content": "操作方法:",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "iWEDG",
+              "name": "ann2",
+              "fill": "$text-muted",
+              "content": "✓  確定ボタン or Cmd+Enter → 保存",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ug0yb",
+              "name": "ann3",
+              "fill": "$text-muted",
+              "content": "✕  × ボタン or Esc → キャンセル",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "CyAZ6",
+              "name": "ann4",
+              "fill": "$accent-yellow",
+              "content": "⚠  Enter 単独では確定しない",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "TbrHy",
+      "x": 0,
+      "y": 1720,
+      "name": "Preflight Warning Banner (Dark)",
+      "theme": {
+        "mode": "dark"
+      },
+      "width": 1280,
+      "fill": "$bg-app",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "BkJ2Q",
+          "name": "banner",
+          "width": "fill_container",
+          "fill": "#FBBF2418",
+          "gap": 12,
+          "padding": [
+            10,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Ate0K",
+              "name": "bannerLeft",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "XOXkr",
+                  "name": "bannerIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "circle-alert",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-yellow"
+                },
+                {
+                  "type": "text",
+                  "id": "Cpeno",
+                  "name": "bannerText",
+                  "fill": "$accent-yellow",
+                  "content": "code コマンドが見つかりません。VS Code で「Shell Command: Install 'code' command in PATH」を実行してください。",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "8PmV1",
+              "name": "bannerClose",
+              "cornerRadius": "$radius-sm",
+              "padding": 4,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "tNK0D",
+                  "name": "bannerCloseIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "x",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-yellow"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "AGJqU",
+          "name": "preflightDesc",
+          "width": "fill_container",
+          "gap": 24,
+          "padding": [
+            12,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "j6C7h",
+              "name": "descLeft",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "q7TTE",
+                  "name": "descTitle",
+                  "fill": "$text-primary",
+                  "content": "VS Code ボタンが disabled になったカード例",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "KzN4q",
+                  "name": "descCard",
+                  "width": 460,
+                  "fill": "$bg-card",
+                  "cornerRadius": "$radius-lg",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "gap": 12,
+                  "padding": 16,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "A8CHT",
+                      "name": "descCardLabel",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hndOy",
+                          "name": "descCardName",
+                          "fill": "$text-primary",
+                          "content": "add-detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "dLrOl",
+                          "name": "descCardBranch",
+                          "fill": "$text-muted",
+                          "content": "feature/detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "MisB6",
+                      "name": "descCardBtns",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "CFNmC",
+                          "name": "descVsDisabled",
+                          "fill": "#4F6EF740",
+                          "cornerRadius": "$radius-sm",
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "PcyHx",
+                              "name": "descVsIcon",
+                              "width": 14,
+                              "height": 14,
+                              "iconFontName": "code",
+                              "iconFontFamily": "lucide",
+                              "fill": "#FFFFFF60"
+                            },
+                            {
+                              "type": "text",
+                              "id": "YMQFF",
+                              "name": "descVsText",
+                              "fill": "#FFFFFF60",
+                              "content": "VS Code",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "VMDMx",
+                          "name": "descRmBtn",
+                          "cornerRadius": "$radius-sm",
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "$border-default"
+                          },
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "U3Tnk",
+                              "name": "descRmIcon",
+                              "width": 14,
+                              "height": 14,
+                              "iconFontName": "trash-2",
+                              "iconFontFamily": "lucide",
+                              "fill": "$accent-red"
+                            },
+                            {
+                              "type": "text",
+                              "id": "lI1by",
+                              "name": "descRmText",
+                              "fill": "$accent-red",
+                              "content": "Remove",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JfW9a",
+              "name": "descRight",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NjfFE",
+                  "name": "tooltipTitle",
+                  "fill": "$text-primary",
+                  "content": "disabled ボタンホバー時のツールチップ",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "X4ZLT",
+                  "name": "tooltipExample",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "6CQIZ",
+                      "name": "tooltipBtn",
+                      "fill": "#4F6EF740",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "kKSyA",
+                          "name": "tooltipBtnIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF60"
+                        },
+                        {
+                          "type": "text",
+                          "id": "kmnAJ",
+                          "name": "tooltipBtnText",
+                          "fill": "#FFFFFF60",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NaCUM",
+                      "name": "tooltip",
+                      "fill": "$bg-dialog",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Fd7Ut",
+                          "name": "tooltipText",
+                          "fill": "$text-secondary",
+                          "content": "code コマンドが必要です",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
