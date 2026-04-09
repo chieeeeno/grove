@@ -7,6 +7,9 @@
       "x": 0,
       "y": 0,
       "name": "Grove - Main Screen",
+      "theme": {
+        "mode": "dark"
+      },
       "width": 1280,
       "height": 800,
       "fill": "$bg-app",
@@ -317,6 +320,41 @@
                   "content": "リポジトリを追加",
                   "fontFamily": "Inter",
                   "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tm8eU",
+              "name": "SettingsButton",
+              "width": "fill_container",
+              "cornerRadius": "$radius-sm",
+              "gap": 8,
+              "padding": [
+                8,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "OcF7F",
+                  "name": "settingsIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "settings",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                },
+                {
+                  "type": "text",
+                  "id": "EIkqz",
+                  "name": "settingsText",
+                  "fill": "$text-secondary",
+                  "content": "設定",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
                   "fontWeight": "normal"
                 }
               ]
@@ -889,7 +927,7 @@
                               "id": "XVct3",
                               "name": "card3Agent",
                               "width": "fill_container",
-                              "fill": "#60A5FA11",
+                              "fill": "$agent-status-bg",
                               "cornerRadius": "$radius-sm",
                               "gap": 6,
                               "padding": [
@@ -906,13 +944,13 @@
                                   "height": 13,
                                   "iconFontName": "sparkles",
                                   "iconFontFamily": "lucide",
-                                  "fill": "$accent-blue"
+                                  "fill": "$agent-status-text"
                                 },
                                 {
                                   "type": "text",
                                   "id": "3r8mR",
                                   "name": "card3AgentText",
-                                  "fill": "$accent-blue",
+                                  "fill": "$agent-status-text",
                                   "content": "E2E テスト環境構築中...",
                                   "fontFamily": "Inter",
                                   "fontSize": 11,
@@ -1317,64 +1355,4570 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "igsk8",
+      "x": 1340,
+      "y": 0,
+      "name": "Settings Dialog",
+      "theme": {
+        "mode": "dark"
+      },
+      "width": 420,
+      "fill": "$bg-dialog",
+      "cornerRadius": "$radius-lg",
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "XsIdS",
+          "name": "dialogHeader",
+          "width": "fill_container",
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "uSvNM",
+              "name": "dialogTitle",
+              "fill": "$text-primary",
+              "content": "設定",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "lW8L3",
+              "name": "dialogClose",
+              "cornerRadius": "$radius-sm",
+              "padding": 4,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "t72m6",
+                  "name": "dialogCloseIcon",
+                  "width": 18,
+                  "height": 18,
+                  "iconFontName": "x",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "wcHGN",
+          "name": "divider",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "bGTPS",
+          "name": "themeSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "WMcLc",
+              "name": "themeLabel",
+              "fill": "$text-primary",
+              "content": "テーマ",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "J7QHu",
+              "name": "themeDesc",
+              "fill": "$text-muted",
+              "content": "アプリの外観を選択します",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "r97zC",
+              "name": "themeOptions",
+              "width": "fill_container",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cx5NI",
+                  "name": "optLight",
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-md",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "ijVw7",
+                      "name": "optLightIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "sun",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bykb9",
+                      "name": "optLightText",
+                      "fill": "$text-secondary",
+                      "content": "ライト",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BopEC",
+                  "name": "optDark",
+                  "width": "fill_container",
+                  "fill": "$accent-primary",
+                  "cornerRadius": "$radius-md",
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "$accent-primary"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "LIycC",
+                      "name": "optDarkIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "moon",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "NyL7R",
+                      "name": "optDarkText",
+                      "fill": "#FFFFFF",
+                      "content": "ダーク",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "L9Xwv",
+                  "name": "optSystem",
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-md",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "IrFaZ",
+                      "name": "optSystemIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "monitor",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "OtofY",
+                      "name": "optSystemText",
+                      "fill": "$text-secondary",
+                      "content": "システム",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "sU7Co",
+          "name": "divider2",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "BiMwI",
+          "name": "editorSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "CL7BV",
+              "name": "editorLabel",
+              "fill": "$text-primary",
+              "content": "エディタ",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "KojM9",
+              "name": "editorDesc",
+              "fill": "$text-muted",
+              "content": "worktree を開くエディタを選択します",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "ZsYF5",
+              "name": "editorSelect",
+              "width": "fill_container",
+              "fill": "$bg-input",
+              "cornerRadius": "$radius-md",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "gap": 8,
+              "padding": [
+                8,
+                12
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "KzZgV",
+                  "name": "editorValue",
+                  "fill": "$text-primary",
+                  "content": "Visual Studio Code",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "jzNoQ",
+                  "name": "editorChevron",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "xqp2q",
+          "name": "divider3",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "JnWsm",
+          "name": "refreshSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "aq9b5",
+              "name": "refreshLabel",
+              "fill": "$text-primary",
+              "content": "自動更新",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "608hx",
+              "name": "refreshDesc",
+              "fill": "$text-muted",
+              "content": "worktree の状態を自動的に更新する間隔",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "MhCxq",
+              "name": "refreshSelect",
+              "width": "fill_container",
+              "fill": "$bg-input",
+              "cornerRadius": "$radius-md",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "gap": 8,
+              "padding": [
+                8,
+                12
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "P7EXS",
+                  "name": "refreshValue",
+                  "fill": "$text-primary",
+                  "content": "5 秒",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "eCJww",
+                  "name": "refreshChevron",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "41VZC",
+      "x": 0,
+      "y": 860,
+      "name": "Grove - Main Screen (Light)",
+      "theme": {
+        "mode": "light"
+      },
+      "width": 1280,
+      "height": 800,
+      "fill": "$bg-app",
+      "children": [
+        {
+          "type": "frame",
+          "id": "oTrE9",
+          "name": "Sidebar",
+          "width": 220,
+          "height": "fill_container",
+          "fill": "$bg-sidebar",
+          "stroke": {
+            "thickness": {
+              "right": 1
+            },
+            "fill": "$border-default"
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            20,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "cNEZ0",
+              "name": "Logo",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "C5ENB",
+                  "name": "logoIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "trees",
+                  "iconFontFamily": "lucide",
+                  "fill": "$accent-green"
+                },
+                {
+                  "type": "text",
+                  "id": "7AvQM",
+                  "name": "logoText",
+                  "fill": "$text-primary",
+                  "content": "Grove",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "tR2Wn",
+                  "name": "logoVersion",
+                  "fill": "$text-muted",
+                  "content": "v0.1.0",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "RzJF5",
+              "name": "divider1",
+              "fill": "$border-default",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "text",
+              "id": "yz2N4",
+              "name": "repoLabel",
+              "fill": "$text-muted",
+              "content": "リポジトリ",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5
+            },
+            {
+              "type": "frame",
+              "id": "DkGes",
+              "name": "RepoList",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NxuFp",
+                  "name": "RepoItem-Active",
+                  "width": "fill_container",
+                  "fill": "$bg-card",
+                  "cornerRadius": "$radius-sm",
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "WPOx4",
+                      "name": "repo1Icon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "git-branch",
+                      "iconFontFamily": "lucide",
+                      "fill": "$accent-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AlzHM",
+                      "name": "repo1Name",
+                      "fill": "$text-primary",
+                      "content": "grove-app",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cjDph",
+                      "name": "repo1Badge",
+                      "fill": "$accent-primary",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        6
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "uY7Uz",
+                          "name": "repo1BadgeText",
+                          "fill": "$text-inverse",
+                          "content": "3",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "YrUd5",
+                  "name": "RepoItem",
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-sm",
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "7XbEK",
+                      "name": "repo2Icon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "git-branch",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xO1p0",
+                      "name": "repo2Name",
+                      "fill": "$text-secondary",
+                      "content": "my-portfolio",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lZnMc",
+                      "name": "repo2Badge",
+                      "fill": "$border-default",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        6
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "O93Mh",
+                          "name": "repo2BadgeText",
+                          "fill": "$text-secondary",
+                          "content": "5",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "4Iuyf",
+                  "name": "RepoItem",
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-sm",
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "1bVNG",
+                      "name": "repo3Icon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "git-branch",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HUaSF",
+                      "name": "repo3Name",
+                      "fill": "$text-secondary",
+                      "content": "todo-cli",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "9Kq5b",
+                      "name": "repo3Badge",
+                      "fill": "$border-default",
+                      "cornerRadius": 10,
+                      "padding": [
+                        2,
+                        6
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "jNM62",
+                          "name": "repo3BadgeText",
+                          "fill": "$text-secondary",
+                          "content": "2",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DtIHH",
+              "name": "AddRepoButton",
+              "width": "fill_container",
+              "cornerRadius": "$radius-sm",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "gap": 6,
+              "padding": [
+                8,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "JVbRn",
+                  "name": "addIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "plus",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                },
+                {
+                  "type": "text",
+                  "id": "fmYiS",
+                  "name": "addText",
+                  "fill": "$text-muted",
+                  "content": "リポジトリを追加",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "5dCFd",
+              "name": "SettingsButton",
+              "width": "fill_container",
+              "cornerRadius": "$radius-sm",
+              "gap": 8,
+              "padding": [
+                8,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "eWbnR",
+                  "name": "settingsIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "settings",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                },
+                {
+                  "type": "text",
+                  "id": "M9Jfj",
+                  "name": "settingsText",
+                  "fill": "$text-secondary",
+                  "content": "設定",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Lqg9I",
+          "name": "MainArea",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            20,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "l5T59",
+              "name": "MainHeader",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QUAUg",
+                  "name": "headerLeft",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "7bqo4",
+                      "name": "headerIcon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "folder-git-2",
+                      "iconFontFamily": "lucide",
+                      "fill": "$accent-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "rCT3d",
+                      "name": "headerTitle",
+                      "fill": "$text-primary",
+                      "content": "grove-app",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uYG7v",
+                      "name": "headerPath",
+                      "fill": "$text-muted",
+                      "content": "/Users/tomoki/work/private/grove-app",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "e70UM",
+                  "name": "headerRight",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "E4Jx3",
+                      "name": "refreshBtn",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "Mt0Ci",
+                          "name": "refreshIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "refresh-cw",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Y0d6p",
+              "name": "WorktreeGrid",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "LV8i5",
+                  "name": "Column1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "eZGEz",
+                      "name": "Card-Main",
+                      "width": "fill_container",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Z7gPm",
+                          "name": "card1Header",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Re4Jg",
+                              "name": "card1LabelRow",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "B1mq3",
+                                  "name": "card1Label",
+                                  "fill": "$text-primary",
+                                  "content": "grove-app",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 15,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "9UjF6",
+                                  "name": "card1Branch",
+                                  "fill": "$text-muted",
+                                  "content": "main",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "tHATu",
+                              "name": "card1Badge",
+                              "fill": "#34D39933",
+                              "cornerRadius": 10,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "PkWmu",
+                                  "name": "card1BadgeIcon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "shield-check",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-green"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "WGxT0",
+                                  "name": "card1BadgeText",
+                                  "fill": "$accent-green",
+                                  "content": "primary",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "EmZkK",
+                          "name": "card1Divider",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "d97vr",
+                          "name": "card1Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "DPFia",
+                              "name": "card1Commit",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "s32bt",
+                                  "name": "card1CommitIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "git-commit-horizontal",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$text-muted"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "u2eHq",
+                                  "name": "card1CommitText",
+                                  "fill": "$text-secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "docs: add §11 process flows",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "DrwMr",
+                                  "name": "card1Time",
+                                  "fill": "$text-muted",
+                                  "content": "2h ago",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "GlSO8",
+                              "name": "card1Stats",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "7Jq4U",
+                                  "name": "card1Modified",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "zL6aE",
+                                      "name": "card1ModIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "file-pen",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$text-muted"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "F62bP",
+                                      "name": "card1ModText",
+                                      "fill": "$text-muted",
+                                      "content": "0 changes",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "f1ovN",
+                          "name": "card1Actions",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "6YFAj",
+                              "name": "card1VsBtn",
+                              "fill": "$accent-primary",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "Vpbba",
+                                  "name": "card1VsIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "code",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#FFFFFF"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "M6Out",
+                                  "name": "card1VsText",
+                                  "fill": "#FFFFFF",
+                                  "content": "VS Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LhbEc",
+                      "name": "Card-ClaudeActive",
+                      "width": "fill_container",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 2,
+                        "fill": "$accent-blue"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "XkCBV",
+                          "name": "card3Header",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "CWFnG",
+                              "name": "card3LabelRow",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "ff2ZS",
+                                  "name": "card3LabelGroup",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "gODMC",
+                                      "name": "card3Label",
+                                      "fill": "$text-primary",
+                                      "content": "DEVT-7490-e2e-test",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 15,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "11nTa",
+                                      "name": "card3Branch",
+                                      "fill": "$text-muted",
+                                      "content": "feature/DEVT-7490-e2e-test-setup",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "vOM6r",
+                                  "name": "card3EditBtn",
+                                  "cornerRadius": "$radius-sm",
+                                  "padding": 4,
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "CsU7p",
+                                      "name": "card3EditIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "pencil",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$text-muted"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "mMIrj",
+                              "name": "card3Badge",
+                              "fill": "#60A5FA33",
+                              "cornerRadius": 10,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "y4Aa1",
+                                  "name": "card3BadgeIcon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "bot",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-blue"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "jVrF9",
+                                  "name": "card3BadgeText",
+                                  "fill": "$accent-blue",
+                                  "content": "Claude Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "IpwfL",
+                          "name": "card3Div",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "2eRpK",
+                          "name": "card3Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "XJDLU",
+                              "name": "card3Commit",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "oxjHv",
+                                  "name": "card3CmtIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "git-commit-horizontal",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$text-muted"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "sLPvR",
+                                  "name": "card3CmtText",
+                                  "fill": "$text-secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "feat: add e2e test setup with Playwright",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "HtV3k",
+                                  "name": "card3CmtTime",
+                                  "fill": "$text-muted",
+                                  "content": "30m ago",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Qvpkj",
+                              "name": "card3Stats",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "7iQU4",
+                                  "name": "card3Mod",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "W4s5E",
+                                      "name": "card3ModIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "file-pen",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$accent-yellow"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "dHWWk",
+                                      "name": "card3ModText",
+                                      "fill": "$accent-yellow",
+                                      "content": "7 changes",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Me53n",
+                              "name": "card3Agent",
+                              "width": "fill_container",
+                              "fill": "$agent-status-bg",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "HXLNO",
+                                  "name": "card3AgentIcon",
+                                  "width": 13,
+                                  "height": 13,
+                                  "iconFontName": "sparkles",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$agent-status-text"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "8SiZk",
+                                  "name": "card3AgentText",
+                                  "fill": "$agent-status-text",
+                                  "content": "E2E テスト環境構築中...",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "XlWqs",
+                          "name": "card3Actions",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "AWXI9",
+                              "name": "card3VsBtn",
+                              "fill": "$accent-primary",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "cgUWb",
+                                  "name": "card3VsIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "code",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#FFFFFF"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "5vqSL",
+                                  "name": "card3VsText",
+                                  "fill": "#FFFFFF",
+                                  "content": "VS Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "soyG9",
+                              "name": "card3RmBtn",
+                              "cornerRadius": "$radius-sm",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "$border-default"
+                              },
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "9bImT",
+                                  "name": "card3RmIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "trash-2",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-red"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "oikH4",
+                                  "name": "card3RmText",
+                                  "fill": "$accent-red",
+                                  "content": "Remove",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZSuu0",
+                  "name": "Column2",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "kQeZH",
+                      "name": "Card-Idle",
+                      "width": "fill_container",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "9We2Y",
+                          "name": "card2Header",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "2WldX",
+                              "name": "card2LabelRow",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "lmU2f",
+                                  "name": "card2LabelGroup",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "49lbR",
+                                      "name": "card2Label",
+                                      "fill": "$text-primary",
+                                      "content": "add-detail-panel",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 15,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "vLJ1D",
+                                      "name": "card2Branch",
+                                      "fill": "$text-muted",
+                                      "content": "feature/detail-panel",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "0bFHd",
+                                  "name": "card2EditBtn",
+                                  "cornerRadius": "$radius-sm",
+                                  "padding": 4,
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "P1yaI",
+                                      "name": "card2EditIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "pencil",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$text-muted"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "fhgjf",
+                              "name": "card2Badge",
+                              "fill": "#6B728033",
+                              "cornerRadius": 10,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "K9cMJ",
+                                  "name": "card2BadgeText",
+                                  "fill": "$accent-gray",
+                                  "content": "idle",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "YCEeY",
+                          "name": "card2Div",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "HCVE3",
+                          "name": "card2Info",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "9U0GE",
+                              "name": "card2Commit",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "a1MDZ",
+                                  "name": "card2CmtIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "git-commit-horizontal",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$text-muted"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "pFYKc",
+                                  "name": "card2CmtText",
+                                  "fill": "$text-secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "feat: add detail panel component",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "vHqzm",
+                                  "name": "card2CmtTime",
+                                  "fill": "$text-muted",
+                                  "content": "5h ago",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "rQ1gZ",
+                              "name": "card2Stats",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "jw9eq",
+                                  "name": "card2Mod",
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "HIedv",
+                                      "name": "card2ModIcon",
+                                      "width": 13,
+                                      "height": 13,
+                                      "iconFontName": "file-pen",
+                                      "iconFontFamily": "lucide",
+                                      "fill": "$accent-yellow"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "gGhyY",
+                                      "name": "card2ModText",
+                                      "fill": "$accent-yellow",
+                                      "content": "3 changes",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "dnC2C",
+                          "name": "card2Actions",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "iOnyN",
+                              "name": "card2VsBtn",
+                              "fill": "$accent-primary",
+                              "cornerRadius": "$radius-sm",
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "wqgBu",
+                                  "name": "card2VsIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "code",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#FFFFFF"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Jegrc",
+                                  "name": "card2VsText",
+                                  "fill": "#FFFFFF",
+                                  "content": "VS Code",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ZRchl",
+                              "name": "card2RmBtn",
+                              "cornerRadius": "$radius-sm",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "$border-default"
+                              },
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "OIFHh",
+                                  "name": "card2RmIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "trash-2",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "$accent-red"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "dXrPw",
+                                  "name": "card2RmText",
+                                  "fill": "$accent-red",
+                                  "content": "Remove",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Fgxs5",
+      "x": 1820,
+      "y": 0,
+      "name": "Hover & Active States",
+      "theme": {
+        "mode": "dark"
+      },
+      "width": 860,
+      "fill": "$bg-app",
+      "cornerRadius": "$radius-lg",
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 32,
+      "children": [
+        {
+          "type": "text",
+          "id": "i15IG",
+          "name": "statesTitle",
+          "fill": "$text-primary",
+          "content": "ホバー & アクティブ状態",
+          "fontFamily": "Inter",
+          "fontSize": 20,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "1M33n",
+          "name": "statesDesc",
+          "fill": "$text-muted",
+          "content": "各要素の Default / Hover / Active 状態の比較",
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "rectangle",
+          "id": "7BtBV",
+          "name": "divS",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "MIyPg",
+          "name": "vsSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "xqmqv",
+              "name": "vsLabel",
+              "fill": "$text-primary",
+              "content": "VS Code ボタン（プライマリ）",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "nXvT3",
+              "name": "vsRow",
+              "width": "fill_container",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YcLsh",
+                  "name": "vsDefault",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "kylzC",
+                      "name": "vsDefBtn",
+                      "fill": "$accent-primary",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "JGoyI",
+                          "name": "vsDefIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "GoiKe",
+                          "name": "vsDefText",
+                          "fill": "#FFFFFF",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Iuv6M",
+                      "name": "vsDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RWdUu",
+                  "name": "vsHover",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Aa87B",
+                      "name": "vsHovBtn",
+                      "fill": "$vs-hover-bg",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "Ta9O7",
+                          "name": "vsHovIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "vLmEO",
+                          "name": "vsHovText",
+                          "fill": "#FFFFFF",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "CdQqO",
+                      "name": "vsHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "EfRT5",
+                  "name": "vsActive",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "42HQk",
+                      "name": "vsActBtn",
+                      "fill": "$vs-active-bg",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "DgQHn",
+                          "name": "vsActIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Kt3lE",
+                          "name": "vsActText",
+                          "fill": "#FFFFFF",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "yxzCB",
+                      "name": "vsActLabel",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lg60d",
+                  "name": "vsDisabled",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "0MlqB",
+                      "name": "vsDisBtn",
+                      "fill": "#4F6EF740",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "7KnTU",
+                          "name": "vsDisIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF60"
+                        },
+                        {
+                          "type": "text",
+                          "id": "kV4Xg",
+                          "name": "vsDisText",
+                          "fill": "#FFFFFF60",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "U5dE8",
+                      "name": "vsDisLabel",
+                      "fill": "$text-muted",
+                      "content": "Disabled",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "p5PXg",
+          "name": "rmSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "oBzFH",
+              "name": "rmLabel",
+              "fill": "$text-primary",
+              "content": "Remove ボタン（破壊的）",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "s8Xlm",
+              "name": "rmRow",
+              "width": "fill_container",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Ixg3R",
+                  "name": "rmDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Z5SDl",
+                      "name": "rmDefBtn",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "kyTAy",
+                          "name": "rmDefIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "trash-2",
+                          "iconFontFamily": "lucide",
+                          "fill": "$accent-red"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Qv2Em",
+                          "name": "rmDefText",
+                          "fill": "$accent-red",
+                          "content": "Remove",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "wPqix",
+                      "name": "rmDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yaj5X",
+                  "name": "rmHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tgJUO",
+                      "name": "rmHovBtn",
+                      "fill": "$remove-hover-bg",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$accent-red"
+                      },
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "rQz5B",
+                          "name": "rmHovIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "trash-2",
+                          "iconFontFamily": "lucide",
+                          "fill": "$accent-red"
+                        },
+                        {
+                          "type": "text",
+                          "id": "4lVNz",
+                          "name": "rmHovText",
+                          "fill": "$accent-red",
+                          "content": "Remove",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "tNdwX",
+                      "name": "rmHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "G8boa",
+                  "name": "rmAct",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "0xOhF",
+                      "name": "rmActBtn",
+                      "fill": "$accent-red",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "vE4z3",
+                          "name": "rmActIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "trash-2",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "YZ1lO",
+                          "name": "rmActText",
+                          "fill": "#FFFFFF",
+                          "content": "Remove",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Hcwu3",
+                      "name": "rmActLabel",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "BZjKv",
+          "name": "cardSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "B9H6E",
+              "name": "cardLabel",
+              "fill": "$text-primary",
+              "content": "worktree カード",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "3s6c4",
+              "name": "cardRow",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "IoHyl",
+                  "name": "cardDef",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SUwWy",
+                      "name": "cardDefBox",
+                      "width": "fill_container",
+                      "height": 60,
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "layout": "vertical",
+                      "padding": 16,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MX9f0",
+                          "name": "cardDefText",
+                          "fill": "$text-primary",
+                          "content": "add-detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "0hx5k",
+                      "name": "cardDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x4yJT",
+                  "name": "cardHov",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DGPe2",
+                      "name": "cardHovBox",
+                      "width": "fill_container",
+                      "height": 60,
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#4F6EF780"
+                      },
+                      "layout": "vertical",
+                      "padding": 16,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qlZNF",
+                          "name": "cardHovText",
+                          "fill": "$text-primary",
+                          "content": "add-detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "EBeMw",
+                      "name": "cardHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "6Q2MU",
+                  "name": "cardSel",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "886Hv",
+                      "name": "cardSelBox",
+                      "width": "fill_container",
+                      "height": 60,
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 2,
+                        "fill": "$accent-primary"
+                      },
+                      "layout": "vertical",
+                      "padding": 16,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "HhzH6",
+                          "name": "cardSelText",
+                          "fill": "$text-primary",
+                          "content": "add-detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "mzaVw",
+                      "name": "cardSelLabel",
+                      "fill": "$text-muted",
+                      "content": "Selected",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mw58A",
+          "name": "sideSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "02qee",
+              "name": "sideLabel",
+              "fill": "$text-primary",
+              "content": "サイドバー リポジトリ項目",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "a7LBA",
+              "name": "sideRow",
+              "width": "fill_container",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "MqTLD",
+                  "name": "sideDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "4Tr8n",
+                      "name": "sideDefItem",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "9tqiX",
+                          "name": "sideDefIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "git-branch",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "SCiEy",
+                          "name": "sideDefText",
+                          "fill": "$text-secondary",
+                          "content": "my-portfolio",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "ybUMy",
+                      "name": "sideDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UREGM",
+                  "name": "sideHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Yz9Wj",
+                      "name": "sideHovItem",
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "TlOCm",
+                          "name": "sideHovIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "git-branch",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "KKyRn",
+                          "name": "sideHovText",
+                          "fill": "$text-primary",
+                          "content": "my-portfolio",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "pJcoM",
+                      "name": "sideHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "7wRyC",
+                  "name": "sideAct",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "llAra",
+                      "name": "sideActItem",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "j3Qwc",
+                          "name": "sideActIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "git-branch",
+                          "iconFontFamily": "lucide",
+                          "fill": "$accent-primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Xo8Et",
+                          "name": "sideActText",
+                          "fill": "$text-primary",
+                          "content": "grove-app",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "FhdVZ",
+                      "name": "sideActLabel",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yKrOD",
+          "name": "iconSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "1G1io",
+              "name": "iconLabel",
+              "fill": "$text-primary",
+              "content": "アイコンボタン（鉛筆 / リフレッシュ / 設定）",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "eJBfv",
+              "name": "iconRow",
+              "width": "fill_container",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "SNmL8",
+                  "name": "penDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GEioK",
+                      "name": "penDefBtn",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 6,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "Y2DgI",
+                          "name": "penDefIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "pencil",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "yceQg",
+                      "name": "penDefL",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kFoeq",
+                  "name": "penHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "T4770",
+                      "name": "penHovBtn",
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 6,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "2cgq3",
+                          "name": "penHovIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "pencil",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "JyPg2",
+                      "name": "penHovL",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "th8FD",
+                  "name": "penAct",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "psXD9",
+                      "name": "penActBtn",
+                      "fill": "$accent-primary",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 6,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "HBef3",
+                          "name": "penActIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "pencil",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "ynPMc",
+                      "name": "penActL",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KdFwf",
+                  "name": "refDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ZedyW",
+                      "name": "refDefBtn",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 8,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "OKzUd",
+                          "name": "refDefIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "refresh-cw",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "IkiSP",
+                      "name": "refDefL",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Dc1jo",
+                  "name": "refHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "EcBOF",
+                      "name": "refHovBtn",
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 8,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "qqDhV",
+                          "name": "refHovIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "refresh-cw",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-primary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "m5OXQ",
+                      "name": "refHovL",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "9dW5U",
+      "x": 1820,
+      "y": 767,
+      "name": "Hover & Active States (Light)",
+      "theme": {
+        "mode": "light"
+      },
+      "width": 860,
+      "fill": "$bg-app",
+      "cornerRadius": "$radius-lg",
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 32,
+      "children": [
+        {
+          "type": "text",
+          "id": "h01Iv",
+          "name": "statesTitle",
+          "fill": "$text-primary",
+          "content": "ホバー & アクティブ状態",
+          "fontFamily": "Inter",
+          "fontSize": 20,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "Eh3Qx",
+          "name": "statesDesc",
+          "fill": "$text-muted",
+          "content": "各要素の Default / Hover / Active 状態の比較",
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "rectangle",
+          "id": "foGDb",
+          "name": "divS",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "GxOvO",
+          "name": "vsSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "ixRpz",
+              "name": "vsLabel",
+              "fill": "$text-primary",
+              "content": "VS Code ボタン（プライマリ）",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "Fdbib",
+              "name": "vsRow",
+              "width": "fill_container",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qp3Mi",
+                  "name": "vsDefault",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "POekZ",
+                      "name": "vsDefBtn",
+                      "fill": "$accent-primary",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "5eFfp",
+                          "name": "vsDefIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "CVr0j",
+                          "name": "vsDefText",
+                          "fill": "#FFFFFF",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Ken2H",
+                      "name": "vsDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Pg7aw",
+                  "name": "vsHover",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "kVzXz",
+                      "name": "vsHovBtn",
+                      "fill": "#3B5CE5",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "yTVnR",
+                          "name": "vsHovIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "4jRcU",
+                          "name": "vsHovText",
+                          "fill": "#FFFFFF",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "G5o2Q",
+                      "name": "vsHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Utdez",
+                  "name": "vsActive",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ELUvD",
+                      "name": "vsActBtn",
+                      "fill": "#2D4AC4",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "TjjNy",
+                          "name": "vsActIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "jjYk6",
+                          "name": "vsActText",
+                          "fill": "#FFFFFF",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "04kBM",
+                      "name": "vsActLabel",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ECSAI",
+                  "name": "vsDisabled",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "gRe4Z",
+                      "name": "vsDisBtn",
+                      "fill": "#4F6EF740",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "AjDKc",
+                          "name": "vsDisIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "code",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF60"
+                        },
+                        {
+                          "type": "text",
+                          "id": "gNNND",
+                          "name": "vsDisText",
+                          "fill": "#FFFFFF60",
+                          "content": "VS Code",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "i0rO4",
+                      "name": "vsDisLabel",
+                      "fill": "$text-muted",
+                      "content": "Disabled",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yhgyp",
+          "name": "rmSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "ql23a",
+              "name": "rmLabel",
+              "fill": "$text-primary",
+              "content": "Remove ボタン（破壊的）",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "87UvM",
+              "name": "rmRow",
+              "width": "fill_container",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "OX2FG",
+                  "name": "rmDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wcJNa",
+                      "name": "rmDefBtn",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "6ffr0",
+                          "name": "rmDefIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "trash-2",
+                          "iconFontFamily": "lucide",
+                          "fill": "$accent-red"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ZMJva",
+                          "name": "rmDefText",
+                          "fill": "$accent-red",
+                          "content": "Remove",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "GtDOe",
+                      "name": "rmDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "7lS66",
+                  "name": "rmHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "9GJjY",
+                      "name": "rmHovBtn",
+                      "fill": "$remove-hover-bg",
+                      "cornerRadius": "$radius-sm",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$accent-red"
+                      },
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "AyT78",
+                          "name": "rmHovIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "trash-2",
+                          "iconFontFamily": "lucide",
+                          "fill": "$accent-red"
+                        },
+                        {
+                          "type": "text",
+                          "id": "1jZ8l",
+                          "name": "rmHovText",
+                          "fill": "$accent-red",
+                          "content": "Remove",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "QCEay",
+                      "name": "rmHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "4LV0D",
+                  "name": "rmAct",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "JBJCP",
+                      "name": "rmActBtn",
+                      "fill": "$accent-red",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "othwG",
+                          "name": "rmActIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "trash-2",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "zfdCj",
+                          "name": "rmActText",
+                          "fill": "#FFFFFF",
+                          "content": "Remove",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "QFuqD",
+                      "name": "rmActLabel",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pMzRH",
+          "name": "cardSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "4ZFYZ",
+              "name": "cardLabel",
+              "fill": "$text-primary",
+              "content": "worktree カード",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "aeQrX",
+              "name": "cardRow",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "W9Gon",
+                  "name": "cardDef",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ufbwS",
+                      "name": "cardDefBox",
+                      "width": "fill_container",
+                      "height": 60,
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$border-default"
+                      },
+                      "layout": "vertical",
+                      "padding": 16,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LzvKb",
+                          "name": "cardDefText",
+                          "fill": "$text-primary",
+                          "content": "add-detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "vltds",
+                      "name": "cardDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "m81Ul",
+                  "name": "cardHov",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OD6JU",
+                      "name": "cardHovBox",
+                      "width": "fill_container",
+                      "height": 60,
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#4F6EF780"
+                      },
+                      "layout": "vertical",
+                      "padding": 16,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "mYHVK",
+                          "name": "cardHovText",
+                          "fill": "$text-primary",
+                          "content": "add-detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "m0H20",
+                      "name": "cardHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "2uVYP",
+                  "name": "cardSel",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "AMihG",
+                      "name": "cardSelBox",
+                      "width": "fill_container",
+                      "height": 60,
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-lg",
+                      "stroke": {
+                        "thickness": 2,
+                        "fill": "$accent-primary"
+                      },
+                      "layout": "vertical",
+                      "padding": 16,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "tiq6B",
+                          "name": "cardSelText",
+                          "fill": "$text-primary",
+                          "content": "add-detail-panel",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "7tRnB",
+                      "name": "cardSelLabel",
+                      "fill": "$text-muted",
+                      "content": "Selected",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "h2XkL",
+          "name": "sideSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "zmtce",
+              "name": "sideLabel",
+              "fill": "$text-primary",
+              "content": "サイドバー リポジトリ項目",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "bme7p",
+              "name": "sideRow",
+              "width": "fill_container",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "CVnsl",
+                  "name": "sideDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "9exFj",
+                      "name": "sideDefItem",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "ezNVg",
+                          "name": "sideDefIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "git-branch",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-muted"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ZyGug",
+                          "name": "sideDefText",
+                          "fill": "$text-secondary",
+                          "content": "my-portfolio",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "3r1Gu",
+                      "name": "sideDefLabel",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Y23L4",
+                  "name": "sideHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tyG6Z",
+                      "name": "sideHovItem",
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "UOtAw",
+                          "name": "sideHovIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "git-branch",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "J0m7x",
+                          "name": "sideHovText",
+                          "fill": "$text-primary",
+                          "content": "my-portfolio",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "xsJ9v",
+                      "name": "sideHovLabel",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mH0Zy",
+                  "name": "sideAct",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rFgw3",
+                      "name": "sideActItem",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-sm",
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "s0QzA",
+                          "name": "sideActIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "git-branch",
+                          "iconFontFamily": "lucide",
+                          "fill": "$accent-primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "DJYPT",
+                          "name": "sideActText",
+                          "fill": "$text-primary",
+                          "content": "grove-app",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "3YFG5",
+                      "name": "sideActLabel",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "7NzgS",
+          "name": "iconSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "c2TjJ",
+              "name": "iconLabel",
+              "fill": "$text-primary",
+              "content": "アイコンボタン（鉛筆 / リフレッシュ / 設定）",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "Em8xA",
+              "name": "iconRow",
+              "width": "fill_container",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "isKP7",
+                  "name": "penDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "I6fPK",
+                      "name": "penDefBtn",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 6,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "0vLUK",
+                          "name": "penDefIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "pencil",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "t8SmU",
+                      "name": "penDefL",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "1KxXn",
+                  "name": "penHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "sMXVC",
+                      "name": "penHovBtn",
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 6,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "clfOE",
+                          "name": "penHovIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "pencil",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "krg7m",
+                      "name": "penHovL",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "9wnzA",
+                  "name": "penAct",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "nyp8G",
+                      "name": "penActBtn",
+                      "fill": "$accent-primary",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 6,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "WJ9Cr",
+                          "name": "penActIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "pencil",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "9ZiW5",
+                      "name": "penActL",
+                      "fill": "$text-muted",
+                      "content": "Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "l1dLT",
+                  "name": "refDef",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "HH7Ma",
+                      "name": "refDefBtn",
+                      "fill": "$bg-card",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 8,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "k4F8f",
+                          "name": "refDefIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "refresh-cw",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "FrLbu",
+                      "name": "refDefL",
+                      "fill": "$text-muted",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BUziF",
+                  "name": "refHov",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "iNiH8",
+                      "name": "refHovBtn",
+                      "fill": "$bg-card-hover",
+                      "cornerRadius": "$radius-sm",
+                      "padding": 8,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "t0K6H",
+                          "name": "refHovIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "refresh-cw",
+                          "iconFontFamily": "lucide",
+                          "fill": "$text-primary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "ceevs",
+                      "name": "refHovL",
+                      "fill": "$text-muted",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "nLVjE",
+      "x": 1340,
+      "y": 600,
+      "name": "Settings Dialog (Light)",
+      "theme": {
+        "mode": "light"
+      },
+      "width": 420,
+      "fill": "$bg-dialog",
+      "cornerRadius": "$radius-lg",
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "0kk7I",
+          "name": "dialogHeader",
+          "width": "fill_container",
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "MTg1E",
+              "name": "dialogTitle",
+              "fill": "$text-primary",
+              "content": "設定",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "tYHUV",
+              "name": "dialogClose",
+              "cornerRadius": "$radius-sm",
+              "padding": 4,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "ZuTSI",
+                  "name": "dialogCloseIcon",
+                  "width": 18,
+                  "height": 18,
+                  "iconFontName": "x",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "qvi3N",
+          "name": "divider",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "mnvVi",
+          "name": "themeSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "kb8ts",
+              "name": "themeLabel",
+              "fill": "$text-primary",
+              "content": "テーマ",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "KW57C",
+              "name": "themeDesc",
+              "fill": "$text-muted",
+              "content": "アプリの外観を選択します",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "XG2k2",
+              "name": "themeOptions",
+              "width": "fill_container",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Y24Pl",
+                  "name": "optLight",
+                  "width": "fill_container",
+                  "fill": "$accent-primary",
+                  "cornerRadius": "$radius-md",
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "$accent-primary"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "CEAAI",
+                      "name": "optLightIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "sun",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HHMR6",
+                      "name": "optLightText",
+                      "fill": "#FFFFFF",
+                      "content": "ライト",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UZ08j",
+                  "name": "optDark",
+                  "width": "fill_container",
+                  "fill": {
+                    "type": "color",
+                    "color": "#00000000",
+                    "enabled": false
+                  },
+                  "cornerRadius": "$radius-md",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "jtBMX",
+                      "name": "optDarkIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "moon",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "vjARD",
+                      "name": "optDarkText",
+                      "fill": "$text-secondary",
+                      "content": "ダーク",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "VlegH",
+                  "name": "optSystem",
+                  "width": "fill_container",
+                  "cornerRadius": "$radius-md",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "hytiX",
+                      "name": "optSystemIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "monitor",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "4Ma1f",
+                      "name": "optSystemText",
+                      "fill": "$text-secondary",
+                      "content": "システム",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "CjHND",
+          "name": "divider2",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "sYZcF",
+          "name": "editorSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "TsUUn",
+              "name": "editorLabel",
+              "fill": "$text-primary",
+              "content": "エディタ",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "niFZh",
+              "name": "editorDesc",
+              "fill": "$text-muted",
+              "content": "worktree を開くエディタを選択します",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "OCAlj",
+              "name": "editorSelect",
+              "width": "fill_container",
+              "fill": "$bg-input",
+              "cornerRadius": "$radius-md",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "gap": 8,
+              "padding": [
+                8,
+                12
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cRvn3",
+                  "name": "editorValue",
+                  "fill": "$text-primary",
+                  "content": "Visual Studio Code",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "B9ZXi",
+                  "name": "editorChevron",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "n1cJZ",
+          "name": "divider3",
+          "fill": "$border-default",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "EL8NZ",
+          "name": "refreshSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "Z8amU",
+              "name": "refreshLabel",
+              "fill": "$text-primary",
+              "content": "自動更新",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "aYwoA",
+              "name": "refreshDesc",
+              "fill": "$text-muted",
+              "content": "worktree の状態を自動的に更新する間隔",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "vEadT",
+              "name": "refreshSelect",
+              "width": "fill_container",
+              "fill": "$bg-input",
+              "cornerRadius": "$radius-md",
+              "stroke": {
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "gap": 8,
+              "padding": [
+                8,
+                12
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "5a5zD",
+                  "name": "refreshValue",
+                  "fill": "$text-primary",
+                  "content": "5 秒",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "EgjOR",
+                  "name": "refreshChevron",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
+  "themes": {
+    "mode": [
+      "dark",
+      "light"
+    ]
+  },
   "variables": {
     "accent-blue": {
       "type": "color",
-      "value": "#60A5FA"
+      "value": [
+        {
+          "value": "#60A5FA",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#3B82F6",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "accent-gray": {
       "type": "color",
-      "value": "#6B7280"
+      "value": [
+        {
+          "value": "#6B7280",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#9CA3AF",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "accent-green": {
       "type": "color",
-      "value": "#34D399"
+      "value": [
+        {
+          "value": "#34D399",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#059669",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "accent-primary": {
       "type": "color",
-      "value": "#4F6EF7"
+      "value": [
+        {
+          "value": "#4F6EF7",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#4F6EF7",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "accent-red": {
       "type": "color",
-      "value": "#F87171"
+      "value": [
+        {
+          "value": "#F87171",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#EF4444",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "accent-yellow": {
       "type": "color",
-      "value": "#FBBF24"
+      "value": [
+        {
+          "value": "#FBBF24",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#D97706",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "bg-app": {
       "type": "color",
-      "value": "#0F1117"
+      "value": [
+        {
+          "value": "#0F1117",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#F8F9FA",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "bg-card": {
       "type": "color",
-      "value": "#1C1F2E"
+      "value": [
+        {
+          "value": "#1C1F2E",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "bg-card-hover": {
       "type": "color",
-      "value": "#242838"
+      "value": [
+        {
+          "value": "#242838",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#F3F4F6",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "bg-dialog": {
       "type": "color",
-      "value": "#1E2130"
+      "value": [
+        {
+          "value": "#1E2130",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "bg-input": {
       "type": "color",
-      "value": "#232636"
+      "value": [
+        {
+          "value": "#232636",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#F3F4F6",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "bg-sidebar": {
       "type": "color",
-      "value": "#161822"
+      "value": [
+        {
+          "value": "#161822",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "border-active": {
       "type": "color",
-      "value": "#4F6EF7"
+      "value": [
+        {
+          "value": "#4F6EF7",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#4F6EF7",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "border-default": {
       "type": "color",
-      "value": "#2A2E3F"
+      "value": [
+        {
+          "value": "#2A2E3F",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#E5E7EB",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "radius-lg": {
       "type": "number",
@@ -1410,19 +5954,173 @@
     },
     "text-inverse": {
       "type": "color",
-      "value": "#0F1117"
+      "value": [
+        {
+          "value": "#0F1117",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "text-muted": {
       "type": "color",
-      "value": "#6B7280"
+      "value": [
+        {
+          "value": "#6B7280",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#9CA3AF",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "text-primary": {
       "type": "color",
-      "value": "#E5E7EB"
+      "value": [
+        {
+          "value": "#E5E7EB",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#111827",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     },
     "text-secondary": {
       "type": "color",
-      "value": "#9CA3AF"
+      "value": [
+        {
+          "value": "#9CA3AF",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#4B5563",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
+    },
+    "agent-status-bg": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#60A5FA15",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#3B82F622",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
+    },
+    "agent-status-text": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#60A5FA",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#1D4ED8",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
+    },
+    "card-hover-border": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#4F6EF780",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#4F6EF750",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
+    },
+    "remove-hover-bg": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F8717115",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#FEE2E2",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
+    },
+    "vs-active-bg": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#2D4AC4",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#2D4AC4",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
+    },
+    "vs-hover-bg": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#3B5CE5",
+          "theme": {
+            "mode": "dark"
+          }
+        },
+        {
+          "value": "#3B5CE5",
+          "theme": {
+            "mode": "light"
+          }
+        }
+      ]
     }
   }
 }
