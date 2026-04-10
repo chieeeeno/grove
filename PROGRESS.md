@@ -95,22 +95,22 @@
 ### 3. worktree 表示
 
 #### 3-1. Rust 側
-- [ ] `list_worktrees` 実装（git2 で worktree 一覧取得）
-- [ ] `get_worktree_status` 実装（git status --porcelain 相当、変更ファイル数カウント）
-- [ ] WorktreeInfo / WorktreeStatus の Rust 構造体定義
-- [ ] 最終コミット情報の取得（hash, message, time）
-- [ ] main/primary worktree の判定ロジック
+- [x] `list_worktrees` 実装（git2 で worktree 一覧取得）
+- [x] `get_worktree_status` 実装（git status --porcelain 相当、変更ファイル数カウント）
+- [x] WorktreeInfo / WorktreeStatus の Rust 構造体定義
+- [x] 最終コミット情報の取得（hash, message, time）
+- [x] main/primary worktree の判定ロジック
 
 #### 3-2. Frontend 側
-- [ ] WorktreeGrid コンポーネント（2 列 Grid レイアウト）
-- [ ] WorktreeCard コンポーネント
-- [ ] カード表示: ラベル（デフォルトは dir 名）
-- [ ] カード表示: ブランチ名（副次情報、小さく表示）
-- [ ] カード表示: 変更ファイル数（合計のみ、ADR-0011）
-- [ ] カード表示: 最終コミット（相対時間 + メッセージ）
-- [ ] カード表示: VS Code ボタン
-- [ ] カード表示: Remove ボタン
-- [ ] main worktree のバッジ表示（Remove ボタン非表示）
+- [x] WorktreeGrid コンポーネント（2 列 Grid レイアウト）
+- [x] WorktreeCard コンポーネント
+- [x] カード表示: ラベル（デフォルトは dir 名）
+- [x] カード表示: ブランチ名（副次情報、小さく表示）
+- [x] カード表示: 変更ファイル数（合計のみ、ADR-0011）
+- [x] カード表示: 最終コミット（相対時間 + メッセージ）
+- [x] カード表示: VS Code ボタン
+- [x] カード表示: Remove ボタン
+- [x] main worktree のバッジ表示（Remove ボタン非表示）
 
 ---
 
