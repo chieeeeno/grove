@@ -202,11 +202,11 @@
 
 ### 8. アプリ起動シーケンス（§11.3 参照）
 
-- [ ] アプリ起動時に `load_config` → リポジトリ一覧取得
-- [ ] 起動時に `check_code_command` → preflight チェック
-- [ ] 起動時に各リポジトリの `list_worktrees` → worktree 一覧取得
-- [ ] 起動後にポーリングタイマー開始
-- [ ] tauri-plugin-window-state によるウィンドウサイズ復元の確認
+- [x] アプリ起動時に `load_config` → リポジトリ一覧取得
+- [x] 起動時に `check_code_command` → preflight チェック
+- [x] 起動時に各リポジトリの `list_worktrees` → worktree 一覧取得
+- [x] 起動後にポーリングタイマー開始
+- [x] tauri-plugin-window-state によるウィンドウサイズ復元の確認
 
 ---
 
