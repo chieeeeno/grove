@@ -26,7 +26,12 @@ pnpm tauri build        # デスクトップアプリのリリースビルド
 pnpm build              # フロントエンドのみ（tsc + vite build）
 ```
 
-テストファイルはまだ存在しない。
+```bash
+# テスト
+pnpm test               # フロントエンド（Vitest）
+pnpm test:watch          # フロントエンド（ウォッチモード）
+cargo test --manifest-path src-tauri/Cargo.toml --lib  # Rust
+```
 
 ## アーキテクチャ概要
 
