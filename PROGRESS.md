@@ -172,16 +172,16 @@
 ### 6. エディタ連携（§11.8 参照）
 
 #### 6-1. Rust 側
-- [ ] `open_in_editor` 実装（`std::process::Command` で `code <path>` 実行）
-- [ ] `check_code_command` 実装（`which code` で存在確認）
+- [x] `open_in_editor` 実装（`std::process::Command` で `code <path>` 実行）
+- [x] `check_code_command` 実装（`which code` で存在確認）
 
 #### 6-2. Frontend 側
-- [ ] 起動時 preflight チェック呼出（§11.3 参照）
-- [ ] `codeAvailable` state を Zustand に保持
-- [ ] code 不在時: アプリ上部にバナー警告表示
-- [ ] code 不在時: 全カードの VS Code ボタンを disabled 化
-- [ ] disabled ボタンのホバー時ツールチップ（「code コマンドが必要です」）
-- [ ] VS Code ボタンクリック → `open_in_editor` 呼出
+- [x] 起動時 preflight チェック呼出（§11.3 参照）
+- [x] `codeAvailable` state を Zustand に保持
+- [x] code 不在時: アプリ上部にバナー警告表示
+- [x] code 不在時: 全カードの VS Code ボタンを disabled 化
+- [x] disabled ボタンのホバー時ツールチップ（「code コマンドが必要です」）
+- [x] VS Code ボタンクリック → `open_in_editor` 呼出
 
 ---
 
