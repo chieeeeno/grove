@@ -4,6 +4,7 @@ import WorktreeCard from "./WorktreeCard";
 interface WorktreeGridProps {
   worktrees: WorktreeInfo[];
   labels: Record<string, string>;
+  codeAvailable: boolean;
   onOpenInEditor: (path: string) => void;
   onRemove: (path: string) => void;
   onSaveLabel: (worktreePath: string, newLabel: string) => void;
@@ -17,6 +18,7 @@ function dirName(path: string): string {
 export default function WorktreeGrid({
   worktrees,
   labels,
+  codeAvailable,
   onOpenInEditor,
   onRemove,
   onSaveLabel,
@@ -46,6 +48,7 @@ export default function WorktreeGrid({
           key={wt.path}
           worktree={wt}
           label={labels[wt.path] ?? dirName(wt.path)}
+          codeAvailable={codeAvailable}
           onOpenInEditor={() => onOpenInEditor(wt.path)}
           onRemove={() => onRemove(wt.path)}
           onSaveLabel={(newLabel) => onSaveLabel(wt.path, newLabel)}

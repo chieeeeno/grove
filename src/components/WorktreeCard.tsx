@@ -7,6 +7,7 @@ import EditableLabel from "./EditableLabel";
 interface WorktreeCardProps {
   worktree: WorktreeInfo;
   label: string;
+  codeAvailable: boolean;
   onOpenInEditor: () => void;
   onRemove: () => void;
   onSaveLabel: (newLabel: string) => void;
@@ -15,6 +16,7 @@ interface WorktreeCardProps {
 export default function WorktreeCard({
   worktree,
   label,
+  codeAvailable,
   onOpenInEditor,
   onRemove,
   onSaveLabel,
@@ -90,9 +92,16 @@ export default function WorktreeCard({
       {/* アクション */}
       <div className="flex items-center justify-end gap-2">
         <button
-          onClick={onOpenInEditor}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium cursor-pointer border-0 outline-none"
-          style={{ backgroundColor: "var(--accent-primary)", color: "#FFFFFF" }}
+          onClick={codeAvailable ? onOpenInEditor : undefined}
+          disabled={!codeAvailable}
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium border-0 outline-none"
+          style={{
+            backgroundColor: codeAvailable ? "var(--accent-primary)" : "#4F6EF740",
+            color: "#FFFFFF",
+            cursor: codeAvailable ? "pointer" : "not-allowed",
+            opacity: codeAvailable ? 1 : 0.6,
+          }}
+          title={codeAvailable ? undefined : "code コマンドが必要です"}
         >
           <Code size={14} />
           VS Code
