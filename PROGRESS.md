@@ -43,32 +43,32 @@
 ### 1. UI の骨組み
 
 #### 1-1. レイアウト
-- [ ] 3 カラムレイアウトの実装（Sidebar 200px / Main flexible / Detail Panel 280px）
-- [ ] Sidebar コンポーネント作成（空の枠）
-- [ ] MainArea コンポーネント作成（空の枠）
-- [ ] DetailPanel コンポーネント作成（空の枠、M0 では非表示でも可）
-- [ ] テンプレートのデモ画面（App.tsx, App.css）をクリーンアップ
+- [x] 3 カラムレイアウトの実装（Sidebar 220px / Main flexible / Detail Panel は M0 非表示）
+- [x] Sidebar コンポーネント作成（デザイン通りの構造）
+- [x] MainArea コンポーネント作成（デザイン通りの構造）
+- [x] DetailPanel コンポーネント作成（空の枠、M0 では非表示でも可）
+- [x] テンプレートのデモ画面（App.tsx, App.css）をクリーンアップ
 
 #### 1-2. 型定義
-- [ ] `src/types/index.ts` 作成（RepositoryConfig, Worktree, AppStore 等）
-- [ ] 設計書 §5 のデータモデルに基づく TypeScript 型の定義
+- [x] `src/types/index.ts` 作成（RepositoryConfig, Worktree, AppStore 等）
+- [x] 設計書 §5 のデータモデルに基づく TypeScript 型の定義
 
 #### 1-3. Zustand store
-- [ ] `src/stores/appStore.ts` 作成
-- [ ] リポジトリ管理の state / actions のスケルトン
-- [ ] worktree 管理の state / actions のスケルトン
-- [ ] UI 状態の state（isDetailPanelOpen 等）
+- [x] `src/stores/appStore.ts` 作成
+- [x] リポジトリ管理の state / actions のスケルトン
+- [x] worktree 管理の state / actions のスケルトン
+- [x] UI 状態の state（codeAvailable, isRefreshing 等）
 
 #### 1-4. Tauri commands スケルトン（Rust 側）
-- [ ] `src-tauri/src/commands/` ディレクトリ作成
-- [ ] `src-tauri/src/commands/mod.rs` 作成
-- [ ] `src-tauri/src/commands/repository.rs` 作成（`validate_repository`, `load_config`, `save_config` のスケルトン）
-- [ ] `src-tauri/src/commands/worktree.rs` 作成（`list_worktrees`, `get_worktree_status`, `remove_worktree` のスケルトン）
-- [ ] `src-tauri/src/commands/editor.rs` 作成（`open_in_editor`, `check_code_command` のスケルトン）
-- [ ] `lib.rs` にコマンド登録
+- [x] `src-tauri/src/commands/` ディレクトリ作成
+- [x] `src-tauri/src/commands/mod.rs` 作成
+- [x] `src-tauri/src/commands/repository.rs` 作成（`validate_repository`, `load_config`, `save_config` 実装済み）
+- [x] `src-tauri/src/commands/worktree.rs` 作成（`list_worktrees`, `get_worktree_status`, `remove_worktree` スケルトン）
+- [x] `src-tauri/src/commands/editor.rs` 作成（`open_in_editor`, `check_code_command` 実装済み）
+- [x] `lib.rs` にコマンド登録
 
 #### 1-5. Tauri invoke ラッパー（Frontend 側）
-- [ ] `src/lib/tauri.ts` 作成（invoke ラッパー関数群）
+- [x] `src/lib/tauri.ts` 作成（invoke ラッパー関数群）
 
 ---
 
