@@ -95,10 +95,47 @@ describe("useAutoRefresh", () => {
   it("refresh() を手動で呼べる", async () => {
     const { result } = renderHook(() => useAutoRefresh());
 
+    // refresh を開始（内部で setTimeout を使うので即 await しない）
+    let done = false;
+    act(() => {
+      result.current.refresh().then(() => {
+        done = true;
+      });
+    });
+
+    // fake timer を進めて最低表示時間の setTimeout を解決
     await act(async () => {
-      await result.current.refresh();
+      vi.advanceTimersByTime(500);
     });
 
     expect(mockListWorktrees).toHaveBeenCalledTimes(1);
+    expect(done).toBe(true);
+  });
+
+  it("手動リフレッシュ時に isRefreshing が true になる", async () => {
+    const { result } = renderHook(() => useAutoRefresh());
+
+    act(() => {
+      result.current.refresh();
+    });
+
+    // 呼んだ直後は true
+    expect(useAppStore.getState().isRefreshing).toBe(true);
+
+    // 500ms 経過で false に戻る
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(useAppStore.getState().isRefreshing).toBe(false);
+  });
+
+  it("ポーリングでは isRefreshing を変更しない", async () => {
+    renderHook(() => useAutoRefresh());
+
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(useAppStore.getState().isRefreshing).toBe(false);
   });
 });

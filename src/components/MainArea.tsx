@@ -63,10 +63,7 @@ export default function MainArea({
             >
               <RefreshCw
                 size={16}
-                className="text-fg-secondary"
-                style={{
-                  animation: isRefreshing ? "spin 1s linear infinite" : "none",
-                }}
+                className={`text-fg-secondary ${isRefreshing ? "animate-spin" : ""}`}
               />
             </button>
           </div>
