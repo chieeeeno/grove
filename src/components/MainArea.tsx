@@ -55,10 +55,7 @@ export default function MainArea({
           <div className="flex items-center justify-between shrink-0">
             {/* 左側: リポジトリ名 + パス */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <FolderGit2
-                size={20}
-                style={{ color: "var(--accent-primary)", flexShrink: 0 }}
-              />
+              <FolderGit2 size={20} style={{ color: "var(--accent-primary)", flexShrink: 0 }} />
               <span
                 className="text-[20px] font-semibold shrink-0"
                 style={{ color: "var(--text-primary)" }}
@@ -66,10 +63,7 @@ export default function MainArea({
                 {selectedRepositoryName}
               </span>
               {selectedRepositoryPath && (
-                <span
-                  className="text-[12px] truncate"
-                  style={{ color: "var(--text-muted)" }}
-                >
+                <span className="text-[12px] truncate" style={{ color: "var(--text-muted)" }}>
                   {selectedRepositoryPath}
                 </span>
               )}
@@ -94,9 +88,7 @@ export default function MainArea({
           </div>
 
           {/* Worktree グリッド or コンテンツ */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {children ?? <NoRepository />}
-          </div>
+          <div className="flex-1 overflow-y-auto min-h-0">{children ?? <NoRepository />}</div>
         </>
       ) : (
         <EmptyState />

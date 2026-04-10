@@ -56,12 +56,8 @@ export default function WorktreeGrid({
 
   return (
     <div className="flex gap-4 h-full items-start">
-      <div className="flex-1 flex flex-col gap-4">
-        {col1.map(renderCard)}
-      </div>
-      <div className="flex-1 flex flex-col gap-4">
-        {col2.map(renderCard)}
-      </div>
+      <div className="flex-1 flex flex-col gap-4">{col1.map(renderCard)}</div>
+      <div className="flex-1 flex flex-col gap-4">{col2.map(renderCard)}</div>
     </div>
   );
 }

@@ -8,12 +8,10 @@ export const validateRepository = (path: string): Promise<RepositoryInfo> =>
   invoke("validate_repository", { path });
 
 /** tauri-plugin-store から AppConfig を読み込む */
-export const loadConfig = (): Promise<AppConfig> =>
-  invoke("load_config");
+export const loadConfig = (): Promise<AppConfig> => invoke("load_config");
 
 /** tauri-plugin-store に AppConfig を書き込む */
-export const saveConfig = (config: AppConfig): Promise<void> =>
-  invoke("save_config", { config });
+export const saveConfig = (config: AppConfig): Promise<void> => invoke("save_config", { config });
 
 // ===== Worktree =====
 
@@ -30,15 +28,12 @@ export const removeWorktree = (
   worktreePath: string,
   force: boolean,
   deleteBranch: boolean
-): Promise<void> =>
-  invoke("remove_worktree", { worktreePath, force, deleteBranch });
+): Promise<void> => invoke("remove_worktree", { worktreePath, force, deleteBranch });
 
 // ===== エディタ =====
 
 /** VS Code でパスを開く */
-export const openInEditor = (path: string): Promise<void> =>
-  invoke("open_in_editor", { path });
+export const openInEditor = (path: string): Promise<void> => invoke("open_in_editor", { path });
 
 /** `code` コマンドが利用可能か確認する（ADR-0012 preflight） */
-export const checkCodeCommand = (): Promise<boolean> =>
-  invoke("check_code_command");
+export const checkCodeCommand = (): Promise<boolean> => invoke("check_code_command");

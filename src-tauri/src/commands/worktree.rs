@@ -45,10 +45,7 @@ fn get_last_commit(repo: &Repository) -> (String, String, i64) {
         Err(_) => return ("".to_string(), "".to_string(), 0),
     };
     let hash = commit.id().to_string();
-    let message = commit
-        .summary()
-        .unwrap_or("")
-        .to_string();
+    let message = commit.summary().unwrap_or("").to_string();
     let time = commit.time().seconds();
     (hash, message, time)
 }
@@ -56,8 +53,7 @@ fn get_last_commit(repo: &Repository) -> (String, String, i64) {
 /// worktree の変更ファイル数を取得する（ADR-0011: 合計のみ）
 fn count_modified_files(repo: &Repository) -> u32 {
     let mut opts = StatusOptions::new();
-    opts.include_untracked(true)
-        .recurse_untracked_dirs(true);
+    opts.include_untracked(true).recurse_untracked_dirs(true);
     repo.statuses(Some(&mut opts))
         .map(|statuses| statuses.len() as u32)
         .unwrap_or(0)
@@ -220,8 +216,12 @@ mod tests {
             "wt-feature",
             wt_path.as_path(),
             Some(
-                git2::WorktreeAddOptions::new()
-                    .reference(Some(&repo.find_branch("feature-test", git2::BranchType::Local).unwrap().into_reference())),
+                git2::WorktreeAddOptions::new().reference(Some(
+                    &repo
+                        .find_branch("feature-test", git2::BranchType::Local)
+                        .unwrap()
+                        .into_reference(),
+                )),
             ),
         )
         .unwrap();

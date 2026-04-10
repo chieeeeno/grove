@@ -1,10 +1,10 @@
 // ===== 永続化モデル（tauri-plugin-store） =====
 
 export interface RepositoryConfig {
-  id: string;       // UUID
+  id: string; // UUID
   name: string;
-  path: string;     // 絶対パス
-  addedAt: string;  // ISO 8601
+  path: string; // 絶対パス
+  addedAt: string; // ISO 8601
 }
 
 export interface AppConfig {
@@ -43,7 +43,7 @@ export interface WorktreeStatus {
 export type AgentStatus = "running" | "idle";
 
 export interface WorktreeWithMeta extends WorktreeInfo {
-  label: string;         // ユーザー設定ラベル。未設定時はディレクトリ名
+  label: string; // ユーザー設定ラベル。未設定時はディレクトリ名
   repositoryId: string;
   agentStatus: AgentStatus | null; // Phase 2 で実装
 }

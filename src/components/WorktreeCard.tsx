@@ -1,10 +1,4 @@
-import {
-  ShieldCheck,
-  GitCommitHorizontal,
-  FilePen,
-  Code,
-  Trash2,
-} from "lucide-react";
+import { ShieldCheck, GitCommitHorizontal, FilePen, Code, Trash2 } from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
 
@@ -41,10 +35,7 @@ export default function WorktreeCard({
           >
             {label}
           </span>
-          <span
-            className="text-[11px] truncate"
-            style={{ color: "var(--text-muted)" }}
-          >
+          <span className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
             {worktree.branch}
           </span>
         </div>
@@ -73,20 +64,11 @@ export default function WorktreeCard({
       <div className="flex flex-col gap-2">
         {/* 最終コミット */}
         <div className="flex items-center gap-1.5">
-          <GitCommitHorizontal
-            size={14}
-            style={{ color: "var(--text-muted)", flexShrink: 0 }}
-          />
-          <span
-            className="flex-1 text-[12px] truncate"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <GitCommitHorizontal size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+          <span className="flex-1 text-[12px] truncate" style={{ color: "var(--text-secondary)" }}>
             {worktree.lastCommitMessage || "コミットなし"}
           </span>
-          <span
-            className="text-[11px] shrink-0"
-            style={{ color: "var(--text-muted)" }}
-          >
+          <span className="text-[11px] shrink-0" style={{ color: "var(--text-muted)" }}>
             {relativeTime(worktree.lastCommitTime)}
           </span>
         </div>

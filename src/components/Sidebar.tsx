@@ -34,7 +34,10 @@ function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItem
       </span>
       {/* hover 時に X ボタン、通常時はバッジ */}
       <button
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
         className="hidden group-hover:flex items-center justify-center rounded p-0.5 border-0 outline-none cursor-pointer"
         style={{ backgroundColor: "transparent", color: "var(--text-muted)" }}
         title="登録解除"
@@ -85,10 +88,7 @@ export default function Sidebar({
       {/* ロゴ */}
       <div className="flex items-center gap-2">
         <Trees size={20} style={{ color: "var(--accent-green)", flexShrink: 0 }} />
-        <span
-          className="text-[18px] font-bold"
-          style={{ color: "var(--text-primary)" }}
-        >
+        <span className="text-[18px] font-bold" style={{ color: "var(--text-primary)" }}>
           Grove
         </span>
         <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>

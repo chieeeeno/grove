@@ -89,8 +89,7 @@ pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
         .store(STORE_PATH)
         .map_err(|e| format!("ストアを開けませんでした: {}", e))?;
 
-    let value = serde_json::to_value(&config)
-        .map_err(|e| format!("シリアライズ失敗: {}", e))?;
+    let value = serde_json::to_value(&config).map_err(|e| format!("シリアライズ失敗: {}", e))?;
 
     store.set(CONFIG_KEY, value);
     store

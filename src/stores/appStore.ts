@@ -33,8 +33,7 @@ export const useAppStore = create<AppStore>((set) => ({
   repositories: [],
   selectedRepositoryId: null,
   setRepositories: (repos) => set({ repositories: repos }),
-  addRepository: (repo) =>
-    set((s) => ({ repositories: [...s.repositories, repo] })),
+  addRepository: (repo) => set((s) => ({ repositories: [...s.repositories, repo] })),
   removeRepository: (id) =>
     set((s) => ({ repositories: s.repositories.filter((r) => r.id !== id) })),
   selectRepository: (id) => set({ selectedRepositoryId: id }),
@@ -47,9 +46,7 @@ export const useAppStore = create<AppStore>((set) => ({
     set((s) => ({
       worktrees: {
         ...s.worktrees,
-        [repositoryId]: (s.worktrees[repositoryId] ?? []).filter(
-          (w) => w.path !== worktreePath
-        ),
+        [repositoryId]: (s.worktrees[repositoryId] ?? []).filter((w) => w.path !== worktreePath),
       },
     })),
 
