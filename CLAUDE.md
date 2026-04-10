@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## パッケージマネージャー
+
+**pnpm を使うこと。** `npm` / `yarn` は使わない。
+
+```bash
+# パッケージ追加
+pnpm add <package>
+pnpm add -D <package>   # devDependency
+```
+
 ## 開発コマンド
 
 ```bash
