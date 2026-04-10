@@ -4,11 +4,8 @@ import { FolderGit2, RefreshCw } from "lucide-react";
 
 function EmptyState() {
   return (
-    <div
-      className="flex-1 flex flex-col items-center justify-center gap-3"
-      style={{ color: "var(--text-muted)" }}
-    >
-      <FolderGit2 size={40} style={{ color: "var(--border-default)" }} />
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-fg-muted">
+      <FolderGit2 size={40} className="text-border" />
       <p className="text-[14px]">リポジトリを選択してください</p>
     </div>
   );
@@ -16,11 +13,8 @@ function EmptyState() {
 
 function NoRepository() {
   return (
-    <div
-      className="flex-1 flex flex-col items-center justify-center gap-3"
-      style={{ color: "var(--text-muted)" }}
-    >
-      <FolderGit2 size={40} style={{ color: "var(--border-default)" }} />
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-fg-muted">
+      <FolderGit2 size={40} className="text-border" />
       <p className="text-[14px]">worktree がありません</p>
       <p className="text-[12px]">左サイドバーからリポジトリを追加してください</p>
     </div>
@@ -45,42 +39,32 @@ export default function MainArea({
   children,
 }: MainAreaProps) {
   return (
-    <main
-      className="flex-1 flex flex-col gap-5 py-5 px-6 min-w-0 h-full"
-      style={{ backgroundColor: "var(--bg-app)" }}
-    >
+    <main className="flex-1 flex flex-col gap-5 py-5 px-6 min-w-0 h-full bg-app">
       {selectedRepositoryName ? (
         <>
           {/* ヘッダー */}
           <div className="flex items-center justify-between shrink-0">
-            {/* 左側: リポジトリ名 + パス */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <FolderGit2 size={20} style={{ color: "var(--accent-primary)", flexShrink: 0 }} />
-              <span
-                className="text-[20px] font-semibold shrink-0"
-                style={{ color: "var(--text-primary)" }}
-              >
+              <FolderGit2 size={20} className="text-accent shrink-0" />
+              <span className="text-[20px] font-semibold shrink-0 text-fg">
                 {selectedRepositoryName}
               </span>
               {selectedRepositoryPath && (
-                <span className="text-[12px] truncate" style={{ color: "var(--text-muted)" }}>
-                  {selectedRepositoryPath}
-                </span>
+                <span className="text-[12px] truncate text-fg-muted">{selectedRepositoryPath}</span>
               )}
             </div>
 
-            {/* 右側: リフレッシュボタン */}
+            {/* リフレッシュボタン */}
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="flex items-center justify-center rounded-md p-2 border-0 outline-none cursor-pointer shrink-0"
-              style={{ backgroundColor: "var(--bg-card)" }}
+              className="flex items-center justify-center rounded-md p-2 border-0 outline-none cursor-pointer shrink-0 bg-card hover:bg-card-hover active:bg-accent transition-colors duration-150"
               title="リフレッシュ (Cmd+R)"
             >
               <RefreshCw
                 size={16}
+                className="text-fg-secondary"
                 style={{
-                  color: "var(--text-secondary)",
                   animation: isRefreshing ? "spin 1s linear infinite" : "none",
                 }}
               />
