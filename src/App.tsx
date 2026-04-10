@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
 import DeleteDialog from "./components/DeleteDialog";
+import PreflightBanner from "./components/PreflightBanner";
 import { useAppStore } from "./stores/appStore";
 import {
   validateRepository,
@@ -16,6 +17,7 @@ import {
   checkBeforeRemove,
   removeWorktree,
   deleteLabel,
+  checkCodeCommand,
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
 
@@ -34,6 +36,8 @@ function App() {
     setAllLabels,
     removeLabel,
     removeWorktreeEntry,
+    codeAvailable,
+    setCodeAvailable,
   } = useAppStore();
 
   // 削除ダイアログの状態
@@ -57,7 +61,8 @@ function App() {
       .catch(console.error);
 
     loadLabels().then(setAllLabels).catch(console.error);
-  }, [setRepositories, selectRepository, setAllLabels]);
+    checkCodeCommand().then(setCodeAvailable).catch(console.error);
+  }, [setRepositories, selectRepository, setAllLabels, setCodeAvailable]);
 
   // ===== 選択中リポジトリの worktree 取得 =====
   useEffect(() => {
@@ -189,42 +194,46 @@ function App() {
   }));
 
   return (
-    <div className="flex h-full" style={{ backgroundColor: "var(--bg-app)" }}>
-      <Sidebar
-        repositories={sidebarRepos}
-        selectedId={selectedRepositoryId}
-        onSelectRepository={selectRepository}
-        onAddRepository={handleAddRepository}
-        onRemoveRepository={handleRemoveRepository}
-      />
-      <MainArea
-        selectedRepositoryName={selectedRepo?.name ?? null}
-        selectedRepositoryPath={selectedRepo?.path ?? null}
-        onRefresh={handleRefresh}
-      >
-        {currentWorktrees.length > 0 && (
-          <WorktreeGrid
-            worktrees={currentWorktrees}
-            labels={labels}
-            onOpenInEditor={(path) => openInEditor(path).catch(console.error)}
-            onRemove={handleRemoveWorktree}
-            onSaveLabel={handleSaveLabel}
+    <div className="flex flex-col h-full" style={{ backgroundColor: "var(--bg-app)" }}>
+      <PreflightBanner visible={!codeAvailable} />
+      <div className="flex flex-1 min-h-0">
+        <Sidebar
+          repositories={sidebarRepos}
+          selectedId={selectedRepositoryId}
+          onSelectRepository={selectRepository}
+          onAddRepository={handleAddRepository}
+          onRemoveRepository={handleRemoveRepository}
+        />
+        <MainArea
+          selectedRepositoryName={selectedRepo?.name ?? null}
+          selectedRepositoryPath={selectedRepo?.path ?? null}
+          onRefresh={handleRefresh}
+        >
+          {currentWorktrees.length > 0 && (
+            <WorktreeGrid
+              worktrees={currentWorktrees}
+              labels={labels}
+              codeAvailable={codeAvailable}
+              onOpenInEditor={(path) => openInEditor(path).catch(console.error)}
+              onRemove={handleRemoveWorktree}
+              onSaveLabel={handleSaveLabel}
+            />
+          )}
+        </MainArea>
+        {/* 削除確認ダイアログ */}
+        {deleteTarget && (
+          <DeleteDialog
+            worktreeName={deleteTarget.name}
+            worktreePath={deleteTarget.path}
+            branch={deleteTarget.branch}
+            hasUncommitted={deleteTarget.hasUncommitted}
+            modifiedCount={deleteTarget.modifiedCount}
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setDeleteTarget(null)}
           />
         )}
-      </MainArea>
-      {/* 削除確認ダイアログ */}
-      {deleteTarget && (
-        <DeleteDialog
-          worktreeName={deleteTarget.name}
-          worktreePath={deleteTarget.path}
-          branch={deleteTarget.branch}
-          hasUncommitted={deleteTarget.hasUncommitted}
-          modifiedCount={deleteTarget.modifiedCount}
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-      {/* DetailPanel は M0 では非表示（M1 以降で実装） */}
+        {/* DetailPanel は M0 では非表示（M1 以降で実装） */}
+      </div>
     </div>
   );
 }
