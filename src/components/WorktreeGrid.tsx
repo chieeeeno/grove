@@ -6,6 +6,7 @@ interface WorktreeGridProps {
   labels: Record<string, string>;
   onOpenInEditor: (path: string) => void;
   onRemove: (path: string) => void;
+  onSaveLabel: (worktreePath: string, newLabel: string) => void;
 }
 
 /** worktree のディレクトリ名を取得（ラベル未設定時のデフォルト表示） */
@@ -18,6 +19,7 @@ export default function WorktreeGrid({
   labels,
   onOpenInEditor,
   onRemove,
+  onSaveLabel,
 }: WorktreeGridProps) {
   if (worktrees.length === 0) {
     return (
@@ -30,34 +32,25 @@ export default function WorktreeGrid({
     );
   }
 
-  // main worktree を先頭に、残りを2列に分配
+  // main worktree を先頭にソート
   const sorted = [...worktrees].sort((a, b) => {
     if (a.isMain && !b.isMain) return -1;
     if (!a.isMain && b.isMain) return 1;
     return 0;
   });
 
-  const col1: WorktreeInfo[] = [];
-  const col2: WorktreeInfo[] = [];
-  sorted.forEach((wt, i) => {
-    if (i % 2 === 0) col1.push(wt);
-    else col2.push(wt);
-  });
-
-  const renderCard = (wt: WorktreeInfo) => (
-    <WorktreeCard
-      key={wt.path}
-      worktree={wt}
-      label={labels[wt.path] ?? dirName(wt.path)}
-      onOpenInEditor={() => onOpenInEditor(wt.path)}
-      onRemove={() => onRemove(wt.path)}
-    />
-  );
-
   return (
-    <div className="flex gap-4 h-full items-start">
-      <div className="flex-1 flex flex-col gap-4">{col1.map(renderCard)}</div>
-      <div className="flex-1 flex flex-col gap-4">{col2.map(renderCard)}</div>
+    <div className="grid grid-cols-2 gap-4">
+      {sorted.map((wt) => (
+        <WorktreeCard
+          key={wt.path}
+          worktree={wt}
+          label={labels[wt.path] ?? dirName(wt.path)}
+          onOpenInEditor={() => onOpenInEditor(wt.path)}
+          onRemove={() => onRemove(wt.path)}
+          onSaveLabel={(newLabel) => onSaveLabel(wt.path, newLabel)}
+        />
+      ))}
     </div>
   );
 }
