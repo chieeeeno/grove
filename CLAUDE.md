@@ -31,6 +31,13 @@ pnpm build              # フロントエンドのみ（tsc + vite build）
 pnpm test               # フロントエンド（Vitest）
 pnpm test:watch          # フロントエンド（ウォッチモード）
 cargo test --manifest-path src-tauri/Cargo.toml --lib  # Rust
+
+# リント & フォーマット
+pnpm lint               # OXLint（フロントエンド）
+pnpm format             # Prettier（フロントエンド、自動修正）
+pnpm format:check       # Prettier（差分チェックのみ）
+cargo fmt --manifest-path src-tauri/Cargo.toml         # rustfmt
+cargo clippy --manifest-path src-tauri/Cargo.toml --lib  # clippy
 ```
 
 ## アーキテクチャ概要
