@@ -1,8 +1,9 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import Sidebar from "./components/Sidebar";
 import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
+import DeleteDialog from "./components/DeleteDialog";
 import { useAppStore } from "./stores/appStore";
 import {
   validateRepository,
@@ -12,6 +13,9 @@ import {
   openInEditor,
   loadLabels,
   saveLabel,
+  checkBeforeRemove,
+  removeWorktree,
+  deleteLabel,
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
 
@@ -28,7 +32,18 @@ function App() {
     setWorktrees,
     setLabel,
     setAllLabels,
+    removeLabel,
+    removeWorktreeEntry,
   } = useAppStore();
+
+  // 削除ダイアログの状態
+  const [deleteTarget, setDeleteTarget] = useState<{
+    path: string;
+    name: string;
+    branch: string;
+    hasUncommitted: boolean;
+    modifiedCount: number;
+  } | null>(null);
 
   // ===== 起動時: config + ラベル読み込み =====
   useEffect(() => {
@@ -114,6 +129,41 @@ function App() {
     [setLabel]
   );
 
+  // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
+  const handleRemoveWorktree = useCallback(async (worktreePath: string) => {
+    try {
+      const check = await checkBeforeRemove(worktreePath);
+      const name = worktreePath.split("/").pop() ?? worktreePath;
+      setDeleteTarget({
+        path: check.path,
+        name,
+        branch: check.branch,
+        hasUncommitted: check.hasUncommitted,
+        modifiedCount: check.modifiedCount,
+      });
+    } catch (e) {
+      console.error("削除前チェック失敗:", e);
+    }
+  }, []);
+
+  const handleConfirmDelete = useCallback(
+    async (deleteBranch: boolean) => {
+      if (!deleteTarget || !selectedRepositoryId) return;
+
+      try {
+        await removeWorktree(deleteTarget.path, deleteTarget.hasUncommitted, deleteBranch);
+        removeWorktreeEntry(selectedRepositoryId, deleteTarget.path);
+        removeLabel(deleteTarget.path);
+        await deleteLabel(deleteTarget.path).catch(console.error);
+      } catch (e) {
+        console.error("worktree の削除に失敗:", e);
+      } finally {
+        setDeleteTarget(null);
+      }
+    },
+    [deleteTarget, selectedRepositoryId, removeWorktreeEntry, removeLabel]
+  );
+
   // ===== リフレッシュ =====
   const handleRefresh = useCallback(async () => {
     const repo = repositories.find((r) => r.id === selectedRepositoryId);
@@ -157,11 +207,23 @@ function App() {
             worktrees={currentWorktrees}
             labels={labels}
             onOpenInEditor={(path) => openInEditor(path).catch(console.error)}
-            onRemove={() => {}}
+            onRemove={handleRemoveWorktree}
             onSaveLabel={handleSaveLabel}
           />
         )}
       </MainArea>
+      {/* 削除確認ダイアログ */}
+      {deleteTarget && (
+        <DeleteDialog
+          worktreeName={deleteTarget.name}
+          worktreePath={deleteTarget.path}
+          branch={deleteTarget.branch}
+          hasUncommitted={deleteTarget.hasUncommitted}
+          modifiedCount={deleteTarget.modifiedCount}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
       {/* DetailPanel は M0 では非表示（M1 以降で実装） */}
     </div>
   );
