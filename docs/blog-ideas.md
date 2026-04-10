@@ -106,7 +106,42 @@
 
 ## 実装フェーズ
 
-※ 実装を進めながら随時追加する
+### Chrome DevTools MCP でデザイン確認しながら実装する
+**タグ**: AI活用, フロントエンド, 開発プロセス  
+**一言**: AI がブラウザの DevTools を操作してスクショを撮り、レイアウトを自分で確認・修正するワークフロー。
+
+**ネタ**:
+- Tauri アプリのブラウザプレビュー（localhost:1420）+ Tauri API モック注入で UI 確認
+- `initScript` で `__TAURI_INTERNALS__` をモックし、ダミーデータでレンダリング
+- Chrome DevTools MCP の `take_screenshot` / `click` / `hover` / `evaluate_script` を活用
+- ユーザーに毎回スクショを撮ってもらう手間がなくなる
+- ホバー効果やアニメーションの確認もブラウザ上でできる
+
+---
+
+### lefthook でテスト必須の pre-commit を設定する
+**タグ**: DX, CI, 個人開発  
+**一言**: テストが落ちたらコミットできない仕組みを lefthook で構築。Husky より速くてシンプル。
+
+**ネタ**:
+- lefthook vs Husky vs simple-git-hooks の比較
+- Go バイナリで並列実行がデフォルト（OXLint + Prettier + Vitest + cargo test が同時に走る）
+- YAML 1ファイルで完結、lint-staged 不要
+- Tauri の多言語構成（TS + Rust）でも1つの設定で両方カバー
+- テスト失敗でコミットがブロックされることを実際に確認した話
+
+---
+
+### Pencil デザイントークンを Tailwind v4 @theme inline に変換する
+**タグ**: Tailwind CSS, デザインシステム, Tauri  
+**一言**: Pencil の `get_variables` でデザイントークンを取得し、CSS カスタムプロパティ → Tailwind @theme inline に変換した。
+
+**ネタ**:
+- Pencil MCP の `get_variables` でダーク/ライト両テーマの変数値を一括取得
+- CSS カスタムプロパティ（:root / [data-theme="light"]）で定義
+- @theme inline で Tailwind ユーティリティに変換（bg-app, text-fg, hover:bg-vs-hover 等）
+- style prop からの脱却: inline style → Tailwind クラスへの移行
+- ホバー/アクティブ状態もすべて Tailwind で完結
 
 ---
 
