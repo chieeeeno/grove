@@ -1,4 +1,4 @@
-/** Unix timestamp (秒) を相対時間に変換する */
+/** Unix timestamp（秒）を相対時間に変換する */
 export function relativeTime(timestampSecs: number): string {
   if (timestampSecs === 0) return "";
 
