@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { RepositoryConfig, WorktreeWithMeta } from "../types";
+import type { RepositoryConfig, WorktreeInfo } from "../types";
 
 interface AppStore {
   // ===== リポジトリ =====
@@ -12,8 +12,8 @@ interface AppStore {
 
   // ===== Worktree =====
   // key: repositoryId
-  worktrees: Record<string, WorktreeWithMeta[]>;
-  setWorktrees: (repositoryId: string, worktrees: WorktreeWithMeta[]) => void;
+  worktrees: Record<string, WorktreeInfo[]>;
+  setWorktrees: (repositoryId: string, worktrees: WorktreeInfo[]) => void;
   removeWorktreeEntry: (repositoryId: string, worktreePath: string) => void;
 
   // ===== ラベル（worktree 絶対パスをキー、ADR-0008） =====
