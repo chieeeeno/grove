@@ -363,4 +363,94 @@ mod tests {
         let _ = dir; // keep alive
         assert_eq!(count_modified_files(&repo), 0);
     }
+
+    /// テスト用: サブ worktree を作成して (メインdir, worktreeパス) を返す
+    fn create_test_repo_with_worktree() -> (TempDir, String) {
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("wt-branch", &head, false).unwrap();
+
+        let wt_path = dir.path().join("wt-sub");
+        repo.worktree(
+            "wt-sub",
+            wt_path.as_path(),
+            Some(
+                git2::WorktreeAddOptions::new().reference(Some(
+                    &repo
+                        .find_branch("wt-branch", git2::BranchType::Local)
+                        .unwrap()
+                        .into_reference(),
+                )),
+            ),
+        )
+        .unwrap();
+
+        let wt_path_str = wt_path.to_str().unwrap().to_string();
+        // main_path が drop されないよう dir を返す
+        (dir, wt_path_str)
+    }
+
+    #[test]
+    fn test_check_before_remove() {
+        let (_dir, wt_path) = create_test_repo_with_worktree();
+
+        let check = check_before_remove(wt_path).unwrap();
+
+        assert_eq!(check.branch, "wt-branch");
+        assert!(!check.has_uncommitted);
+        assert_eq!(check.modified_count, 0);
+    }
+
+    #[test]
+    fn test_check_before_remove_with_changes() {
+        let (_dir, wt_path) = create_test_repo_with_worktree();
+
+        // worktree にファイルを追加
+        fs::write(Path::new(&wt_path).join("dirty.txt"), "dirty").unwrap();
+
+        let check = check_before_remove(wt_path).unwrap();
+
+        assert!(check.has_uncommitted);
+        assert!(check.modified_count > 0);
+    }
+
+    #[test]
+    fn test_remove_worktree_basic() {
+        let (dir, wt_path) = create_test_repo_with_worktree();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        // 削除前: worktree が2つある
+        assert_eq!(list_worktrees(main_path.clone()).unwrap().len(), 2);
+        assert!(Path::new(&wt_path).exists());
+
+        // 削除
+        remove_worktree(wt_path.clone(), false, false).unwrap();
+
+        // 削除後: worktree が1つ（メインのみ）
+        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert!(!Path::new(&wt_path).exists());
+    }
+
+    #[test]
+    fn test_remove_worktree_with_branch_delete() {
+        let (dir, wt_path) = create_test_repo_with_worktree();
+        let main_path = dir.path().to_str().unwrap().to_string();
+        let main_repo = Repository::open(&main_path).unwrap();
+
+        // 削除前: ブランチが存在する
+        assert!(main_repo
+            .find_branch("wt-branch", git2::BranchType::Local)
+            .is_ok());
+
+        // ブランチも一緒に削除
+        remove_worktree(wt_path, false, true).unwrap();
+
+        // 削除後: ブランチも消えている
+        let main_repo = Repository::open(&main_path).unwrap();
+        assert!(main_repo
+            .find_branch("wt-branch", git2::BranchType::Local)
+            .is_err());
+    }
 }
