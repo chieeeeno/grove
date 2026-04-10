@@ -1,4 +1,4 @@
-import { Trees, GitBranch, Plus, Settings } from "lucide-react";
+import { Trees, GitBranch, Plus, Settings, X } from "lucide-react";
 
 // ===== 型 =====
 
@@ -7,18 +7,17 @@ interface RepoItemProps {
   worktreeCount: number;
   isActive: boolean;
   onClick: () => void;
+  onRemove: () => void;
 }
 
 // ===== サブコンポーネント =====
 
-function RepoItem({ name, worktreeCount, isActive, onClick }: RepoItemProps) {
+function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItemProps) {
   return (
-    <button
+    <div
+      className="group w-full flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer"
+      style={{ backgroundColor: isActive ? "var(--bg-card)" : "transparent" }}
       onClick={onClick}
-      className="w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-left cursor-pointer border-0 outline-none"
-      style={{
-        backgroundColor: isActive ? "var(--bg-card)" : "transparent",
-      }}
     >
       <GitBranch
         size={16}
@@ -33,8 +32,17 @@ function RepoItem({ name, worktreeCount, isActive, onClick }: RepoItemProps) {
       >
         {name}
       </span>
+      {/* hover 時に X ボタン、通常時はバッジ */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        className="hidden group-hover:flex items-center justify-center rounded p-0.5 border-0 outline-none cursor-pointer"
+        style={{ backgroundColor: "transparent", color: "var(--text-muted)" }}
+        title="登録解除"
+      >
+        <X size={12} />
+      </button>
       <span
-        className="flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+        className="group-hover:hidden flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
         style={{
           backgroundColor: isActive ? "var(--accent-primary)" : "var(--border-default)",
           color: isActive ? "var(--text-inverse)" : "var(--text-secondary)",
@@ -42,7 +50,7 @@ function RepoItem({ name, worktreeCount, isActive, onClick }: RepoItemProps) {
       >
         {worktreeCount}
       </span>
-    </button>
+    </div>
   );
 }
 
@@ -53,6 +61,7 @@ interface SidebarProps {
   selectedId?: string | null;
   onSelectRepository?: (id: string) => void;
   onAddRepository?: () => void;
+  onRemoveRepository?: (id: string) => void;
   onOpenSettings?: () => void;
 }
 
@@ -61,6 +70,7 @@ export default function Sidebar({
   selectedId = null,
   onSelectRepository = () => {},
   onAddRepository = () => {},
+  onRemoveRepository = () => {},
   onOpenSettings = () => {},
 }: SidebarProps) {
   return (
@@ -111,6 +121,7 @@ export default function Sidebar({
               worktreeCount={repo.worktreeCount}
               isActive={repo.id === selectedId}
               onClick={() => onSelectRepository(repo.id)}
+              onRemove={() => onRemoveRepository(repo.id)}
             />
           ))
         )}
