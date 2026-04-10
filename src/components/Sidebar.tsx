@@ -15,20 +15,13 @@ interface RepoItemProps {
 function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItemProps) {
   return (
     <div
-      className="group w-full flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer"
-      style={{ backgroundColor: isActive ? "var(--bg-card)" : "transparent" }}
+      className={`group w-full flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer transition-colors duration-150
+        ${isActive ? "bg-card" : "hover:bg-card-hover"}`}
       onClick={onClick}
     >
-      <GitBranch
-        size={16}
-        style={{ color: isActive ? "var(--accent-primary)" : "var(--text-muted)", flexShrink: 0 }}
-      />
+      <GitBranch size={16} className={`shrink-0 ${isActive ? "text-accent" : "text-fg-muted"}`} />
       <span
-        className="flex-1 text-[13px] truncate"
-        style={{
-          color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-          fontWeight: isActive ? 500 : 400,
-        }}
+        className={`flex-1 text-[13px] truncate ${isActive ? "text-fg font-medium" : "text-fg-secondary"}`}
       >
         {name}
       </span>
@@ -38,18 +31,14 @@ function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItem
           e.stopPropagation();
           onRemove();
         }}
-        className="hidden group-hover:flex items-center justify-center rounded p-0.5 border-0 outline-none cursor-pointer"
-        style={{ backgroundColor: "transparent", color: "var(--text-muted)" }}
+        className="hidden group-hover:flex items-center justify-center rounded p-0.5 border-0 outline-none cursor-pointer text-fg-muted hover:bg-card-hover"
         title="登録解除"
       >
         <X size={12} />
       </button>
       <span
-        className="group-hover:hidden flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
-        style={{
-          backgroundColor: isActive ? "var(--accent-primary)" : "var(--border-default)",
-          color: isActive ? "var(--text-inverse)" : "var(--text-secondary)",
-        }}
+        className={`group-hover:hidden flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none
+          ${isActive ? "bg-accent text-fg-inverse" : "bg-border text-fg-secondary"}`}
       >
         {worktreeCount}
       </span>
@@ -77,42 +66,24 @@ export default function Sidebar({
   onOpenSettings = () => {},
 }: SidebarProps) {
   return (
-    <aside
-      className="flex flex-col gap-4 py-5 px-4 h-full shrink-0"
-      style={{
-        width: 220,
-        backgroundColor: "var(--bg-sidebar)",
-        borderRight: "1px solid var(--border-default)",
-      }}
-    >
+    <aside className="flex flex-col gap-4 py-5 px-4 h-full shrink-0 w-[220px] bg-sidebar border-r border-border">
       {/* ロゴ */}
       <div className="flex items-center gap-2">
-        <Trees size={20} style={{ color: "var(--accent-green)", flexShrink: 0 }} />
-        <span className="text-[18px] font-bold" style={{ color: "var(--text-primary)" }}>
-          Grove
-        </span>
-        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-          v0.1.0
-        </span>
+        <Trees size={20} className="text-accent-green shrink-0" />
+        <span className="text-[18px] font-bold text-fg">Grove</span>
+        <span className="text-[11px] text-fg-muted">v0.1.0</span>
       </div>
 
       {/* 区切り線 */}
-      <div style={{ height: 1, backgroundColor: "var(--border-default)" }} />
+      <div className="h-px bg-border" />
 
       {/* リポジトリラベル */}
-      <span
-        className="text-[11px] font-semibold"
-        style={{ color: "var(--text-muted)", letterSpacing: "0.5px" }}
-      >
-        リポジトリ
-      </span>
+      <span className="text-[11px] font-semibold text-fg-muted tracking-wide">リポジトリ</span>
 
-      {/* リポジトリ一覧（残スペースを埋める） */}
+      {/* リポジトリ一覧 */}
       <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto min-h-0">
         {repositories.length === 0 ? (
-          <p className="text-[12px] px-2.5" style={{ color: "var(--text-muted)" }}>
-            リポジトリがありません
-          </p>
+          <p className="text-[12px] px-2.5 text-fg-muted">リポジトリがありません</p>
         ) : (
           repositories.map((repo) => (
             <RepoItem
@@ -130,24 +101,18 @@ export default function Sidebar({
       {/* リポジトリを追加ボタン */}
       <button
         onClick={onAddRepository}
-        className="w-full flex items-center gap-1.5 rounded-md px-2.5 py-2 text-left cursor-pointer border outline-none"
-        style={{
-          backgroundColor: "transparent",
-          borderColor: "var(--border-default)",
-          color: "var(--text-muted)",
-        }}
+        className="w-full flex items-center gap-1.5 rounded-md px-2.5 py-2 text-left cursor-pointer border border-border bg-transparent text-fg-muted hover:bg-card-hover hover:border-fg-muted transition-colors duration-150 outline-none"
       >
-        <Plus size={14} style={{ flexShrink: 0 }} />
+        <Plus size={14} className="shrink-0" />
         <span className="text-[12px]">リポジトリを追加</span>
       </button>
 
       {/* 設定ボタン */}
       <button
         onClick={onOpenSettings}
-        className="w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-left cursor-pointer border-0 outline-none"
-        style={{ backgroundColor: "transparent", color: "var(--text-secondary)" }}
+        className="w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-left cursor-pointer border-0 bg-transparent text-fg-secondary hover:bg-card-hover transition-colors duration-150 outline-none"
       >
-        <Settings size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+        <Settings size={16} className="text-fg-muted shrink-0" />
         <span className="text-[13px]">設定</span>
       </button>
     </aside>
