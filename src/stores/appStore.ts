@@ -20,6 +20,7 @@ interface AppStore {
   labels: Record<string, string>;
   setLabel: (worktreePath: string, label: string) => void;
   removeLabel: (worktreePath: string) => void;
+  setAllLabels: (labels: Record<string, string>) => void;
 
   // ===== UI 状態 =====
   codeAvailable: boolean;
@@ -60,6 +61,7 @@ export const useAppStore = create<AppStore>((set) => ({
       delete next[worktreePath];
       return { labels: next };
     }),
+  setAllLabels: (labels) => set({ labels }),
 
   // UI
   codeAvailable: false,
