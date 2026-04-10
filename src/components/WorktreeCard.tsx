@@ -25,10 +25,7 @@ export default function WorktreeCard({
   const hasChanges = worktree.modifiedCount > 0;
 
   return (
-    <div
-      className={`flex flex-col gap-3 rounded-xl p-4 bg-card border transition-colors duration-150
-        ${isLabelEditing ? "border-border" : "border-border hover:bg-card-hover hover:border-border-card-hover"}`}
-    >
+    <div className="flex flex-col gap-3 rounded-xl p-4 bg-card border border-border">
       {/* ヘッダー: ラベル + バッジ */}
       <div className="flex items-center justify-between gap-2">
         <EditableLabel
