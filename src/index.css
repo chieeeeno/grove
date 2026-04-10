@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+/* ===== Tailwind カスタムテーマ（CSS 変数を参照） ===== */
+@theme inline {
+  /* Backgrounds */
+  --color-app: var(--bg-app);
+  --color-card: var(--bg-card);
+  --color-card-hover: var(--bg-card-hover);
+  --color-sidebar: var(--bg-sidebar);
+  --color-dialog: var(--bg-dialog);
+  --color-input: var(--bg-input);
+
+  /* Borders */
+  --color-border: var(--border-default);
+  --color-border-active: var(--border-active);
+  --color-border-card-hover: var(--card-hover-border);
+
+  /* Text */
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-fg-inverse: var(--text-inverse);
+
+  /* Accents */
+  --color-accent: var(--accent-primary);
+  --color-accent-green: var(--accent-green);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-red: var(--accent-red);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-gray: var(--accent-gray);
+
+  /* Button states */
+  --color-vs-hover: var(--vs-hover-bg);
+  --color-vs-active: var(--vs-active-bg);
+  --color-remove-hover: var(--remove-hover-bg);
+
+  /* Agent */
+  --color-agent-bg: var(--agent-status-bg);
+  --color-agent-text: var(--agent-status-text);
+}
+
 /* ===== デザイントークン（Pencil grove-ui.pen から変換）===== */
 
 /* Dark テーマ（M0 デフォルト） */
