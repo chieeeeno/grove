@@ -44,6 +44,15 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --lib  # clippy
 # hooks のインストール: pnpm lefthook install --force
 ```
 
+## テストルール
+
+**ロジックを実装したら必ずテストコードもセットで書くこと。** テストなしの実装コミットは不可。
+
+- フロントエンド: Vitest + @testing-library/react でユニットテスト・コンポーネントテスト
+- Rust: `#[cfg(test)]` モジュールでユニットテスト
+- Tauri API に依存する部分はモック（`src/test/setup.ts` で設定済み）
+- テストファイルは実装ファイルと同階層に配置（`*.test.ts` / `*.test.tsx`）
+
 ## アーキテクチャ概要
 
 Grove は Git worktree を GUI 管理するデスクトップアプリ（Tauri 2）。フロントエンド（React + TypeScript）と Rust バックエンドが Tauri IPC を通じて通信する。
