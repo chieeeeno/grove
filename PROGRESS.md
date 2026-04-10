@@ -133,21 +133,21 @@
 ### 4. worktree ラベル機能（ADR-0008）
 
 #### 4-1. Rust 側
-- [ ] ラベルの store 保存（worktree 絶対パスをキー）
-- [ ] ラベルの store 読込
-- [ ] ラベルの store 削除（worktree 削除時に連動）
+- [x] ラベルの store 保存（worktree 絶対パスをキー）
+- [x] ラベルの store 読込
+- [x] ラベルの store 削除（worktree 削除時に連動）
 
 #### 4-2. Frontend 側
-- [ ] ラベル表示モード（デフォルト: worktree ディレクトリ名）
-- [ ] 鉛筆アイコン → 編集モード切替
-- [ ] インライン input 表示
-- [ ] 確定ボタン（チェックマークアイコン）
-- [ ] × アイコン（キャンセル）
-- [ ] Cmd+Enter で確定
-- [ ] Esc でキャンセル
-- [ ] Enter 単独では確定しない（ADR-0008）
-- [ ] 確定後に store 保存 → 表示モードに戻る
-- [ ] 状態遷移: Idle → Editing → Saving → Idle（§11.7 参照）
+- [x] ラベル表示モード（デフォルト: worktree ディレクトリ名）
+- [x] 鉛筆アイコン → 編集モード切替
+- [x] インライン input 表示
+- [x] 確定ボタン（チェックマークアイコン）
+- [x] × アイコン（キャンセル）
+- [x] Cmd+Enter で確定
+- [x] Esc でキャンセル
+- [x] Enter 単独では確定しない（ADR-0008）
+- [x] 確定後に store 保存 → 表示モードに戻る
+- [x] 状態遷移: Idle → Editing → Saving → Idle（§11.7 参照）
 
 ---
 
@@ -211,7 +211,14 @@
 
 ---
 
-### 9. 仕上げ
+### 9. デザイン調整
+
+- [ ] ラベル編集モード時のカード青枠を外す
+- [ ] その他 `docs/design-fixes.md` に記載の項目
+
+---
+
+### 10. 仕上げ
 
 - [ ] テンプレート由来の不要ファイル削除（public/tauri.svg, public/vite.svg, src/assets/react.svg 等）
 - [ ] UI テキストの日本語化（ADR-0009）
