@@ -5,6 +5,7 @@ import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
 import DeleteDialog from "./components/DeleteDialog";
 import PreflightBanner from "./components/PreflightBanner";
+import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAppStore } from "./stores/appStore";
@@ -48,6 +49,9 @@ function App() {
 
   // キーボードショートカット（Cmd+R でリフレッシュ）
   useKeyboardShortcuts({ onRefresh: refresh });
+
+  // 設定ダイアログの状態
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // 削除ダイアログの状態
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -199,6 +203,7 @@ function App() {
           onSelectRepository={selectRepository}
           onAddRepository={handleAddRepository}
           onRemoveRepository={handleRemoveRepository}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
         <MainArea
           selectedRepositoryName={selectedRepo?.name ?? null}
@@ -227,6 +232,18 @@ function App() {
             modifiedCount={deleteTarget.modifiedCount}
             onConfirm={handleConfirmDelete}
             onCancel={() => setDeleteTarget(null)}
+          />
+        )}
+        {/* 設定ダイアログ */}
+        {isSettingsOpen && (
+          <SettingsDialog
+            theme="dark"
+            refreshInterval={5000}
+            onChangeRefreshInterval={(interval) => {
+              // TODO: store に保存 + ポーリング間隔を変更
+              console.log("refresh interval:", interval);
+            }}
+            onClose={() => setIsSettingsOpen(false)}
           />
         )}
         {/* DetailPanel は M0 では非表示（M1 以降で実装） */}
