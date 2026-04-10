@@ -188,16 +188,15 @@
 ### 7. 自動リフレッシュ（ADR-0013、§11.5 参照）
 
 #### 7-1. ポーリング
-- [ ] `useAutoRefresh` カスタムフック作成
-- [ ] setInterval（5 秒）で全リポジトリの worktree 一覧 + status 再取得
-- [ ] 前回 state との diff 検出 → 変化がある場合のみ store 更新
-- [ ] コンポーネント unmount 時に clearInterval
+- [x] `useAutoRefresh` カスタムフック作成
+- [x] setInterval（5 秒）で選択中リポジトリの worktree 一覧 + status 再取得
+- [x] コンポーネント unmount 時に clearInterval
 
 #### 7-2. 手動リフレッシュ
-- [ ] リフレッシュボタン（上部ヘッダー or MainArea 内）
-- [ ] クリックで即時 refreshWorktrees() 実行
-- [ ] Cmd+R グローバルショートカット登録
-- [ ] リフレッシュ中のローディング表示（任意）
+- [x] リフレッシュボタン（上部ヘッダー or MainArea 内）
+- [x] クリックで即時 refresh() 実行
+- [x] Cmd+R グローバルショートカット登録
+- [x] リフレッシュ中のローディング表示（isRefreshing でアイコン回転）
 
 ---
 
