@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { ShieldCheck, GitCommitHorizontal, FilePen, Code, Trash2 } from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
+import EditableLabel from "./EditableLabel";
 
 interface WorktreeCardProps {
   worktree: WorktreeInfo;
   label: string;
   onOpenInEditor: () => void;
   onRemove: () => void;
+  onSaveLabel: (newLabel: string) => void;
 }
 
 export default function WorktreeCard({
@@ -14,7 +17,9 @@ export default function WorktreeCard({
   label,
   onOpenInEditor,
   onRemove,
+  onSaveLabel,
 }: WorktreeCardProps) {
+  const [isLabelEditing, setIsLabelEditing] = useState(false);
   const hasChanges = worktree.modifiedCount > 0;
   const changesColor = hasChanges ? "var(--accent-yellow)" : "var(--text-muted)";
 
@@ -23,38 +28,38 @@ export default function WorktreeCard({
       className="flex flex-col gap-3 rounded-xl p-4"
       style={{
         backgroundColor: "var(--bg-card)",
-        border: "1px solid var(--border-default)",
+        border: isLabelEditing
+          ? "2px solid var(--accent-primary)"
+          : "1px solid var(--border-default)",
       }}
     >
       {/* ヘッダー: ラベル + バッジ */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <span
-            className="text-[15px] font-semibold truncate"
-            style={{ color: "var(--text-primary)" }}
-          >
-            {label}
-          </span>
-          <span className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
-            {worktree.branch}
-          </span>
-        </div>
-        {worktree.isMain ? (
-          <span
-            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0"
-            style={{ backgroundColor: "#34D39933", color: "var(--accent-green)" }}
-          >
-            <ShieldCheck size={12} />
-            primary
-          </span>
-        ) : (
-          <span
-            className="flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0"
-            style={{ backgroundColor: "#6B728033", color: "var(--accent-gray)" }}
-          >
-            idle
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-2">
+        <EditableLabel
+          label={label}
+          branch={worktree.branch}
+          isMain={worktree.isMain}
+          onSave={onSaveLabel}
+          onEditingChange={setIsLabelEditing}
+        />
+        {/* 編集中はバッジを非表示（デザイン通り） */}
+        {!isLabelEditing &&
+          (worktree.isMain ? (
+            <span
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0"
+              style={{ backgroundColor: "#34D39933", color: "var(--accent-green)" }}
+            >
+              <ShieldCheck size={12} />
+              primary
+            </span>
+          ) : (
+            <span
+              className="flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0"
+              style={{ backgroundColor: "#6B728033", color: "var(--accent-gray)" }}
+            >
+              idle
+            </span>
+          ))}
       </div>
 
       {/* 区切り線 */}
