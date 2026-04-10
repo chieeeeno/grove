@@ -75,20 +75,20 @@
 ### 2. リポジトリ管理
 
 #### 2-1. Rust 側
-- [ ] `validate_repository` 実装（git2 で Repository::open してリポジトリ情報を返す）
-- [ ] `load_config` 実装（tauri-plugin-store から AppConfig 読込）
-- [ ] `save_config` 実装（tauri-plugin-store に AppConfig 書込）
-- [ ] RepositoryInfo / AppConfig の Rust 構造体定義（serde Serialize/Deserialize）
+- [x] `validate_repository` 実装（git2 で Repository::open してリポジトリ情報を返す）
+- [x] `load_config` 実装（tauri-plugin-store から AppConfig 読込）
+- [x] `save_config` 実装（tauri-plugin-store に AppConfig 書込）
+- [x] RepositoryInfo / AppConfig の Rust 構造体定義（serde Serialize/Deserialize）
 
 #### 2-2. Frontend 側
-- [ ] サイドバーにリポジトリ一覧を表示
-- [ ] リポジトリ追加ボタン（「+ リポジトリを追加」）
-- [ ] ディレクトリ選択ダイアログ（Tauri Dialog API）→ validate → store 保存
-- [ ] リポジトリ削除（サイドバーから登録解除、実ファイルは消さない）
-- [ ] リポジトリ選択（クリックで切り替え、selectedRepositoryId 更新）
-- [ ] 選択中リポジトリのハイライト表示
-- [ ] リポジトリ名の表示（ディレクトリ名から自動取得）
-- [ ] 各リポジトリの worktree 数をバッジ表示
+- [x] サイドバーにリポジトリ一覧を表示
+- [x] リポジトリ追加ボタン（「+ リポジトリを追加」）
+- [x] ディレクトリ選択ダイアログ（Tauri Dialog API）→ validate → store 保存
+- [x] リポジトリ削除（サイドバーから登録解除、実ファイルは消さない）
+- [x] リポジトリ選択（クリックで切り替え、selectedRepositoryId 更新）
+- [x] 選択中リポジトリのハイライト表示
+- [x] リポジトリ名の表示（ディレクトリ名から自動取得）
+- [x] 各リポジトリの worktree 数をバッジ表示
 
 ---
 
