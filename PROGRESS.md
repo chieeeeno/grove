@@ -40,6 +40,22 @@
 
 ## M0 実装タスク
 
+### 0. テスト環境セットアップ
+
+#### 0-1. フロントエンド（Vitest + React Testing Library）
+- [x] Vitest / jsdom / @testing-library/react / @testing-library/jest-dom を devDependencies に追加
+- [x] vite.config.ts に test 設定を追加
+- [x] テスト用 setup ファイル作成（src/test/setup.ts）
+- [x] package.json に `test` スクリプト追加
+- [x] サンプルテスト作成（動作確認用）
+
+#### 0-2. Rust（cargo test）
+- [x] 既存コマンドにユニットテストを追加（#[cfg(test)] モジュール）
+- [x] テスト用のヘルパー関数（一時リポジトリ作成等）を用意
+- [x] `cargo test` で全テストが通ることを確認
+
+---
+
 ### 1. UI の骨組み
 
 #### 1-1. レイアウト
