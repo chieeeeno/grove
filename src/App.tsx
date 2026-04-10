@@ -42,6 +42,8 @@ function App() {
     codeAvailable,
     setCodeAvailable,
     isRefreshing,
+    refreshInterval,
+    setRefreshInterval,
   } = useAppStore();
 
   // 自動リフレッシュ（ADR-0013: 5秒ポーリング）
@@ -49,6 +51,21 @@ function App() {
 
   // キーボードショートカット（Cmd+R でリフレッシュ）
   useKeyboardShortcuts({ onRefresh: refresh });
+
+  // ===== 設定変更 =====
+  const handleChangeRefreshInterval = useCallback(
+    async (interval: number) => {
+      setRefreshInterval(interval);
+      const config: AppConfig = {
+        repositories,
+        editor: "vscode",
+        theme: "system",
+        refreshInterval: interval,
+      };
+      await saveConfig(config).catch(console.error);
+    },
+    [repositories, setRefreshInterval]
+  );
 
   // 設定ダイアログの状態
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -67,6 +84,9 @@ function App() {
     loadConfig()
       .then((config) => {
         setRepositories(config.repositories);
+        if (config.refreshInterval) {
+          setRefreshInterval(config.refreshInterval);
+        }
         if (config.repositories.length > 0) {
           selectRepository(config.repositories[0].id);
         }
@@ -75,7 +95,7 @@ function App() {
 
     loadLabels().then(setAllLabels).catch(console.error);
     checkCodeCommand().then(setCodeAvailable).catch(console.error);
-  }, [setRepositories, selectRepository, setAllLabels, setCodeAvailable]);
+  }, [setRepositories, selectRepository, setAllLabels, setCodeAvailable, setRefreshInterval]);
 
   // ===== 選択中リポジトリの worktree 取得 =====
   useEffect(() => {
@@ -237,11 +257,8 @@ function App() {
         {/* 設定ダイアログ */}
         {isSettingsOpen && (
           <SettingsDialog
-            refreshInterval={5000}
-            onChangeRefreshInterval={(interval) => {
-              // TODO: store に保存 + ポーリング間隔を変更
-              console.log("refresh interval:", interval);
-            }}
+            refreshInterval={refreshInterval}
+            onChangeRefreshInterval={handleChangeRefreshInterval}
             onClose={() => setIsSettingsOpen(false)}
           />
         )}

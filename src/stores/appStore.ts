@@ -22,6 +22,10 @@ interface AppStore {
   removeLabel: (worktreePath: string) => void;
   setAllLabels: (labels: Record<string, string>) => void;
 
+  // ===== 設定 =====
+  refreshInterval: number;
+  setRefreshInterval: (v: number) => void;
+
   // ===== UI 状態 =====
   codeAvailable: boolean;
   setCodeAvailable: (v: boolean) => void;
@@ -62,6 +66,10 @@ export const useAppStore = create<AppStore>((set) => ({
       return { labels: next };
     }),
   setAllLabels: (labels) => set({ labels }),
+
+  // 設定
+  refreshInterval: 5000,
+  setRefreshInterval: (v) => set({ refreshInterval: v }),
 
   // UI
   codeAvailable: false,

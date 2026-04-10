@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback } from "react";
 import { useAppStore } from "../stores/appStore";
 import { listWorktrees } from "../lib/tauri";
 
-const DEFAULT_INTERVAL = 5000; // ADR-0013: 5秒間隔
 const MIN_SPIN_DURATION = 500; // 手動リフレッシュ時のスピナー最低表示時間（ms）
 
 /**
@@ -13,6 +12,7 @@ export function useAutoRefresh() {
   const repositories = useAppStore((s) => s.repositories);
   const selectedRepositoryId = useAppStore((s) => s.selectedRepositoryId);
   const setWorktrees = useAppStore((s) => s.setWorktrees);
+  const refreshInterval = useAppStore((s) => s.refreshInterval);
   const setIsRefreshing = useAppStore((s) => s.setIsRefreshing);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -54,7 +54,7 @@ export function useAutoRefresh() {
   useEffect(() => {
     if (!selectedRepositoryId) return;
 
-    intervalRef.current = setInterval(silentRefresh, DEFAULT_INTERVAL);
+    intervalRef.current = setInterval(silentRefresh, refreshInterval);
 
     return () => {
       if (intervalRef.current) {
@@ -62,7 +62,7 @@ export function useAutoRefresh() {
         intervalRef.current = null;
       }
     };
-  }, [selectedRepositoryId, silentRefresh]);
+  }, [selectedRepositoryId, silentRefresh, refreshInterval]);
 
   return { refresh };
 }
