@@ -237,7 +237,6 @@ function App() {
         {/* 設定ダイアログ */}
         {isSettingsOpen && (
           <SettingsDialog
-            theme="dark"
             refreshInterval={5000}
             onChangeRefreshInterval={(interval) => {
               // TODO: store に保存 + ポーリング間隔を変更
