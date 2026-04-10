@@ -163,3 +163,106 @@ pub fn remove_worktree(
     let _ = (worktree_path, force, delete_branch);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use git2::{Repository, Signature};
+    use std::fs;
+    use tempfile::TempDir;
+
+    /// テスト用: 初期コミット付きの一時 git リポジトリを作成する
+    fn create_test_repo() -> (TempDir, Repository) {
+        let dir = TempDir::new().unwrap();
+        let repo = Repository::init(dir.path()).unwrap();
+
+        // 初期コミット
+        {
+            let sig = Signature::now("Test", "test@example.com").unwrap();
+            let tree_id = {
+                let mut index = repo.index().unwrap();
+                index.write_tree().unwrap()
+            };
+            let tree = repo.find_tree(tree_id).unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "initial commit", &tree, &[])
+                .unwrap();
+        }
+
+        (dir, repo)
+    }
+
+    #[test]
+    fn test_list_worktrees_returns_main() {
+        let (dir, _repo) = create_test_repo();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        let result = list_worktrees(path.clone()).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert!(result[0].is_main);
+        // git init のデフォルトブランチ名は環境設定に依存する
+        assert!(result[0].branch == "main" || result[0].branch == "master");
+        assert_eq!(result[0].last_commit_message, "initial commit");
+    }
+
+    #[test]
+    fn test_list_worktrees_includes_sub_worktrees() {
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        // サブ worktree 用のブランチを作成
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("feature-test", &head, false).unwrap();
+
+        // サブ worktree を追加
+        let wt_path = dir.path().join("wt-feature");
+        repo.worktree(
+            "wt-feature",
+            wt_path.as_path(),
+            Some(
+                git2::WorktreeAddOptions::new()
+                    .reference(Some(&repo.find_branch("feature-test", git2::BranchType::Local).unwrap().into_reference())),
+            ),
+        )
+        .unwrap();
+
+        let result = list_worktrees(main_path).unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(result[0].is_main);
+        assert!(!result[1].is_main);
+        assert_eq!(result[1].branch, "feature-test");
+    }
+
+    #[test]
+    fn test_get_worktree_status_clean() {
+        let (dir, _repo) = create_test_repo();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        let status = get_worktree_status(path).unwrap();
+
+        assert_eq!(status.modified_count, 0);
+        assert!(!status.has_uncommitted);
+    }
+
+    #[test]
+    fn test_get_worktree_status_with_changes() {
+        let (dir, _repo) = create_test_repo();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        // untracked ファイルを作成
+        fs::write(dir.path().join("new_file.txt"), "hello").unwrap();
+
+        let status = get_worktree_status(path).unwrap();
+
+        assert!(status.modified_count > 0);
+        assert!(status.has_uncommitted);
+    }
+
+    #[test]
+    fn test_count_modified_files_empty_repo() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir; // keep alive
+        assert_eq!(count_modified_files(&repo), 0);
+    }
+}
