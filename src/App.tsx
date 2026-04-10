@@ -10,6 +10,8 @@ import {
   saveConfig,
   listWorktrees,
   openInEditor,
+  loadLabels,
+  saveLabel,
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
 
@@ -24,20 +26,23 @@ function App() {
     selectRepository,
     setRepositories,
     setWorktrees,
+    setLabel,
+    setAllLabels,
   } = useAppStore();
 
-  // ===== 起動時: config 読み込み =====
+  // ===== 起動時: config + ラベル読み込み =====
   useEffect(() => {
     loadConfig()
       .then((config) => {
         setRepositories(config.repositories);
-        // 最初のリポジトリを自動選択
         if (config.repositories.length > 0) {
           selectRepository(config.repositories[0].id);
         }
       })
       .catch(console.error);
-  }, [setRepositories, selectRepository]);
+
+    loadLabels().then(setAllLabels).catch(console.error);
+  }, [setRepositories, selectRepository, setAllLabels]);
 
   // ===== 選択中リポジトリの worktree 取得 =====
   useEffect(() => {
@@ -100,6 +105,15 @@ function App() {
     [repositories, selectedRepositoryId, removeRepository, selectRepository]
   );
 
+  // ===== ラベル保存 =====
+  const handleSaveLabel = useCallback(
+    async (worktreePath: string, newLabel: string) => {
+      setLabel(worktreePath, newLabel);
+      await saveLabel(worktreePath, newLabel).catch(console.error);
+    },
+    [setLabel]
+  );
+
   // ===== リフレッシュ =====
   const handleRefresh = useCallback(async () => {
     const repo = repositories.find((r) => r.id === selectedRepositoryId);
@@ -144,6 +158,7 @@ function App() {
             labels={labels}
             onOpenInEditor={(path) => openInEditor(path).catch(console.error)}
             onRemove={() => {}}
+            onSaveLabel={handleSaveLabel}
           />
         )}
       </MainArea>
