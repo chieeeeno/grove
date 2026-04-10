@@ -1,6 +1,6 @@
 mod commands;
 
-use commands::{editor, repository, worktree};
+use commands::{editor, label, repository, worktree};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,6 +18,10 @@ pub fn run() {
             worktree::list_worktrees,
             worktree::get_worktree_status,
             worktree::remove_worktree,
+            // ラベル（ADR-0008）
+            label::load_labels,
+            label::save_label,
+            label::delete_label,
             // エディタ
             editor::open_in_editor,
             editor::check_code_command,

@@ -30,6 +30,19 @@ export const removeWorktree = (
   deleteBranch: boolean
 ): Promise<void> => invoke("remove_worktree", { worktreePath, force, deleteBranch });
 
+// ===== ラベル（ADR-0008） =====
+
+/** 全ラベルを読み込む（キー: worktree 絶対パス） */
+export const loadLabels = (): Promise<Record<string, string>> => invoke("load_labels");
+
+/** ラベルを保存する */
+export const saveLabel = (worktreePath: string, label: string): Promise<void> =>
+  invoke("save_label", { worktreePath, label });
+
+/** ラベルを削除する */
+export const deleteLabel = (worktreePath: string): Promise<void> =>
+  invoke("delete_label", { worktreePath });
+
 // ===== エディタ =====
 
 /** VS Code でパスを開く */
