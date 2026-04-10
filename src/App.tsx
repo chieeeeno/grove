@@ -5,6 +5,8 @@ import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
 import DeleteDialog from "./components/DeleteDialog";
 import PreflightBanner from "./components/PreflightBanner";
+import { useAutoRefresh } from "./hooks/useAutoRefresh";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAppStore } from "./stores/appStore";
 import {
   validateRepository,
@@ -38,7 +40,14 @@ function App() {
     removeWorktreeEntry,
     codeAvailable,
     setCodeAvailable,
+    isRefreshing,
   } = useAppStore();
+
+  // 自動リフレッシュ（ADR-0013: 5秒ポーリング）
+  const { refresh } = useAutoRefresh();
+
+  // キーボードショートカット（Cmd+R でリフレッシュ）
+  useKeyboardShortcuts({ onRefresh: refresh });
 
   // 削除ダイアログの状態
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -169,19 +178,6 @@ function App() {
     [deleteTarget, selectedRepositoryId, removeWorktreeEntry, removeLabel]
   );
 
-  // ===== リフレッシュ =====
-  const handleRefresh = useCallback(async () => {
-    const repo = repositories.find((r) => r.id === selectedRepositoryId);
-    if (!repo) return;
-
-    try {
-      const wts = await listWorktrees(repo.path);
-      setWorktrees(repo.id, wts);
-    } catch (e) {
-      console.error("リフレッシュ失敗:", e);
-    }
-  }, [selectedRepositoryId, repositories, setWorktrees]);
-
   // ===== 選択中リポジトリの情報 =====
   const selectedRepo = repositories.find((r) => r.id === selectedRepositoryId) ?? null;
   const currentWorktrees = selectedRepo ? (worktrees[selectedRepo.id] ?? []) : [];
@@ -207,7 +203,8 @@ function App() {
         <MainArea
           selectedRepositoryName={selectedRepo?.name ?? null}
           selectedRepositoryPath={selectedRepo?.path ?? null}
-          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+          onRefresh={refresh}
         >
           {currentWorktrees.length > 0 && (
             <WorktreeGrid
