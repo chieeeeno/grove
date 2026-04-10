@@ -38,6 +38,10 @@ pnpm format             # Prettier（フロントエンド、自動修正）
 pnpm format:check       # Prettier（差分チェックのみ）
 cargo fmt --manifest-path src-tauri/Cargo.toml         # rustfmt
 cargo clippy --manifest-path src-tauri/Cargo.toml --lib  # clippy
+
+# Git hooks（lefthook、pre-commit で自動実行）
+# .ts/.tsx → OXLint + Prettier、.rs → rustfmt + clippy が並列で走る
+# hooks のインストール: pnpm lefthook install --force
 ```
 
 ## アーキテクチャ概要
