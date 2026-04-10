@@ -23,17 +23,11 @@ export default function WorktreeCard({
 }: WorktreeCardProps) {
   const [isLabelEditing, setIsLabelEditing] = useState(false);
   const hasChanges = worktree.modifiedCount > 0;
-  const changesColor = hasChanges ? "var(--accent-yellow)" : "var(--text-muted)";
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-xl p-4"
-      style={{
-        backgroundColor: "var(--bg-card)",
-        border: isLabelEditing
-          ? "2px solid var(--accent-primary)"
-          : "1px solid var(--border-default)",
-      }}
+      className={`flex flex-col gap-3 rounded-xl p-4 bg-card border transition-colors duration-150
+        ${isLabelEditing ? "border-border" : "border-border hover:bg-card-hover hover:border-border-card-hover"}`}
     >
       {/* ヘッダー: ラベル + バッジ */}
       <div className="flex items-center justify-between gap-2">
@@ -44,46 +38,39 @@ export default function WorktreeCard({
           onSave={onSaveLabel}
           onEditingChange={setIsLabelEditing}
         />
-        {/* 編集中はバッジを非表示（デザイン通り） */}
         {!isLabelEditing &&
           (worktree.isMain ? (
-            <span
-              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0"
-              style={{ backgroundColor: "#34D39933", color: "var(--accent-green)" }}
-            >
+            <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#34D39933] text-accent-green">
               <ShieldCheck size={12} />
               primary
             </span>
           ) : (
-            <span
-              className="flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0"
-              style={{ backgroundColor: "#6B728033", color: "var(--accent-gray)" }}
-            >
+            <span className="flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#6B728033] text-accent-gray">
               idle
             </span>
           ))}
       </div>
 
       {/* 区切り線 */}
-      <div style={{ height: 1, backgroundColor: "var(--border-default)" }} />
+      <div className="h-px bg-border" />
 
       {/* コミット情報 + 変更ファイル数 */}
       <div className="flex flex-col gap-2">
-        {/* 最終コミット */}
         <div className="flex items-center gap-1.5">
-          <GitCommitHorizontal size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-          <span className="flex-1 text-[12px] truncate" style={{ color: "var(--text-secondary)" }}>
+          <GitCommitHorizontal size={14} className="text-fg-muted shrink-0" />
+          <span className="flex-1 text-[12px] truncate text-fg-secondary">
             {worktree.lastCommitMessage || "コミットなし"}
           </span>
-          <span className="text-[11px] shrink-0" style={{ color: "var(--text-muted)" }}>
+          <span className="text-[11px] shrink-0 text-fg-muted">
             {relativeTime(worktree.lastCommitTime)}
           </span>
         </div>
-
-        {/* 変更ファイル数 */}
         <div className="flex items-center gap-1">
-          <FilePen size={13} style={{ color: changesColor, flexShrink: 0 }} />
-          <span className="text-[11px]" style={{ color: changesColor }}>
+          <FilePen
+            size={13}
+            className={`shrink-0 ${hasChanges ? "text-accent-yellow" : "text-fg-muted"}`}
+          />
+          <span className={`text-[11px] ${hasChanges ? "text-accent-yellow" : "text-fg-muted"}`}>
             {worktree.modifiedCount} changes
           </span>
         </div>
@@ -94,13 +81,8 @@ export default function WorktreeCard({
         <button
           onClick={codeAvailable ? onOpenInEditor : undefined}
           disabled={!codeAvailable}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium border-0 outline-none"
-          style={{
-            backgroundColor: codeAvailable ? "var(--accent-primary)" : "#4F6EF740",
-            color: "#FFFFFF",
-            cursor: codeAvailable ? "pointer" : "not-allowed",
-            opacity: codeAvailable ? 1 : 0.6,
-          }}
+          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
+            ${codeAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
           title={codeAvailable ? undefined : "code コマンドが必要です"}
         >
           <Code size={14} />
@@ -109,12 +91,7 @@ export default function WorktreeCard({
         {!worktree.isMain && (
           <button
             onClick={onRemove}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium cursor-pointer border outline-none"
-            style={{
-              backgroundColor: "transparent",
-              borderColor: "var(--border-default)",
-              color: "var(--accent-red)",
-            }}
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium cursor-pointer border outline-none text-accent-red border-border bg-transparent hover:bg-remove-hover hover:border-accent-red active:bg-accent-red active:text-white transition-colors duration-150"
           >
             <Trash2 size={14} />
             Remove
