@@ -17,6 +17,7 @@ pub fn run() {
             // Worktree
             worktree::list_worktrees,
             worktree::get_worktree_status,
+            worktree::check_before_remove,
             worktree::remove_worktree,
             // ラベル（ADR-0008）
             label::load_labels,

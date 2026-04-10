@@ -149,14 +149,112 @@ pub fn get_worktree_status(worktree_path: String) -> Result<WorktreeStatus, Stri
     })
 }
 
+/// worktree 削除の事前チェック結果
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RemoveWorktreeCheck {
+    pub path: String,
+    pub branch: String,
+    #[serde(rename = "hasUncommitted")]
+    pub has_uncommitted: bool,
+    #[serde(rename = "modifiedCount")]
+    pub modified_count: u32,
+}
+
+#[tauri::command]
+pub fn check_before_remove(worktree_path: String) -> Result<RemoveWorktreeCheck, String> {
+    let repo = Repository::open(&worktree_path)
+        .map_err(|e| format!("worktree を開けませんでした: {}", e))?;
+
+    let branch = get_branch_name(&repo);
+    let modified = count_modified_files(&repo);
+
+    Ok(RemoveWorktreeCheck {
+        path: worktree_path,
+        branch,
+        has_uncommitted: modified > 0,
+        modified_count: modified,
+    })
+}
+
 #[tauri::command]
 pub fn remove_worktree(
     worktree_path: String,
     force: bool,
     delete_branch: bool,
 ) -> Result<(), String> {
-    // TODO: task 5 で実装
-    let _ = (worktree_path, force, delete_branch);
+    let wt_path = Path::new(&worktree_path);
+
+    // worktree を開いてブランチ名を取得（ブランチ削除用）
+    let branch_name = if delete_branch {
+        let wt_repo = Repository::open(&worktree_path)
+            .map_err(|e| format!("worktree を開けませんでした: {}", e))?;
+        Some(get_branch_name(&wt_repo))
+    } else {
+        None
+    };
+
+    // 親リポジトリを .git ファイルから辿って開く
+    let git_file = wt_path.join(".git");
+    let git_content = std::fs::read_to_string(&git_file)
+        .map_err(|e| format!(".git ファイルの読み込みに失敗: {}", e))?;
+    // "gitdir: /path/to/main/.git/worktrees/<name>" から親リポジトリのパスを取得
+    let gitdir = git_content
+        .trim()
+        .strip_prefix("gitdir: ")
+        .ok_or_else(|| "不正な .git ファイル形式です".to_string())?;
+    let main_git_dir = Path::new(gitdir)
+        .parent() // .git/worktrees
+        .and_then(|p| p.parent()) // .git
+        .ok_or_else(|| "親リポジトリのパスを解決できませんでした".to_string())?;
+    let main_repo = Repository::open(main_git_dir)
+        .map_err(|e| format!("親リポジトリを開けませんでした: {}", e))?;
+
+    // worktree 名を取得（パスの末尾ディレクトリ名）
+    let wt_name = wt_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "worktree 名の取得に失敗しました".to_string())?;
+
+    // worktree を削除
+    let wt = main_repo
+        .find_worktree(wt_name)
+        .map_err(|e| format!("worktree '{}' が見つかりません: {}", wt_name, e))?;
+
+    if force {
+        // force: ディレクトリを先に削除してから prune
+        if wt_path.exists() {
+            std::fs::remove_dir_all(wt_path)
+                .map_err(|e| format!("worktree ディレクトリの削除に失敗: {}", e))?;
+        }
+        wt.prune(Some(
+            git2::WorktreePruneOptions::new()
+                .working_tree(true)
+                .valid(true),
+        ))
+        .map_err(|e| format!("worktree の prune に失敗: {}", e))?;
+    } else {
+        wt.prune(Some(
+            git2::WorktreePruneOptions::new()
+                .working_tree(true)
+                .valid(true),
+        ))
+        .map_err(|e| format!("worktree の削除に失敗: {}", e))?;
+
+        // ディレクトリが残っていたら削除
+        if wt_path.exists() {
+            std::fs::remove_dir_all(wt_path)
+                .map_err(|e| format!("worktree ディレクトリの削除に失敗: {}", e))?;
+        }
+    }
+
+    // ブランチ削除
+    if let Some(ref branch) = branch_name {
+        if let Ok(mut br) = main_repo.find_branch(branch, git2::BranchType::Local) {
+            br.delete()
+                .map_err(|e| format!("ブランチ '{}' の削除に失敗: {}", branch, e))?;
+        }
+    }
+
     Ok(())
 }
 

@@ -23,6 +23,16 @@ export const listWorktrees = (repositoryPath: string): Promise<WorktreeInfo[]> =
 export const getWorktreeStatus = (worktreePath: string): Promise<WorktreeStatus> =>
   invoke("get_worktree_status", { worktreePath });
 
+/** worktree 削除の事前チェック（未コミット変更の確認） */
+export const checkBeforeRemove = (
+  worktreePath: string
+): Promise<{
+  path: string;
+  branch: string;
+  hasUncommitted: boolean;
+  modifiedCount: number;
+}> => invoke("check_before_remove", { worktreePath });
+
 /** worktree を削除する（force: 未コミット変更を強制削除、deleteBranch: ブランチも削除） */
 export const removeWorktree = (
   worktreePath: string,
