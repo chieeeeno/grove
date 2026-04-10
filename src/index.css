@@ -1,1 +1,88 @@
 @import "tailwindcss";
+
+/* ===== デザイントークン（Pencil grove-ui.pen から変換）===== */
+
+/* Dark テーマ（M0 デフォルト） */
+:root {
+  /* Backgrounds */
+  --bg-app: #0F1117;
+  --bg-card: #1C1F2E;
+  --bg-card-hover: #242838;
+  --bg-sidebar: #161822;
+  --bg-dialog: #1E2130;
+  --bg-input: #232636;
+
+  /* Borders */
+  --border-default: #2A2E3F;
+  --border-active: #4F6EF7;
+  --card-hover-border: #4F6EF780;
+
+  /* Text */
+  --text-primary: #E5E7EB;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --text-inverse: #0F1117;
+
+  /* Accents */
+  --accent-primary: #4F6EF7;
+  --accent-green: #34D399;
+  --accent-blue: #60A5FA;
+  --accent-red: #F87171;
+  --accent-yellow: #FBBF24;
+  --accent-gray: #6B7280;
+
+  /* State */
+  --agent-status-bg: #60A5FA15;
+  --agent-status-text: #60A5FA;
+  --vs-hover-bg: #3B5CE5;
+  --vs-active-bg: #2D4AC4;
+  --remove-hover-bg: #F8717115;
+}
+
+/* Light テーマ（M2 以降で切替対応予定） */
+[data-theme="light"] {
+  --bg-app: #F8F9FA;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F3F4F6;
+  --bg-sidebar: #FFFFFF;
+  --bg-dialog: #FFFFFF;
+  --bg-input: #F3F4F6;
+
+  --border-default: #E5E7EB;
+  --border-active: #4F6EF7;
+  --card-hover-border: #4F6EF750;
+
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #9CA3AF;
+  --text-inverse: #FFFFFF;
+
+  --accent-primary: #4F6EF7;
+  --accent-green: #059669;
+  --accent-blue: #3B82F6;
+  --accent-red: #EF4444;
+  --accent-yellow: #D97706;
+  --accent-gray: #9CA3AF;
+
+  --agent-status-bg: #3B82F622;
+  --agent-status-text: #1D4ED8;
+  --vs-hover-bg: #3B5CE5;
+  --vs-active-bg: #2D4AC4;
+  --remove-hover-bg: #FEE2E2;
+}
+
+/* ===== ベースリセット ===== */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
+* {
+  box-sizing: border-box;
+}
