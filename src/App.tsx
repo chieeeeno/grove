@@ -250,7 +250,6 @@ function App() {
             />
           )}
         </MainArea>
-        {/* 削除確認ダイアログ */}
         {deleteTarget && (
           <DeleteDialog
             worktreeName={deleteTarget.name}
@@ -262,7 +261,6 @@ function App() {
             onCancel={() => setDeleteTarget(null)}
           />
         )}
-        {/* 設定ダイアログ */}
         {isSettingsOpen && (
           <SettingsDialog
             refreshInterval={refreshInterval}
