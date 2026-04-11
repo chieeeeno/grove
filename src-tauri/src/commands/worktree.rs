@@ -273,10 +273,10 @@ pub fn check_before_remove(worktree_path: String) -> Result<RemoveWorktreeCheck,
 /// * `Err(String)` - 日本語のエラーメッセージ
 ///
 /// # 副作用（順序）
-/// 1. `force = true` のときは worktree ディレクトリを先行削除
-/// 2. `git_worktree_prune` で git の worktree 管理から除外
-/// 3. 残骸があれば `remove_dir_all` でクリーンアップ
-/// 4. `delete_branch = true` のときローカルブランチを削除
+/// 1. `force = true` かつ worktree ディレクトリが残っていれば先行削除
+/// 2. `Worktree::prune` で git の worktree レジストリから除外
+/// 3. prune 後もディレクトリが残っていれば `remove_dir_all` でクリーンアップ
+/// 4. `delete_branch = true` かつ該当ローカルブランチが存在すれば削除
 ///
 /// # Errors
 /// - worktree または親リポジトリを開けない

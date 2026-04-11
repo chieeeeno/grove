@@ -30,7 +30,10 @@ export interface AppConfig {
   repositories: RepositoryConfig[];
   /** 使用するエディタ識別子。M0 では `"vscode"` のみサポート */
   editor: "vscode";
-  /** UI テーマ。M0 では `"system"` のみサポート（ADR-0009） */
+  /**
+   * UI テーマ。型としては将来の拡張用に 3 値を受け入れるが、M0 では
+   * `"system"` のみ実装（ライト/ダーク切替の UI 実装は #16 で M2 対応予定）。
+   */
   theme: "system" | "dark" | "light";
   /** worktree リフレッシュ間隔（ミリ秒）。ADR-0013 で既定 5000ms */
   refreshInterval: number;
