@@ -181,30 +181,22 @@ pub fn remove_worktree(
 ) -> Result<(), String> {
     let wt_path = Path::new(&worktree_path);
 
-    // worktree を開いてブランチ名を取得（ブランチ削除用）
-    let branch_name = if delete_branch {
+    // worktree を開いてブランチ名と親リポジトリへのパスを取得する。
+    // commondir() は worktree が属する親の .git ディレクトリを返すので、
+    // .git ファイルの手動パースは不要。wt_repo は以降使わないので
+    // ブロックから抜ける時点で drop される（remove_dir_all との競合回避）。
+    let (branch_name, main_repo) = {
         let wt_repo = Repository::open(&worktree_path)
             .map_err(|e| format!("worktree を開けませんでした: {}", e))?;
-        Some(get_branch_name(&wt_repo))
-    } else {
-        None
+        let branch_name = if delete_branch {
+            Some(get_branch_name(&wt_repo))
+        } else {
+            None
+        };
+        let main_repo = Repository::open(wt_repo.commondir())
+            .map_err(|e| format!("親リポジトリを開けませんでした: {}", e))?;
+        (branch_name, main_repo)
     };
-
-    // 親リポジトリを .git ファイルから辿って開く
-    let git_file = wt_path.join(".git");
-    let git_content = std::fs::read_to_string(&git_file)
-        .map_err(|e| format!(".git ファイルの読み込みに失敗: {}", e))?;
-    // "gitdir: /path/to/main/.git/worktrees/<name>" から親リポジトリのパスを取得
-    let gitdir = git_content
-        .trim()
-        .strip_prefix("gitdir: ")
-        .ok_or_else(|| "不正な .git ファイル形式です".to_string())?;
-    let main_git_dir = Path::new(gitdir)
-        .parent() // .git/worktrees
-        .and_then(|p| p.parent()) // .git
-        .ok_or_else(|| "親リポジトリのパスを解決できませんでした".to_string())?;
-    let main_repo = Repository::open(main_git_dir)
-        .map_err(|e| format!("親リポジトリを開けませんでした: {}", e))?;
 
     // worktree 名を取得（パスの末尾ディレクトリ名）
     let wt_name = wt_path
