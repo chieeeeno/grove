@@ -25,9 +25,12 @@ import {
 import type { AppConfig, RepositoryConfig } from "./types";
 
 /**
- * 現在の store 状態から AppConfig を組み立てる。
- * 部分更新時に他のフィールドをハードコードすると保存済み設定を上書きしてしまうため、
- * 設定保存は常にこのヘルパー経由で行う。
+ * 現在の store 状態から `AppConfig` を組み立てるヘルパー。
+ *
+ * 設定保存は常にこのヘルパー経由で行う。部分更新時に他のフィールドをハードコード
+ * すると保存済み設定を上書きしてしまうため、常に現在の store 全体から組み立てる。
+ *
+ * @returns 現在の store 状態を反映した `AppConfig`
  */
 function buildConfigFromStore(): AppConfig {
   const state = useAppStore.getState();
@@ -69,6 +72,13 @@ function App() {
   useKeyboardShortcuts({ onRefresh: refresh });
 
   // ===== 設定変更 =====
+
+  /**
+   * 設定ダイアログから自動更新間隔の変更を受けるハンドラ。
+   * store の値を更新し、現在の設定全体を永続化する。
+   *
+   * @param interval 新しいポーリング間隔（ms）
+   */
   const handleChangeRefreshInterval = useCallback(
     async (interval: number) => {
       setRefreshInterval(interval);
@@ -108,6 +118,16 @@ function App() {
   }, [setRepositories, selectRepository, setAllLabels, setCodeAvailable, setRefreshInterval]);
 
   // ===== リポジトリ追加 =====
+
+  /**
+   * サイドバー「リポジトリを追加」ボタンから呼ばれる。
+   * ネイティブのディレクトリ選択ダイアログを開き、選択されたパスを validate してから
+   * store に追加する。既に登録済みのパスだった場合はサイレントに no-op
+   * （UI エラーは出さない）。
+   *
+   * 副作用: 新規追加したリポジトリを選択状態にし、設定を非同期に永続化する。
+   * 永続化失敗は `console.error` のみ（M0 では UI フィードバック未実装）。
+   */
   const handleAddRepository = useCallback(async () => {
     const selected = await open({ directory: true, multiple: false });
     if (!selected || typeof selected !== "string") return;
@@ -133,6 +153,14 @@ function App() {
   }, [addRepository, selectRepository]);
 
   // ===== リポジトリ削除 =====
+
+  /**
+   * サイドバーのリポジトリ項目「×」ボタンから呼ばれる（登録解除。実体は触らない）。
+   * 選択中だったリポジトリを削除した場合は、残りの先頭を自動選択する
+   * （残りゼロなら `null` に設定）。設定の永続化は非同期に走らせる（UI を待たせない）。
+   *
+   * @param id 削除対象のリポジトリ ID
+   */
   const handleRemoveRepository = useCallback(
     (id: string) => {
       removeRepository(id);
@@ -148,6 +176,15 @@ function App() {
   );
 
   // ===== ラベル保存 =====
+
+  /**
+   * ラベル編集の確定時に呼ばれる。in-memory の store を即座に更新（楽観更新）してから
+   * IPC で永続化する。IPC 失敗時は `console.error` のみで UI は巻き戻さない
+   * （M0 の割り切り。失敗例は稀で、次回起動時にストアから読み直される）。
+   *
+   * @param worktreePath 対象 worktree の絶対パス
+   * @param newLabel 新しいラベル文字列
+   */
   const handleSaveLabel = useCallback(
     async (worktreePath: string, newLabel: string) => {
       setLabel(worktreePath, newLabel);
@@ -156,11 +193,25 @@ function App() {
     [setLabel]
   );
 
+  /**
+   * WorktreeCard の「VS Code で開く」ボタンから呼ばれる。
+   * Tauri IPC でパスを渡すだけ。失敗はログに残すのみ（preflight バナーで事前告知済み）。
+   *
+   * @param worktreePath 開く worktree の絶対パス
+   */
   const handleOpenInEditor = useCallback((worktreePath: string) => {
     openInEditor(worktreePath).catch(console.error);
   }, []);
 
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
+
+  /**
+   * WorktreeCard の削除ボタンから呼ばれる。`check_before_remove` で未コミット
+   * 変更の有無などを取得し、その結果を `deleteTarget` state に格納することで
+   * 削除確認ダイアログ（DeleteDialog）が開く。
+   *
+   * @param worktreePath 削除対象 worktree の絶対パス
+   */
   const handleRemoveWorktree = useCallback(async (worktreePath: string) => {
     try {
       const check = await checkBeforeRemove(worktreePath);
@@ -176,6 +227,19 @@ function App() {
     }
   }, []);
 
+  /**
+   * 削除確認ダイアログで「削除」を押された時の確定ハンドラ。
+   *
+   * Rust の `remove_worktree` を呼び、成功したら store からエントリと関連ラベルを
+   * 除去する。`force` 引数には `deleteTarget.hasUncommitted` をそのまま渡している
+   * （ダイアログ時点で未コミット変更ありの警告を表示済みで、ユーザーが確認した
+   * 前提なのでそのまま force 削除する）。
+   *
+   * 失敗時もダイアログは閉じる（`finally` で `deleteTarget` を null に戻す）。
+   *
+   * @param deleteBranch ダイアログのチェックボックスの値。true なら worktree に
+   *                     紐づくブランチも削除する
+   */
   const handleConfirmDelete = useCallback(
     async (deleteBranch: boolean) => {
       if (!deleteTarget || !selectedRepositoryId) return;
