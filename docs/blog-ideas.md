@@ -132,6 +132,67 @@
 
 ---
 
+### Claude Code の Bash ツールと PATH 問題 — package.json スクリプトで解決する
+**タグ**: Claude Code, 開発環境, Tauri, トラブルシューティング  
+**一言**: Claude Code のセッションから `pnpm tauri build` が動かない。`.zshrc` に PATH 足しても解決しない。原因と解決策。
+
+**ネタ**:
+- `pnpm tauri dev` / `pnpm tauri build` が Claude Code から実行できない
+- エラー: `failed to run 'cargo metadata': No such file or directory`
+- 原因: Claude Code の Bash ツールは**非対話シェル**で実行される
+  - `.zshrc` は対話シェルのみで読み込まれる（非対話では読まれない）
+  - `.zshenv` は非対話でも読まれるが、Claude Code セッション自体の PATH は起動時に固定されている
+- 試した解決策
+  - ❌ `~/.zshenv` に `. "$HOME/.cargo/env"` を追加 → 既にあるのに効かない
+  - ❌ `~/.claude/settings.json` の `env` で `PATH` を直接書く → 他のツールが壊れる（PATH 上書き）
+  - ✅ `package.json` の `tauri` スクリプトで `PATH="$HOME/.cargo/bin:$PATH" tauri` と明示
+- この方法なら Claude Code からもターミナルからも両方動く
+- プロジェクト固有の設定なのでグローバル汚染なし
+- 副次的な学び: lefthook の rust コマンドも同じ問題がある
+
+**副題案**: 「Claude Code の Bash ツール特性と、package.json でラップする技」
+
+---
+
+### Tauri アプリをビルドして触ってみる — 初回の本番ビルドと配布形式
+**タグ**: Tauri, ビルド, 配布, macOS  
+**一言**: Tauri 2 アプリの本番ビルドが意外と速い。生成物の種類と macOS での配布の罠。
+
+**ネタ**:
+- `pnpm tauri build` で生成されるもの
+  - `Grove.app`（macOS アプリ本体）
+  - `Grove_0.1.0_aarch64.dmg`（4.1MB のインストーラ）
+- 初回ビルドは遅いけど、増分ビルドは45秒くらいで終わる
+- .dmg 生成は `bundle_dmg.sh` が自動で実行
+- 署名なしだと「開発元を確認できません」警告が出る → 右クリック→開くで回避
+- Apple Developer Program の年 $99 問題（ADR-0007）
+- M1 段階では署名なしで配布、M2 で再判断
+- aarch64 だけ生成される（Apple Silicon のみ、Intel Mac は別ビルドが必要）
+
+---
+
+### 個人開発でも GitHub Issues でタスク管理する理由
+**タグ**: 個人開発, GitHub, プロジェクト管理  
+**一言**: PROGRESS.md と ROADMAP.md だけで管理していたタスクを GitHub Issues 23件に書き起こした話。
+
+**ネタ**:
+- M0 完成目前で、M1 以降のタスクを issue 化
+- Markdown の「やりたいことリスト」との違い
+  - ラベル・マイルストーンで構造化できる
+  - 後から検索しやすい
+  - PR と紐付けられる（`Fixes #X`）
+  - クローズ時の履歴が残る
+- ラベル設計: `milestone:M1/M2`, `priority:high/medium/low`, `type:feature/infra`, `phase:2`
+- タイトル + 背景 + やること + 参考 のテンプレート
+- 23件を `gh issue create` で一気に作成
+- 副次的な効果: コミットメッセージに `#N` で参照できる
+- 個人開発でもやる理由
+  - 1年後の自分への手紙
+  - β ユーザーへの公開ロードマップ代わり
+  - OSS 化した時にそのまま使える
+
+---
+
 ### Tauri 2 の E2E テスト戦略 — macOS で tauri-driver が使えない話
 **タグ**: Tauri, テスト戦略, macOS, E2E  
 **一言**: 「Playwright でええやろ」と思って調査したら、Tauri の現実がもっと厳しかった話。
