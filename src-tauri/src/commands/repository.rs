@@ -7,25 +7,45 @@ const CONFIG_KEY: &str = "app_config";
 
 // ===== 永続化モデル =====
 
+/// tauri-plugin-store に永続化される、ユーザーが登録したリポジトリ 1 件分の設定。
+///
+/// フロントエンド（`src/types/index.ts` の `RepositoryConfig`）と JSON スキーマが
+/// 一致する必要がある。フィールド名は `#[serde(rename)]` で camelCase に変換する。
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RepositoryConfig {
+    /// リポジトリ識別子。M0 では絶対パスをそのまま ID として使う
+    /// （`validate_repository` で `path.clone()` している）。M1 以降で UUID 化する可能性あり。
     pub id: String,
+    /// サイドバーに表示するリポジトリ名。`validate_repository` では workdir の末尾
+    /// ディレクトリ名から生成する。
     pub name: String,
+    /// リポジトリの絶対パス（workdir ルート）。
     pub path: String,
+    /// リポジトリ追加日時。ISO 8601 文字列（例: `"2026-04-10T00:00:00Z"`）。
+    /// フロント側で生成してから `save_config` に渡すため、Rust 側では書式検証しない。
     #[serde(rename = "addedAt")]
     pub added_at: String,
 }
 
+/// アプリ全体の永続化設定。tauri-plugin-store の `STORE_PATH` にキー `"app_config"` で保存する。
+///
+/// フロントエンドの `AppConfig`（src/types/index.ts）と JSON 形式を共有する。
+/// 部分更新 API は持たず、`save_config` は常に全置換。
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
+    /// 登録済みリポジトリ一覧。順序はサイドバー表示順と一致する。
     pub repositories: Vec<RepositoryConfig>,
+    /// 使用するエディタ識別子。M0 では `"vscode"` のみサポート。
     pub editor: String,
+    /// UI テーマ。M0 では `"system"` のみサポート（ADR-0009）。
     pub theme: String,
+    /// worktree リフレッシュ間隔（ミリ秒）。ADR-0013 で既定 5000ms。
     #[serde(rename = "refreshInterval")]
     pub refresh_interval: u32,
 }
 
 impl Default for AppConfig {
+    /// M0 の既定値（リポジトリ空、VS Code、system テーマ、5 秒ポーリング）を返す。
     fn default() -> Self {
         AppConfig {
             repositories: vec![],
@@ -38,10 +58,16 @@ impl Default for AppConfig {
 
 // ===== コマンドの戻り値 =====
 
+/// `validate_repository` コマンドの戻り値。
+/// フロントエンドが `RepositoryConfig` を組み立てる際の素材として使う
+/// （`addedAt` は呼び出し側で現在時刻から付与する）。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RepositoryInfo {
+    /// 現状は `path` と同値。`RepositoryConfig::id` と同じ扱い。
     pub id: String,
+    /// workdir ディレクトリの末尾名。取得失敗時は `"unknown"`。
     pub name: String,
+    /// 検証に成功したリポジトリの絶対パス。
     pub path: String,
 }
 

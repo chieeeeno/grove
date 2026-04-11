@@ -2,26 +2,45 @@ use git2::{Repository, StatusOptions};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+/// `list_worktrees` の戻り値 1 件分。
+///
+/// フロントエンド `WorktreeInfo` 型（src/types/index.ts）と JSON で対応する。
+/// `ahead`/`behind`/`agentStatus` は M0 では返さない（ADR-0010 / Phase 2 で追加予定）。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorktreeInfo {
+    /// worktree の絶対パス（末尾スラッシュは除去済み）。
     pub path: String,
+    /// 現在のブランチの短縮名。HEAD が detached のとき、または取得失敗時は `"HEAD"`。
     pub branch: String,
+    /// メイン worktree（リポジトリ本体）かどうか。`list_worktrees` の戻り値では
+    /// 常に先頭要素のみ `true`。
     #[serde(rename = "isMain")]
     pub is_main: bool,
+    /// HEAD のコミットハッシュ（フル 40 文字）。HEAD が無い or 取得失敗時は空文字。
     pub head: String,
+    /// 最終コミットの summary（1 行目）。取得失敗時は空文字。
     #[serde(rename = "lastCommitMessage")]
     pub last_commit_message: String,
+    /// 最終コミットの時刻（Unix epoch 秒）。`0` はコミットなし or 取得失敗のセンチネル。
+    /// フロント側 `relativeTime()` は `0` を空文字で表示する。
     #[serde(rename = "lastCommitTime")]
     pub last_commit_time: i64,
+    /// 変更ファイル数の合計（ADR-0011: modified/added/deleted/untracked を種別で分けない）。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
 }
 
+/// `get_worktree_status` の戻り値。ポーリング用の軽量ステータス。
+///
+/// `WorktreeInfo` と違い最終コミット情報を返さないため、5 秒間隔のリフレッシュ用途で使う。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorktreeStatus {
+    /// 対象 worktree の絶対パス（呼び出し時の引数がそのまま返る）。
     pub path: String,
+    /// 変更ファイル数の合計（untracked 込み、ADR-0011）。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
+    /// `modified_count > 0` と等価の派生値。フロント側の条件分岐用。
     #[serde(rename = "hasUncommitted")]
     pub has_uncommitted: bool,
 }
@@ -154,13 +173,21 @@ pub fn get_worktree_status(worktree_path: String) -> Result<WorktreeStatus, Stri
     })
 }
 
-/// worktree 削除の事前チェック結果
+/// `check_before_remove` の戻り値。削除前ダイアログの表示内容を組み立てるために使う。
+///
+/// `has_uncommitted` が true の場合、フロント側は削除ボタンでさらに確認を取ってから
+/// `remove_worktree` を `force = true` で呼ぶ想定。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RemoveWorktreeCheck {
+    /// 対象 worktree の絶対パス（呼び出し時の引数がそのまま返る）。
     pub path: String,
+    /// 現在のブランチ名（`get_branch_name` と同じルール）。ダイアログの
+    /// 「ブランチも一緒に削除する」チェックボックスで表示する。
     pub branch: String,
+    /// 未コミットの変更があるか。true のとき force 削除が必要。
     #[serde(rename = "hasUncommitted")]
     pub has_uncommitted: bool,
+    /// 変更ファイル数の合計（ADR-0011）。ダイアログで「未コミットの変更が N 件」と表示する。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
 }
