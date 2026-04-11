@@ -109,14 +109,18 @@ function App() {
   }, [setRepositories, selectRepository, setAllLabels, setCodeAvailable, setRefreshInterval]);
 
   // ===== 選択中リポジトリの worktree 取得 =====
+  // 依存配列に repositories 全体を入れると、追加/削除のたびに再実行されて
+  // 余分な listWorktrees を叩くため、selectedRepositoryId のみを依存にし、
+  // 内部では getState() で最新の repositories を引く。
   useEffect(() => {
-    const repo = repositories.find((r) => r.id === selectedRepositoryId);
+    if (!selectedRepositoryId) return;
+    const repo = useAppStore.getState().repositories.find((r) => r.id === selectedRepositoryId);
     if (!repo) return;
 
     listWorktrees(repo.path)
       .then((wts) => setWorktrees(repo.id, wts))
       .catch(console.error);
-  }, [selectedRepositoryId, repositories, setWorktrees]);
+  }, [selectedRepositoryId, setWorktrees]);
 
   // ===== リポジトリ追加 =====
   const handleAddRepository = useCallback(async () => {
@@ -125,7 +129,8 @@ function App() {
 
     try {
       const info = await validateRepository(selected);
-      if (repositories.some((r) => r.path === info.path)) return;
+      const current = useAppStore.getState().repositories;
+      if (current.some((r) => r.path === info.path)) return;
 
       const newRepo: RepositoryConfig = {
         id: info.id,
@@ -135,26 +140,26 @@ function App() {
       };
 
       addRepository(newRepo);
-      await saveConfig(buildConfigFromStore([...repositories, newRepo]));
+      await saveConfig(buildConfigFromStore([...current, newRepo]));
       selectRepository(newRepo.id);
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
     }
-  }, [repositories, addRepository, selectRepository]);
+  }, [addRepository, selectRepository]);
 
   // ===== リポジトリ削除 =====
   const handleRemoveRepository = useCallback(
     async (id: string) => {
       removeRepository(id);
 
-      const next = repositories.filter((r) => r.id !== id);
+      const next = useAppStore.getState().repositories.filter((r) => r.id !== id);
       await saveConfig(buildConfigFromStore(next)).catch(console.error);
 
       if (selectedRepositoryId === id) {
         selectRepository(next.length > 0 ? next[0].id : null);
       }
     },
-    [repositories, selectedRepositoryId, removeRepository, selectRepository]
+    [selectedRepositoryId, removeRepository, selectRepository]
   );
 
   // ===== ラベル保存 =====
