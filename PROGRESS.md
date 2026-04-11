@@ -260,10 +260,75 @@
 - [ ] QA チェックリストの実施
 - [ ] 発見した不具合の修正
 
-#### 13-1. QA 自動テスト化（任意）
-- [ ] QA チェック項目から自動テスト化できる項目を選定
-- [ ] E2E テストまたは統合テストとして実装（Playwright / WebDriver 等を検討）
-- [ ] CI で回せる形にする（M1 以降でも可）
+---
+
+### 14. テスト方針の整備と既存テストのリファクタ
+
+**背景:**
+Tauri 公式の必勝パターンを Web 調査した結果（2026-04）、以下が判明:
+
+1. **Tauri 公式は mockIPC / MockRuntime を提供**
+   - フロントエンド: `@tauri-apps/api/mocks` の `mockIPC` で IPC 呼び出しをモック
+   - Rust 側: `tauri::test::MockRuntime` でネイティブ webview 非起動の統合テスト
+   - 現在 Grove は `vi.mock("@tauri-apps/api/core")` で自作モックしているが、公式 API に統一すべき
+
+2. **tauri-driver は macOS 非対応**
+   - 公式ドキュメント: "macOS which does not provide a desktop WebDriver client"
+   - Windows/Linux 向けの WebdriverIO + tauri-driver の例はあるが、macOS では動作しない
+   - Grove は macOS only（ADR-0004）なので、この経路は使えない
+
+3. **Playwright も Tauri では直接動かない**
+   - Tauri は WebKitGTK/WKWebView を使用、Playwright は Chromium ベース
+   - サードパーティの `srsholmes/tauri-playwright` は存在するが成熟度不明
+   - `pnpm dev` で Vite サーバーを立てて Playwright でブラウザテストする案もあるが、
+     その場合 Tauri API を別途モックする必要があり公式 `mockIPC` と重複する
+
+**結論:**
+- E2E 自動化は M0 スコープでは実施しない（macOS 制約のため実現不可能）
+- Layer 1（Rust）+ Layer 2（Vitest + mockIPC）+ Manual QA の3層構成で品質を担保
+- 既存の自作モックを公式 `mockIPC` に移行してメンテナンス性を向上
+
+#### 14-1. テスト方針ドキュメント作成
+- [ ] `docs/testing-strategy.md` を作成
+  - Tauri テスト機能の背景説明（mockIPC / MockRuntime / WebDriver）
+  - プラットフォーム制約（macOS での E2E 自動化不可）
+  - Grove 採用の3層テスト戦略の定義と各層の役割
+  - 新機能実装時の判断フロー（どのレイヤーで書くか）
+  - モック戦略（公式 mockIPC への統一理由）
+  - M2 以降で再検討する事項（Windows/Linux 対応時の E2E 導入）
+
+#### 14-2. フロントエンドテストのリファクタ（mockIPC 移行）
+- [ ] `src/test/setup.ts` を `vi.mock` から公式 `@tauri-apps/api/mocks` の `mockIPC` に移行
+- [ ] 各テストファイルで `beforeEach(() => mockIPC(...))` / `afterEach(() => clearMocks())` パターンに統一
+- [ ] 既存テスト40件が全て通ることを確認
+- [ ] テストヘルパー関数の整理（共通モックデータ・fixture の切り出し）
+- [ ] リファクタ前後でカバレッジが劣化していないことを確認
+
+#### 14-3. Rust テストの強化（任意、M1 でも可）
+- [ ] `tauri::test::MockRuntime` の導入検討
+- [ ] AppHandle を要求するコマンド（`load_config` / `save_config` / `load_labels` 等）の統合テスト追加
+- [ ] 現在は単体関数のみテストしているが、実際の Tauri ランタイム上での挙動も検証
+
+---
+
+### 13-1. E2E 自動化（M2 以降の検討事項、M0 スコープ外）
+
+**なぜ M0 でやらないか:**
+Tauri は macOS で WebDriver 非対応であり、tauri-driver を使った
+E2E 自動化が物理的に不可能。
+Playwright も WebKitGTK/WKWebView に直接接続できない。
+
+**Grove が macOS only な理由（再掲、ADR-0004）:**
+- 開発者が macOS しか所有していないため他 OS の実機検証ができない
+- Phase 2（Claude Code 連携）のプロセス検知が OS ごとに API が異なる
+- M1 の β 配布も mac ユーザー知人への配布で十分
+
+**Windows/Linux 対応時（M2 以降）に検討する選択肢:**
+- tauri-driver + WebdriverIO（Windows/Linux のみサポート）
+- srsholmes/tauri-playwright（サードパーティ、成熟度要確認）
+- 独自の CLI ベースの E2E フレームワーク（dev.to の事例あり）
+
+それまでは Manual QA（`docs/qa-checklist.md`）を関所として運用する。
 
 ---
 
