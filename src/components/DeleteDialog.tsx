@@ -24,83 +24,56 @@ export default function DeleteDialog({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      className="fixed inset-0 flex items-center justify-center z-50 bg-black/50"
       onClick={onCancel}
     >
       <div
-        className="flex flex-col gap-5 rounded-xl p-6"
-        style={{
-          width: 440,
-          backgroundColor: "var(--bg-dialog)",
-          border: "1px solid var(--border-default)",
-        }}
+        className="flex flex-col gap-5 rounded-xl p-6 bg-dialog border border-border"
+        style={{ width: 440 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ヘッダー */}
         <div className="flex items-center gap-3">
-          <div
-            className="flex items-center justify-center rounded-lg p-2"
-            style={{ backgroundColor: "#F8717118" }}
-          >
-            <TriangleAlert size={20} style={{ color: "var(--accent-red)" }} />
+          <div className="flex items-center justify-center rounded-lg p-2 bg-accent-red/10">
+            <TriangleAlert size={20} className="text-accent-red" />
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[16px] font-semibold" style={{ color: "var(--text-primary)" }}>
-              worktree を削除しますか？
-            </span>
-            <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-              この操作は元に戻せません
-            </span>
+            <span className="text-[16px] font-semibold text-fg">worktree を削除しますか？</span>
+            <span className="text-[12px] text-fg-muted">この操作は元に戻せません</span>
           </div>
         </div>
 
         {/* 区切り線 */}
-        <div style={{ height: 1, backgroundColor: "var(--border-default)" }} />
+        <div className="h-px bg-border" />
 
         {/* worktree 情報 */}
-        <div
-          className="flex flex-col gap-2 rounded-lg px-4 py-3"
-          style={{ backgroundColor: "var(--bg-card)" }}
-        >
+        <div className="flex flex-col gap-2 rounded-lg px-4 py-3 bg-card">
           <div className="flex items-center gap-2">
-            <FolderGit2 size={14} style={{ color: "var(--text-muted)" }} />
-            <span className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>
-              {worktreeName}
-            </span>
+            <FolderGit2 size={14} className="text-fg-muted" />
+            <span className="text-[14px] font-medium text-fg">{worktreeName}</span>
           </div>
-          <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-            {worktreePath}
-          </span>
+          <span className="text-[11px] text-fg-muted">{worktreePath}</span>
         </div>
 
         {/* 未コミット警告 */}
         {hasUncommitted && (
-          <div
-            className="flex items-center gap-2 rounded-lg px-3 py-2.5"
-            style={{ backgroundColor: "#FBBF2415" }}
-          >
-            <CircleAlert size={16} style={{ color: "var(--accent-yellow)", flexShrink: 0 }} />
-            <span className="text-[12px] font-medium" style={{ color: "var(--accent-yellow)" }}>
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 bg-accent-yellow/10">
+            <CircleAlert size={16} className="text-accent-yellow shrink-0" />
+            <span className="text-[12px] font-medium text-accent-yellow">
               未コミットの変更が {modifiedCount} 件あります
             </span>
           </div>
         )}
 
         {/* 区切り線 */}
-        <div style={{ height: 1, backgroundColor: "var(--border-default)" }} />
+        <div className="h-px bg-border" />
 
         {/* ブランチ削除チェックボックス */}
         <label className="flex items-center gap-2.5 cursor-pointer">
           <div
-            className="flex items-center justify-center rounded shrink-0"
-            style={{
-              width: 18,
-              height: 18,
-              border: "2px solid var(--border-default)",
-              backgroundColor: deleteBranch ? "var(--accent-primary)" : "transparent",
-              borderColor: deleteBranch ? "var(--accent-primary)" : "var(--border-default)",
-            }}
+            className={`flex items-center justify-center rounded shrink-0 w-[18px] h-[18px] border-2 ${
+              deleteBranch ? "bg-accent border-accent" : "bg-transparent border-border"
+            }`}
             onClick={() => setDeleteBranch(!deleteBranch)}
           >
             {deleteBranch && (
@@ -110,12 +83,8 @@ export default function DeleteDialog({
             )}
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[13px]" style={{ color: "var(--text-primary)" }}>
-              ブランチも一緒に削除する
-            </span>
-            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              {branch}
-            </span>
+            <span className="text-[13px] text-fg">ブランチも一緒に削除する</span>
+            <span className="text-[11px] text-fg-muted">{branch}</span>
           </div>
         </label>
 
@@ -123,19 +92,13 @@ export default function DeleteDialog({
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={onCancel}
-            className="flex items-center justify-center rounded-lg px-4 py-2 text-[13px] font-medium cursor-pointer border outline-none"
-            style={{
-              backgroundColor: "transparent",
-              borderColor: "var(--border-default)",
-              color: "var(--text-secondary)",
-            }}
+            className="flex items-center justify-center rounded-lg px-4 py-2 text-[13px] font-medium cursor-pointer border border-border outline-none bg-transparent text-fg-secondary"
           >
             キャンセル
           </button>
           <button
             onClick={() => onConfirm(deleteBranch)}
-            className="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-medium cursor-pointer border-0 outline-none"
-            style={{ backgroundColor: "var(--accent-red)", color: "#FFFFFF" }}
+            className="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-medium cursor-pointer border-0 outline-none bg-accent-red text-white"
           >
             <Trash2 size={14} />
             削除
