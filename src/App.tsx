@@ -125,8 +125,8 @@ function App() {
       };
 
       addRepository(newRepo);
-      await saveConfig(buildConfigFromStore());
       selectRepository(newRepo.id);
+      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
     }
@@ -134,14 +134,15 @@ function App() {
 
   // ===== リポジトリ削除 =====
   const handleRemoveRepository = useCallback(
-    async (id: string) => {
+    (id: string) => {
       removeRepository(id);
-      await saveConfig(buildConfigFromStore()).catch(console.error);
 
       if (selectedRepositoryId === id) {
         const remaining = useAppStore.getState().repositories;
         selectRepository(remaining.length > 0 ? remaining[0].id : null);
       }
+
+      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
     },
     [selectedRepositoryId, removeRepository, selectRepository]
   );
