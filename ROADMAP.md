@@ -122,6 +122,15 @@
   - ADR-0012 の preflight 原則に従う
 
 #### 優先度: 低〜中（必要性を見て判断）
+- [ ] **worktree カードの並び替え（ドラッグ&ドロップ）**
+  - カードを掴んで自由に順番を変えられる
+  - main worktree は先頭固定にするか、並び替え可にするか要検討
+  - 並び順を tauri-plugin-store に永続化（キー: `worktree_order`、worktree 絶対パスの配列）
+  - 新規追加された worktree は末尾に追加（既存順序を保持）
+  - 削除された worktree は順序データから除去
+  - 実装候補: `@dnd-kit/core` / `react-beautiful-dnd`（メンテ終了）/ `@hello-pangea/dnd`
+  - ドラッグ中の視覚フィードバック（ゴースト・ドロップ位置インジケータ）
+  - キーボードアクセシビリティの検討
 - [ ] **ahead/behind 表示**（ADR-0010）
   - fetch タイミング・キャッシュ戦略を含めた設計が必要
 - [ ] **詳細パネル（Detail Panel）の最小実装**
