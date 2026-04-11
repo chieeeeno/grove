@@ -65,7 +65,14 @@ export const useAppStore = create<AppStore>((set) => ({
   setRepositories: (repos) => set({ repositories: repos }),
   addRepository: (repo) => set((s) => ({ repositories: [...s.repositories, repo] })),
   removeRepository: (id) =>
-    set((s) => ({ repositories: s.repositories.filter((r) => r.id !== id) })),
+    set((s) => {
+      // worktrees マップからも該当エントリを掃除する（長期稼働時のメモリリーク防止）
+      const { [id]: _removed, ...remainingWorktrees } = s.worktrees;
+      return {
+        repositories: s.repositories.filter((r) => r.id !== id),
+        worktrees: remainingWorktrees,
+      };
+    }),
   selectRepository: (id) => set({ selectedRepositoryId: id }),
 
   // Worktree

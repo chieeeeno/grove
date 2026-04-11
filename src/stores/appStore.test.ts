@@ -34,6 +34,25 @@ describe("appStore", () => {
       expect(useAppStore.getState().repositories).toHaveLength(0);
     });
 
+    it("removeRepository で worktrees マップからも該当エントリが消える", () => {
+      useAppStore.getState().addRepository(mockRepo);
+      useAppStore.getState().setWorktrees("repo-1", [
+        {
+          path: "/path/wt",
+          branch: "main",
+          isMain: true,
+          head: "abc",
+          lastCommitMessage: "init",
+          lastCommitTime: 0,
+          modifiedCount: 0,
+        },
+      ]);
+      expect(useAppStore.getState().worktrees["repo-1"]).toHaveLength(1);
+
+      useAppStore.getState().removeRepository("repo-1");
+      expect(useAppStore.getState().worktrees["repo-1"]).toBeUndefined();
+    });
+
     it("selectRepository で選択状態を更新できる", () => {
       useAppStore.getState().selectRepository("repo-1");
       expect(useAppStore.getState().selectedRepositoryId).toBe("repo-1");
