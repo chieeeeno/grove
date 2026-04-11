@@ -108,11 +108,8 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
         let wt_path = wt.path().to_str().unwrap_or("").to_string();
         let wt_path = wt_path.trim_end_matches('/').to_string();
 
-        if !Path::new(&wt_path).exists() {
-            continue;
-        }
-
-        // サブ worktree を独立した Repository として開く
+        // Repository::open が失敗すれば存在しない or 壊れている扱いで skip するので
+        // 事前の exists() チェックは不要（無駄な syscall を削減）
         let wt_repo = match Repository::open(&wt_path) {
             Ok(r) => r,
             Err(_) => continue,
