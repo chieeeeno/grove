@@ -367,7 +367,6 @@ mod tests {
     /// テスト用: サブ worktree を作成して (メインdir, worktreeパス) を返す
     fn create_test_repo_with_worktree() -> (TempDir, String) {
         let (dir, repo) = create_test_repo();
-        let main_path = dir.path().to_str().unwrap().to_string();
 
         let head = repo.head().unwrap().peel_to_commit().unwrap();
         repo.branch("wt-branch", &head, false).unwrap();
