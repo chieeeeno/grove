@@ -217,31 +217,24 @@ pub fn remove_worktree(
         .find_worktree(wt_name)
         .map_err(|e| format!("worktree '{}' が見つかりません: {}", wt_name, e))?;
 
-    if force {
-        // force: ディレクトリを先に削除してから prune
-        if wt_path.exists() {
-            std::fs::remove_dir_all(wt_path)
-                .map_err(|e| format!("worktree ディレクトリの削除に失敗: {}", e))?;
-        }
-        wt.prune(Some(
-            git2::WorktreePruneOptions::new()
-                .working_tree(true)
-                .valid(true),
-        ))
-        .map_err(|e| format!("worktree の prune に失敗: {}", e))?;
-    } else {
-        wt.prune(Some(
-            git2::WorktreePruneOptions::new()
-                .working_tree(true)
-                .valid(true),
-        ))
-        .map_err(|e| format!("worktree の削除に失敗: {}", e))?;
+    // force の場合は prune の前に working tree を消しておく（dirty な状態でも
+    // 確実にディレクトリを消すため）。通常時は prune 後に残っていれば消す。
+    // どちらの経路でも最終的に prune + remove_dir_all の両方を通る。
+    if force && wt_path.exists() {
+        std::fs::remove_dir_all(wt_path)
+            .map_err(|e| format!("worktree ディレクトリの削除に失敗: {}", e))?;
+    }
 
-        // ディレクトリが残っていたら削除
-        if wt_path.exists() {
-            std::fs::remove_dir_all(wt_path)
-                .map_err(|e| format!("worktree ディレクトリの削除に失敗: {}", e))?;
-        }
+    wt.prune(Some(
+        git2::WorktreePruneOptions::new()
+            .working_tree(true)
+            .valid(true),
+    ))
+    .map_err(|e| format!("worktree の削除に失敗: {}", e))?;
+
+    if wt_path.exists() {
+        std::fs::remove_dir_all(wt_path)
+            .map_err(|e| format!("worktree ディレクトリの削除に失敗: {}", e))?;
     }
 
     // ブランチ削除
@@ -425,6 +418,21 @@ mod tests {
         remove_worktree(wt_path.clone(), false, false).unwrap();
 
         // 削除後: worktree が1つ（メインのみ）
+        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert!(!Path::new(&wt_path).exists());
+    }
+
+    #[test]
+    fn test_remove_worktree_force_with_dirty_files() {
+        let (dir, wt_path) = create_test_repo_with_worktree();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        // worktree に未コミットの変更を残す
+        fs::write(Path::new(&wt_path).join("dirty.txt"), "dirty").unwrap();
+
+        // force=true で削除できる
+        remove_worktree(wt_path.clone(), true, false).unwrap();
+
         assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
     }
