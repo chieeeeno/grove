@@ -89,46 +89,54 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
         modified_count: modified,
     });
 
-    // サブ worktree 一覧
+    // サブ worktree のパス一覧を先に収集する
+    // （Worktree ハンドルはスレッドをまたげないため、パスにしてから並列化する）
     let worktree_names = main_repo
         .worktrees()
         .map_err(|e| format!("worktree 一覧の取得に失敗しました: {}", e))?;
 
-    for name in worktree_names.iter() {
-        let name = match name {
-            Some(n) => n,
-            None => continue,
-        };
+    let sub_paths: Vec<String> = worktree_names
+        .iter()
+        .flatten()
+        .filter_map(|name| main_repo.find_worktree(name).ok())
+        .filter_map(|wt| {
+            wt.path()
+                .to_str()
+                .map(|s| s.trim_end_matches('/').to_string())
+        })
+        .collect();
 
-        let wt = match main_repo.find_worktree(name) {
-            Ok(wt) => wt,
-            Err(_) => continue,
-        };
+    // 各 worktree について Repository::open + status 走査を並列で実行する。
+    // libgit2 は別 Repository インスタンスなら別スレッドから使えるので安全。
+    let sub_worktrees: Vec<WorktreeInfo> = std::thread::scope(|scope| {
+        let handles: Vec<_> = sub_paths
+            .into_iter()
+            .map(|wt_path| {
+                scope.spawn(move || {
+                    // Repository::open が失敗すれば存在しない or 壊れている扱いで skip するので
+                    // 事前の exists() チェックは不要（無駄な syscall を削減）
+                    let wt_repo = Repository::open(&wt_path).ok()?;
+                    let (hash, msg, time) = get_last_commit(&wt_repo);
+                    let modified = count_modified_files(&wt_repo);
+                    Some(WorktreeInfo {
+                        path: wt_path,
+                        branch: get_branch_name(&wt_repo),
+                        is_main: false,
+                        head: hash,
+                        last_commit_message: msg,
+                        last_commit_time: time,
+                        modified_count: modified,
+                    })
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .filter_map(|h| h.join().ok().flatten())
+            .collect()
+    });
 
-        let wt_path = wt.path().to_str().unwrap_or("").to_string();
-        let wt_path = wt_path.trim_end_matches('/').to_string();
-
-        // Repository::open が失敗すれば存在しない or 壊れている扱いで skip するので
-        // 事前の exists() チェックは不要（無駄な syscall を削減）
-        let wt_repo = match Repository::open(&wt_path) {
-            Ok(r) => r,
-            Err(_) => continue,
-        };
-
-        let (hash, msg, time) = get_last_commit(&wt_repo);
-        let modified = count_modified_files(&wt_repo);
-
-        result.push(WorktreeInfo {
-            path: wt_path,
-            branch: get_branch_name(&wt_repo),
-            is_main: false,
-            head: hash,
-            last_commit_message: msg,
-            last_commit_time: time,
-            modified_count: modified,
-        });
-    }
-
+    result.extend(sub_worktrees);
     Ok(result)
 }
 
@@ -312,6 +320,43 @@ mod tests {
         assert!(result[0].is_main);
         assert!(!result[1].is_main);
         assert_eq!(result[1].branch, "feature-test");
+    }
+
+    #[test]
+    fn test_list_worktrees_multiple_sub_worktrees() {
+        // 複数 worktree を並列で走査しても全件揃い、順序が安定していることを確認する
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        for name in ["wt-a", "wt-b", "wt-c"] {
+            repo.branch(name, &head, false).unwrap();
+            let wt_path = dir.path().join(name);
+            repo.worktree(
+                name,
+                wt_path.as_path(),
+                Some(
+                    git2::WorktreeAddOptions::new().reference(Some(
+                        &repo
+                            .find_branch(name, git2::BranchType::Local)
+                            .unwrap()
+                            .into_reference(),
+                    )),
+                ),
+            )
+            .unwrap();
+        }
+
+        let result = list_worktrees(main_path).unwrap();
+
+        assert_eq!(result.len(), 4);
+        assert!(result[0].is_main);
+
+        // 順序はソートされず worktree_names の順に従うが、いずれにせよ全件揃っていること
+        let branches: Vec<&str> = result[1..].iter().map(|w| w.branch.as_str()).collect();
+        assert!(branches.contains(&"wt-a"));
+        assert!(branches.contains(&"wt-b"));
+        assert!(branches.contains(&"wt-c"));
     }
 
     #[test]
