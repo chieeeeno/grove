@@ -78,6 +78,21 @@ fn count_modified_files(repo: &Repository) -> u32 {
         .unwrap_or(0)
 }
 
+/// リポジトリ配下の全 worktree を列挙する（メイン worktree + サブ worktree）。
+///
+/// 戻り値の先頭要素は必ずメイン worktree（`is_main = true`）。以降はサブ worktree で、
+/// 順序は libgit2 の `worktrees()` が返す順（ソート保証なし）。開けないサブ worktree
+/// （壊れている / prune 待ち）は結果から黙って除外される（エラーにしない）。
+///
+/// # Errors
+/// - `repository_path` を `Repository::open` できない場合
+/// - bare リポジトリ（workdir を持たない）の場合
+/// - `worktrees()` 呼び出しの失敗
+///
+/// # パフォーマンス
+/// 各サブ worktree の `Repository::open` + status 走査は `std::thread::scope` で
+/// 並列実行する。メイン worktree の status 走査は先に直列で行うので、
+/// メインが大きい場合はそこがボトルネックになる（改善候補: #25）。
 #[tauri::command]
 pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, String> {
     let main_repo = Repository::open(&repository_path)
@@ -159,6 +174,14 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
     Ok(result)
 }
 
+/// 単一 worktree の変更ファイル数を取得する軽量ステータス API。
+///
+/// ADR-0013 の 5 秒ポーリングから呼ばれる想定。`list_worktrees` と違いコミット情報を
+/// 返さないので同等の走査コストで済む（M0 時点では `list_worktrees` で十分で、
+/// このコマンドは将来のファイル監視移行まで未使用の可能性あり）。
+///
+/// # Errors
+/// worktree を `Repository::open` できない場合。
 #[tauri::command]
 pub fn get_worktree_status(worktree_path: String) -> Result<WorktreeStatus, String> {
     let repo = Repository::open(&worktree_path)
@@ -192,6 +215,13 @@ pub struct RemoveWorktreeCheck {
     pub modified_count: u32,
 }
 
+/// worktree 削除前の事前チェック。削除ダイアログの表示情報（ブランチ名・未コミット有無）を返す。
+///
+/// このコマンド自体は破壊的操作を行わない（読み取りのみ）。`has_uncommitted = true` の場合、
+/// フロントは削除ダイアログで警告を出したうえで `remove_worktree` を `force = true` で呼ぶ。
+///
+/// # Errors
+/// worktree を `Repository::open` できない場合。
 #[tauri::command]
 pub fn check_before_remove(worktree_path: String) -> Result<RemoveWorktreeCheck, String> {
     let repo = Repository::open(&worktree_path)
@@ -208,6 +238,31 @@ pub fn check_before_remove(worktree_path: String) -> Result<RemoveWorktreeCheck,
     })
 }
 
+/// worktree を削除する（オプションでブランチも削除）。
+///
+/// # 引数
+/// - `worktree_path`: 削除対象の絶対パス
+/// - `force`: true のとき未コミットの変更があっても強制削除する。prune の前に
+///   `remove_dir_all` を実行するフローに切り替わる（`check_before_remove` で
+///   事前確認した結果をそのまま渡す想定）
+/// - `delete_branch`: true のとき worktree が参照していたローカルブランチも削除する。
+///   ブランチが存在しない（detached HEAD 等）場合はサイレントに無視する
+///
+/// # 副作用（順序）
+/// 1. `force = true` のときは worktree ディレクトリを先行削除
+/// 2. `git_worktree_prune` で git の worktree 管理から除外
+/// 3. 残骸があれば `remove_dir_all` でクリーンアップ
+/// 4. `delete_branch = true` のときローカルブランチを削除
+///
+/// # Errors
+/// - worktree または親リポジトリを開けない
+/// - worktree 名（末尾ディレクトリ名）の取得失敗
+/// - `find_worktree` が失敗（git の worktree レジストリに存在しない）
+/// - `remove_dir_all` / `prune` / `branch.delete()` の失敗
+///
+/// # 注意
+/// 途中失敗時はディレクトリ削除だけ済んで prune 未実行、のような中途半端な状態になり得る。
+/// 呼び出し側は失敗時に `list_worktrees` で再確認する想定。
 #[tauri::command]
 pub fn remove_worktree(
     worktree_path: String,

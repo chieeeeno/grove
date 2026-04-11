@@ -43,13 +43,32 @@ fn update_labels<R: Runtime>(
     Ok(())
 }
 
-/// ラベル一覧を読み込む（キー: worktree 絶対パス、値: ラベル文字列）
+/// worktree ラベル一覧を読み込む。
+///
+/// キーは worktree の絶対パス、値はユーザーが付けたラベル文字列（ADR-0008）。
+/// store にラベル未登録、またはデシリアライズ失敗時は空 `HashMap` を返す。
+///
+/// # Errors
+/// tauri-plugin-store のハンドル取得に失敗した場合のみ。
+///
+/// # 注意
+/// worktree を rename するとキーが変わりラベルは失われる（ADR-0008 で許容済み）。
 #[tauri::command]
 pub fn load_labels<R: Runtime>(app: AppHandle<R>) -> Result<HashMap<String, String>, String> {
     read_labels(&app)
 }
 
-/// ラベルを保存する（ADR-0008: worktree 絶対パスをキー）
+/// worktree にラベルを割り当てて保存する（ADR-0008）。
+///
+/// 既存のラベルは無条件に上書きされる。`worktree_path` は文字列一致でキーとして扱うため、
+/// 末尾スラッシュ等の正規化は呼び出し側の責務。`label` の空文字・長文制限は設けず、
+/// UI 層で入力制御する。
+///
+/// # 副作用
+/// `STORE_PATH` に書き込み、`store.save()` で即座にディスクに flush する。
+///
+/// # Errors
+/// store のオープン / シリアライズ / save に失敗した場合。
 #[tauri::command]
 pub fn save_label<R: Runtime>(
     app: AppHandle<R>,
@@ -61,7 +80,15 @@ pub fn save_label<R: Runtime>(
     })
 }
 
-/// ラベルを削除する（worktree 削除時に連動）
+/// 指定 worktree のラベルを削除する（通常は `remove_worktree` 成功後に連動呼び出しする）。
+///
+/// キーが存在しない場合でもエラーにはならず Ok を返す（冪等）。
+///
+/// # 副作用
+/// `STORE_PATH` に書き込み、`store.save()` で即座にディスクに flush する。
+///
+/// # Errors
+/// store のオープン / save に失敗した場合のみ。
 #[tauri::command]
 pub fn delete_label<R: Runtime>(app: AppHandle<R>, worktree_path: String) -> Result<(), String> {
     update_labels(&app, "ラベルの削除に失敗しました", |labels| {

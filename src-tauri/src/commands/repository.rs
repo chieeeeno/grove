@@ -73,6 +73,14 @@ pub struct RepositoryInfo {
 
 // ===== コマンド =====
 
+/// 指定パスが開ける git リポジトリか検証し、表示用のメタ情報を返す。
+///
+/// `name` は workdir の末尾ディレクトリ名から生成し、取得できない場合は `"unknown"`
+/// を返す。`id` は M0 では `path` と同値。副作用なし（読み取りのみ）。
+///
+/// # Errors
+/// - 指定パスを git リポジトリとして開けない場合（存在しない、`.git` が無い、権限不足等）
+/// - bare リポジトリ（workdir を持たない）の場合: `"bare リポジトリは非対応です"`
 #[tauri::command]
 pub fn validate_repository(path: String) -> Result<RepositoryInfo, String> {
     let repo = git2::Repository::open(&path)
@@ -95,6 +103,13 @@ pub fn validate_repository(path: String) -> Result<RepositoryInfo, String> {
     })
 }
 
+/// tauri-plugin-store から `AppConfig` を読み込む。
+///
+/// store にキー `"app_config"` が無い、または JSON デシリアライズに失敗した場合は
+/// `AppConfig::default()` を返す（フォールバック）。初回起動時でも Ok が返る。
+///
+/// # Errors
+/// tauri-plugin-store のハンドル取得に失敗した場合のみ（ディスク障害等）。
 #[tauri::command]
 pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
     let store = app
@@ -109,6 +124,20 @@ pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
     Ok(config)
 }
 
+/// `AppConfig` を tauri-plugin-store に**全置換**で保存する（差分更新ではない）。
+///
+/// 部分更新したい場合は呼び出し側で現在の state とマージしてから渡すこと
+/// （フロントエンド側は `App.tsx` の `buildConfigFromStore()` を使う）。
+/// `store.save()` でその場でディスクに flush する。
+///
+/// # 副作用
+/// `STORE_PATH` のファイル（例: `~/Library/Application Support/<app id>/grove_config.json`）
+/// を書き換え、同期的に永続化する。
+///
+/// # Errors
+/// - store ハンドルの取得失敗
+/// - `serde_json::to_value` のシリアライズ失敗（現実的には発生しない）
+/// - ディスク書き込み失敗
 #[tauri::command]
 pub fn save_config<R: Runtime>(app: AppHandle<R>, config: AppConfig) -> Result<(), String> {
     let store = app
