@@ -40,26 +40,28 @@ function buildConfigFromStore(repositoriesOverride?: RepositoryConfig[]): AppCon
 }
 
 function App() {
-  const {
-    repositories,
-    selectedRepositoryId,
-    worktrees,
-    labels,
-    addRepository,
-    removeRepository,
-    selectRepository,
-    setRepositories,
-    setWorktrees,
-    setLabel,
-    setAllLabels,
-    removeLabel,
-    removeWorktreeEntry,
-    codeAvailable,
-    setCodeAvailable,
-    isRefreshing,
-    refreshInterval,
-    setRefreshInterval,
-  } = useAppStore();
+  // 個別セレクタで購読する（引数なしの useAppStore() だと全 state 購読になり、
+  // 関係ない変更でも App 全体が再レンダーする）
+  const repositories = useAppStore((s) => s.repositories);
+  const selectedRepositoryId = useAppStore((s) => s.selectedRepositoryId);
+  const worktrees = useAppStore((s) => s.worktrees);
+  const labels = useAppStore((s) => s.labels);
+  const codeAvailable = useAppStore((s) => s.codeAvailable);
+  const isRefreshing = useAppStore((s) => s.isRefreshing);
+  const refreshInterval = useAppStore((s) => s.refreshInterval);
+
+  // actions は参照安定なので個別取得でよい
+  const addRepository = useAppStore((s) => s.addRepository);
+  const removeRepository = useAppStore((s) => s.removeRepository);
+  const selectRepository = useAppStore((s) => s.selectRepository);
+  const setRepositories = useAppStore((s) => s.setRepositories);
+  const setWorktrees = useAppStore((s) => s.setWorktrees);
+  const setLabel = useAppStore((s) => s.setLabel);
+  const setAllLabels = useAppStore((s) => s.setAllLabels);
+  const removeLabel = useAppStore((s) => s.removeLabel);
+  const removeWorktreeEntry = useAppStore((s) => s.removeWorktreeEntry);
+  const setCodeAvailable = useAppStore((s) => s.setCodeAvailable);
+  const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
 
   // 自動リフレッシュ（ADR-0013: 5秒ポーリング）
   const { refresh } = useAutoRefresh();
