@@ -24,6 +24,21 @@ import {
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
 
+/**
+ * 現在の store 状態から AppConfig を組み立てる。
+ * 部分更新時に他のフィールドをハードコードすると保存済み設定を上書きしてしまうため、
+ * 設定保存は常にこのヘルパー経由で行う。
+ */
+function buildConfigFromStore(repositoriesOverride?: RepositoryConfig[]): AppConfig {
+  const state = useAppStore.getState();
+  return {
+    repositories: repositoriesOverride ?? state.repositories,
+    editor: "vscode",
+    theme: "system",
+    refreshInterval: state.refreshInterval,
+  };
+}
+
 function App() {
   const {
     repositories,
@@ -56,15 +71,9 @@ function App() {
   const handleChangeRefreshInterval = useCallback(
     async (interval: number) => {
       setRefreshInterval(interval);
-      const config: AppConfig = {
-        repositories,
-        editor: "vscode",
-        theme: "system",
-        refreshInterval: interval,
-      };
-      await saveConfig(config).catch(console.error);
+      await saveConfig(buildConfigFromStore()).catch(console.error);
     },
-    [repositories, setRefreshInterval]
+    [setRefreshInterval]
   );
 
   // 設定ダイアログの状態
@@ -124,14 +133,7 @@ function App() {
       };
 
       addRepository(newRepo);
-
-      const config: AppConfig = {
-        repositories: [...repositories, newRepo],
-        editor: "vscode",
-        theme: "system",
-        refreshInterval: 5000,
-      };
-      await saveConfig(config);
+      await saveConfig(buildConfigFromStore([...repositories, newRepo]));
       selectRepository(newRepo.id);
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
@@ -144,12 +146,7 @@ function App() {
       removeRepository(id);
 
       const next = repositories.filter((r) => r.id !== id);
-      await saveConfig({
-        repositories: next,
-        editor: "vscode",
-        theme: "system",
-        refreshInterval: 5000,
-      }).catch(console.error);
+      await saveConfig(buildConfigFromStore(next)).catch(console.error);
 
       if (selectedRepositoryId === id) {
         selectRepository(next.length > 0 ? next[0].id : null);
