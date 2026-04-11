@@ -1,6 +1,31 @@
 import { create } from "zustand";
 import type { RepositoryConfig, WorktreeInfo } from "../types";
 
+/**
+ * 2つの worktree 配列が内容的に同一かを判定する。
+ * ポーリングで変化ゼロのときに再レンダーを起こさないために使う。
+ * 比較対象は UI に影響するフィールドのみ（ADR-0011 に基づく）。
+ */
+function worktreesEqual(a: WorktreeInfo[], b: WorktreeInfo[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (
+      x.path !== y.path ||
+      x.branch !== y.branch ||
+      x.isMain !== y.isMain ||
+      x.head !== y.head ||
+      x.lastCommitTime !== y.lastCommitTime ||
+      x.lastCommitMessage !== y.lastCommitMessage ||
+      x.modifiedCount !== y.modifiedCount
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 interface AppStore {
   // ===== リポジトリ =====
   repositories: RepositoryConfig[];
@@ -46,7 +71,14 @@ export const useAppStore = create<AppStore>((set) => ({
   // Worktree
   worktrees: {},
   setWorktrees: (repositoryId, worktrees) =>
-    set((s) => ({ worktrees: { ...s.worktrees, [repositoryId]: worktrees } })),
+    set((s) => {
+      // 差分がなければ state を変更しない（ポーリング時の無駄な再レンダー防止）
+      const existing = s.worktrees[repositoryId];
+      if (existing && worktreesEqual(existing, worktrees)) {
+        return s;
+      }
+      return { worktrees: { ...s.worktrees, [repositoryId]: worktrees } };
+    }),
   removeWorktreeEntry: (repositoryId, worktreePath) =>
     set((s) => ({
       worktrees: {

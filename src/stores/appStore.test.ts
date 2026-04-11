@@ -79,6 +79,31 @@ describe("appStore", () => {
       expect(useAppStore.getState().worktrees["repo-1"]).toHaveLength(1);
       expect(useAppStore.getState().worktrees["repo-1"][0].isMain).toBe(true);
     });
+
+    it("setWorktrees: 同じ内容なら参照を変えない（差分検出）", () => {
+      useAppStore.getState().setWorktrees("repo-1", mockWorktrees);
+      const before = useAppStore.getState().worktrees["repo-1"];
+
+      // 新しい配列だが内容は同じ（ポーリングの典型ケース）
+      const sameContent = mockWorktrees.map((w) => ({ ...w }));
+      useAppStore.getState().setWorktrees("repo-1", sameContent);
+      const after = useAppStore.getState().worktrees["repo-1"];
+
+      expect(after).toBe(before);
+    });
+
+    it("setWorktrees: 内容が変わった場合は新しい参照に入れ替わる", () => {
+      useAppStore.getState().setWorktrees("repo-1", mockWorktrees);
+      const before = useAppStore.getState().worktrees["repo-1"];
+
+      // modifiedCount が変化
+      const changed = [{ ...mockWorktrees[0] }, { ...mockWorktrees[1], modifiedCount: 5 }];
+      useAppStore.getState().setWorktrees("repo-1", changed);
+      const after = useAppStore.getState().worktrees["repo-1"];
+
+      expect(after).not.toBe(before);
+      expect(after[1].modifiedCount).toBe(5);
+    });
   });
 
   describe("ラベル管理（ADR-0008）", () => {
