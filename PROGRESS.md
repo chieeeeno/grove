@@ -289,7 +289,7 @@ Tauri 公式の必勝パターンを Web 調査した結果（2026-04）、以�
 - 既存の自作モックを公式 `mockIPC` に移行してメンテナンス性を向上
 
 #### 14-1. テスト方針ドキュメント作成
-- [ ] `docs/testing-strategy.md` を作成
+- [x] `docs/testing-strategy.md` を作成
   - Tauri テスト機能の背景説明（mockIPC / MockRuntime / WebDriver）
   - プラットフォーム制約（macOS での E2E 自動化不可）
   - Grove 採用の3層テスト戦略の定義と各層の役割
