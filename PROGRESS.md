@@ -303,10 +303,14 @@ Tauri 公式の必勝パターンを Web 調査した結果（2026-04）、以�
 - [x] 既存テスト40件が全て通ることを確認
 - [x] テストヘルパー関数の整理（`src/test/fixtures.ts` に切り出し）
 
-#### 14-3. Rust テストの強化（任意、M1 でも可）
-- [ ] `tauri::test::MockRuntime` の導入検討
-- [ ] AppHandle を要求するコマンド（`load_config` / `save_config` / `load_labels` 等）の統合テスト追加
-- [ ] 現在は単体関数のみテストしているが、実際の Tauri ランタイム上での挙動も検証
+#### 14-3. Rust テストの強化
+- [x] `tauri::test::MockRuntime` の導入（Cargo.toml に `tauri = { features = ["test"] }` を dev-dep 追加）
+- [x] AppHandle を受け取るコマンドを `AppHandle<R: Runtime>` にジェネリック化
+  - `load_config` / `save_config` / `load_labels` / `save_label` / `delete_label`
+- [x] repository.rs に MockRuntime テスト3件追加（load_config / save_then_load / app_config_default）
+- [x] label.rs に MockRuntime テスト6件追加（load/save/multiple/delete/nonexistent/overwrite）
+- [x] tauri-plugin-store のメモリキャッシュ共有問題への対処（各テストで store.clear()）
+- [x] Rust テスト合計 19件が全てパス
 
 ---
 
