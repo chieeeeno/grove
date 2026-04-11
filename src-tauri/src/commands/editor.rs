@@ -1,11 +1,19 @@
 use std::path::Path;
 use std::process::Command;
+use std::sync::OnceLock;
 
 const CODE_CANDIDATES: &[&str] = &[
     "/usr/local/bin/code",
     "/opt/homebrew/bin/code",
     "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
 ];
+
+/// `code` コマンドの絶対パスのキャッシュ。プロセス寿命中は一度解決すれば十分。
+///
+/// ログインシェル起動（`zsh -l`）は rc ファイル読み込みで数十〜数百 ms かかるため、
+/// `open_in_editor` 呼び出しのたびに再解決するとクリック→VS Code 起動までの
+/// 体感遅延が悪化する。`check_code_command` と `open_in_editor` で同じキャッシュを共用する。
+static CODE_PATH_CACHE: OnceLock<Option<String>> = OnceLock::new();
 
 /// 候補パスのリストから最初に実在するパスを返す（テスト可能な純粋関数）
 fn pick_existing_path(candidates: &[&str]) -> Option<String> {
@@ -15,20 +23,18 @@ fn pick_existing_path(candidates: &[&str]) -> Option<String> {
         .map(|p| (*p).to_string())
 }
 
-/// `code` コマンドの絶対パスを解決する。
+/// `code` コマンドの絶対パスを解決する（キャッシュなしの生処理）。
 ///
 /// macOS の GUI 起動（Finder/Dock）では子プロセスの PATH が
 /// `/usr/bin:/bin:/usr/sbin:/sbin` に限定され、VS Code のインストーラが配置する
 /// `/usr/local/bin/code` も Homebrew 系の `/opt/homebrew/bin/code` も見つからない。
 /// そのため (1) 既知パスを直接チェック → (2) ログインシェル経由で `command -v code`
 /// の順で解決する。
-fn resolve_code_path() -> Option<String> {
-    // (1) 既知の候補パスを直接確認（シェル起動より高速）
+fn resolve_code_path_uncached() -> Option<String> {
     if let Some(path) = pick_existing_path(CODE_CANDIDATES) {
         return Some(path);
     }
 
-    // (2) ログインシェル経由でユーザーの PATH を使って解決する
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
     let output = Command::new(&shell)
         .args(["-l", "-c", "command -v code"])
@@ -45,10 +51,17 @@ fn resolve_code_path() -> Option<String> {
     }
 }
 
+/// キャッシュ経由で `code` コマンドの絶対パスを取得する
+fn resolved_code_path() -> Option<&'static str> {
+    CODE_PATH_CACHE
+        .get_or_init(resolve_code_path_uncached)
+        .as_deref()
+}
+
 #[tauri::command]
 pub fn open_in_editor(path: String) -> Result<(), String> {
     let code =
-        resolve_code_path().ok_or_else(|| "code コマンドが見つかりませんでした".to_string())?;
+        resolved_code_path().ok_or_else(|| "code コマンドが見つかりませんでした".to_string())?;
     Command::new(code)
         .arg(&path)
         .spawn()
@@ -58,7 +71,7 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn check_code_command() -> bool {
-    resolve_code_path().is_some()
+    resolved_code_path().is_some()
 }
 
 #[cfg(test)]
