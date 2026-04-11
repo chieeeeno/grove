@@ -43,10 +43,15 @@ fn update_labels<R: Runtime>(
     Ok(())
 }
 
-/// worktree ラベル一覧を読み込む。
+/// worktree ラベル一覧を読み込む（ADR-0008）。
 ///
-/// キーは worktree の絶対パス、値はユーザーが付けたラベル文字列（ADR-0008）。
-/// store にラベル未登録、またはデシリアライズ失敗時は空 `HashMap` を返す。
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle
+///
+/// # Returns
+/// * `Ok(HashMap)` - キーは worktree の絶対パス、値はユーザーが付けたラベル文字列。
+///   store にラベル未登録、または JSON デシリアライズ失敗時は空 `HashMap`
+/// * `Err(String)` - 日本語のエラーメッセージ
 ///
 /// # Errors
 /// tauri-plugin-store のハンドル取得に失敗した場合のみ。
@@ -58,14 +63,20 @@ pub fn load_labels<R: Runtime>(app: AppHandle<R>) -> Result<HashMap<String, Stri
     read_labels(&app)
 }
 
-/// worktree にラベルを割り当てて保存する（ADR-0008）。
+/// worktree にラベルを割り当てて保存する（ADR-0008）。既存のラベルは無条件に上書きされる。
 ///
-/// 既存のラベルは無条件に上書きされる。`worktree_path` は文字列一致でキーとして扱うため、
-/// 末尾スラッシュ等の正規化は呼び出し側の責務。`label` の空文字・長文制限は設けず、
-/// UI 層で入力制御する。
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle
+/// * `worktree_path` - 対象 worktree の絶対パス。文字列一致でキーとして扱うため、
+///   末尾スラッシュ等の正規化は呼び出し側の責務
+/// * `label` - ラベル文字列。空文字・長文の検証は行わないので UI 層で制御すること
+///
+/// # Returns
+/// * `Ok(())` - 保存成功（即座にディスクへ flush 済み）
+/// * `Err(String)` - 日本語のエラーメッセージ
 ///
 /// # 副作用
-/// `STORE_PATH` に書き込み、`store.save()` で即座にディスクに flush する。
+/// `STORE_PATH` に書き込み、`store.save()` で同期的にディスクへ flush する。
 ///
 /// # Errors
 /// store のオープン / シリアライズ / save に失敗した場合。
@@ -82,10 +93,16 @@ pub fn save_label<R: Runtime>(
 
 /// 指定 worktree のラベルを削除する（通常は `remove_worktree` 成功後に連動呼び出しする）。
 ///
-/// キーが存在しない場合でもエラーにはならず Ok を返す（冪等）。
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle
+/// * `worktree_path` - 削除対象 worktree の絶対パス
+///
+/// # Returns
+/// * `Ok(())` - キーが存在しなくてもエラーにならず Ok を返す（冪等）
+/// * `Err(String)` - 日本語のエラーメッセージ
 ///
 /// # 副作用
-/// `STORE_PATH` に書き込み、`store.save()` で即座にディスクに flush する。
+/// `STORE_PATH` に書き込み、`store.save()` で同期的にディスクへ flush する。
 ///
 /// # Errors
 /// store のオープン / save に失敗した場合のみ。

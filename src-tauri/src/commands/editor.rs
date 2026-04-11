@@ -60,8 +60,15 @@ fn resolved_code_path() -> Option<&'static str> {
 
 /// 指定パスを VS Code で開く（子プロセスとして `code <path>` を spawn）。
 ///
-/// 引数 `path` はファイル・ディレクトリどちらでも OK（`code` の引数仕様に従う）。
 /// 親プロセス（Grove）は起動完了を待たず、spawn 直後にリターンする。
+///
+/// # Arguments
+/// * `path` - 開く対象の絶対パス。ファイル・ディレクトリどちらでも OK
+///   （`code` の引数仕様に従う）
+///
+/// # Returns
+/// * `Ok(())` - spawn 成功時（VS Code 側の起動成否は保証しない）
+/// * `Err(String)` - 日本語のエラーメッセージ
 ///
 /// # 副作用
 /// `CODE_PATH_CACHE` にキャッシュされた `code` バイナリを子プロセスとして spawn する。
@@ -86,8 +93,11 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
 ///
 /// 初回呼び出しは `CODE_PATH_CACHE` 初期化で数十〜数百 ms かかる可能性がある
 /// （既知パスが全て外れた場合のみ `zsh -l` を起動して解決するため）。2 回目以降は
-/// キャッシュヒットで即返る。フロントはアプリ起動時に 1 回これを呼び、false なら
-/// 上部バナー警告 + 関連ボタン無効化を表示する。
+/// キャッシュヒットで即返る。
+///
+/// # Returns
+/// * `true` - `code` コマンドの絶対パスが解決できた場合
+/// * `false` - 解決できなかった場合。フロントは上部バナー警告と関連ボタン無効化を表示する
 #[tauri::command]
 pub fn check_code_command() -> bool {
     resolved_code_path().is_some()
