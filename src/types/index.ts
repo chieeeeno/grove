@@ -1,7 +1,7 @@
 // ===== 永続化モデル（tauri-plugin-store） =====
 
 export interface RepositoryConfig {
-  id: string; // UUID
+  id: string; // M0 では絶対パスをそのまま使用。M1 以降で UUID 化する可能性あり。
   name: string;
   path: string; // 絶対パス
   addedAt: string; // ISO 8601
