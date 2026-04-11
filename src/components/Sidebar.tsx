@@ -49,21 +49,21 @@ function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItem
 // ===== メインコンポーネント =====
 
 interface SidebarProps {
-  repositories?: Array<{ id: string; name: string; worktreeCount: number }>;
-  selectedId?: string | null;
-  onSelectRepository?: (id: string) => void;
-  onAddRepository?: () => void;
-  onRemoveRepository?: (id: string) => void;
-  onOpenSettings?: () => void;
+  repositories: Array<{ id: string; name: string; worktreeCount: number }>;
+  selectedId: string | null;
+  onSelectRepository: (id: string) => void;
+  onAddRepository: () => void;
+  onRemoveRepository: (id: string) => void;
+  onOpenSettings: () => void;
 }
 
 export default function Sidebar({
-  repositories = [],
-  selectedId = null,
-  onSelectRepository = () => {},
-  onAddRepository = () => {},
-  onRemoveRepository = () => {},
-  onOpenSettings = () => {},
+  repositories,
+  selectedId,
+  onSelectRepository,
+  onAddRepository,
+  onRemoveRepository,
+  onOpenSettings,
 }: SidebarProps) {
   return (
     <aside className="flex flex-col gap-4 py-5 px-4 h-full shrink-0 w-[220px] bg-sidebar border-r border-border">

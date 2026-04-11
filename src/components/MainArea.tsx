@@ -24,18 +24,18 @@ function NoRepository() {
 // ===== メインコンポーネント =====
 
 interface MainAreaProps {
-  selectedRepositoryName?: string | null;
-  selectedRepositoryPath?: string | null;
-  isRefreshing?: boolean;
-  onRefresh?: () => void;
+  selectedRepositoryName: string | null;
+  selectedRepositoryPath: string | null;
+  isRefreshing: boolean;
+  onRefresh: () => void;
   children?: React.ReactNode;
 }
 
 export default function MainArea({
-  selectedRepositoryName = null,
-  selectedRepositoryPath = null,
-  isRefreshing = false,
-  onRefresh = () => {},
+  selectedRepositoryName,
+  selectedRepositoryPath,
+  isRefreshing,
+  onRefresh,
   children,
 }: MainAreaProps) {
   return (
