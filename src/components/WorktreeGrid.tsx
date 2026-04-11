@@ -21,6 +21,8 @@ export default function WorktreeGrid({
   onSaveLabel,
 }: WorktreeGridProps) {
   // main worktree を先頭にソート（worktrees 参照が維持されれば結果も安定）
+  // 呼び出し側（App.tsx）で length > 0 のときだけレンダリングするため、
+  // 空配列時の分岐は持たない（空状態は MainArea が描画する）。
   const sorted = useMemo(
     () =>
       [...worktrees].sort((a, b) => {
@@ -30,14 +32,6 @@ export default function WorktreeGrid({
       }),
     [worktrees]
   );
-
-  if (worktrees.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-fg-muted">
-        <p className="text-[14px]">worktree がありません</p>
-      </div>
-    );
-  }
 
   return (
     <div className="grid grid-cols-2 gap-4">

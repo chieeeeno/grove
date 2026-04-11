@@ -2,21 +2,18 @@ import { FolderGit2, RefreshCw } from "lucide-react";
 
 // ===== サブコンポーネント =====
 
-function EmptyState() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-fg-muted">
-      <FolderGit2 size={40} className="text-border" />
-      <p className="text-[14px]">リポジトリを選択してください</p>
-    </div>
-  );
+interface CenteredMessageProps {
+  title: string;
+  subtitle?: string;
 }
 
-function NoRepository() {
+/** 中央寄せの案内メッセージ（未選択時・空状態で共用） */
+function CenteredMessage({ title, subtitle }: CenteredMessageProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-fg-muted">
       <FolderGit2 size={40} className="text-border" />
-      <p className="text-[14px]">worktree がありません</p>
-      <p className="text-[12px]">左サイドバーからリポジトリを追加してください</p>
+      <p className="text-[14px]">{title}</p>
+      {subtitle && <p className="text-[12px]">{subtitle}</p>}
     </div>
   );
 }
@@ -68,11 +65,18 @@ export default function MainArea({
             </button>
           </div>
 
-          {/* Worktree グリッド or コンテンツ */}
-          <div className="flex-1 overflow-y-auto min-h-0">{children ?? <NoRepository />}</div>
+          {/* Worktree グリッド or 空状態 */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {children ?? (
+              <CenteredMessage
+                title="worktree がありません"
+                subtitle="左サイドバーからリポジトリを追加してください"
+              />
+            )}
+          </div>
         </>
       ) : (
-        <EmptyState />
+        <CenteredMessage title="リポジトリを選択してください" />
       )}
     </main>
   );
