@@ -130,4 +130,39 @@ describe("useAutoRefresh", () => {
 
     expect(useAppStore.getState().isRefreshing).toBe(false);
   });
+
+  it("手動リフレッシュ中はポーリングが skip される", async () => {
+    // listWorktrees を長引かせて手動 refresh を実行中の状態にする
+    let resolveList: (v: unknown) => void = () => {};
+    invokeSpy.mockImplementation((cmd: string) => {
+      if (cmd === "list_worktrees") {
+        return new Promise((resolve) => {
+          resolveList = resolve;
+        });
+      }
+      return null;
+    });
+
+    const { result } = renderHook(() => useAutoRefresh());
+
+    // 手動 refresh を開始（まだ resolve しない）
+    let refreshPromise: Promise<void> | undefined;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    expect(listWorktreeCalls()).toHaveLength(1);
+
+    // 手動 refresh 中にポーリングが走っても skip される
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(listWorktreeCalls()).toHaveLength(1);
+
+    // 手動 refresh を完了させる
+    await act(async () => {
+      resolveList([]);
+      vi.advanceTimersByTime(500);
+      await refreshPromise;
+    });
+  });
 });
