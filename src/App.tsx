@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import Sidebar from "./components/Sidebar";
 import MainArea from "./components/MainArea";
@@ -193,16 +193,28 @@ function App() {
     [deleteTarget, selectedRepositoryId, removeWorktreeEntry, removeLabel]
   );
 
-  // ===== 選択中リポジトリの情報 =====
-  const selectedRepo = repositories.find((r) => r.id === selectedRepositoryId) ?? null;
-  const currentWorktrees = selectedRepo ? (worktrees[selectedRepo.id] ?? []) : [];
+  // ===== 派生値は useMemo 化して、ポーリングで worktrees の参照が維持された時に
+  // Sidebar/WorktreeGrid に渡す props の参照も維持する（appStore の no-op ガード
+  // を UI 層まで伝播させる）=====
+  const selectedRepo = useMemo(
+    () => repositories.find((r) => r.id === selectedRepositoryId) ?? null,
+    [repositories, selectedRepositoryId]
+  );
 
-  // ===== サイドバー用リポジトリリスト =====
-  const sidebarRepos = repositories.map((r) => ({
-    id: r.id,
-    name: r.name,
-    worktreeCount: worktrees[r.id]?.length ?? 0,
-  }));
+  const currentWorktrees = useMemo(
+    () => (selectedRepo ? (worktrees[selectedRepo.id] ?? []) : []),
+    [selectedRepo, worktrees]
+  );
+
+  const sidebarRepos = useMemo(
+    () =>
+      repositories.map((r) => ({
+        id: r.id,
+        name: r.name,
+        worktreeCount: worktrees[r.id]?.length ?? 0,
+      })),
+    [repositories, worktrees]
+  );
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: "var(--bg-app)" }}>
