@@ -1,14 +1,39 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Pencil, Check, X } from "lucide-react";
 
+/**
+ * `EditableLabel` の props。
+ */
 interface EditableLabelProps {
+  /** 表示中のラベル文字列（編集中はこの値がドラフトの初期値になる） */
   label: string;
+  /** サブテキストとして表示するブランチ名 */
   branch: string;
+  /** true のとき編集不可（Pencil ボタンを表示しない。メイン worktree はラベル固定） */
   isMain: boolean;
+  /**
+   * 確定ボタンまたは Cmd+Enter で呼ばれる。trim 後が空文字なら呼ばれない。
+   * キャンセル時（Esc / × ボタン）には呼ばれない。
+   *
+   * @param newLabel trim 済みの新しいラベル文字列
+   */
   onSave: (newLabel: string) => void;
+  /**
+   * 編集モードの開始/終了を親に通知するオプションコールバック。
+   * WorktreeCard では編集中にバッジ類を隠すために利用する。
+   *
+   * @param editing 編集モードに入るとき true、抜けるとき false
+   */
   onEditingChange?: (editing: boolean) => void;
 }
 
+/**
+ * ラベルのインライン編集コンポーネント。
+ *
+ * Pencil アイコンで編集モードに入り、✓ or Cmd+Enter で確定、× or Esc でキャンセル。
+ * Enter 単独は意図的にサポートしない（CLAUDE.md の方針: 誤操作防止のため確定は
+ * ボタンまたは Cmd+Enter のみ）。
+ */
 export default function EditableLabel({
   label,
   branch,
@@ -48,6 +73,15 @@ export default function EditableLabel({
     onEditingChange?.(false);
   }, [label, onEditingChange]);
 
+  /**
+   * キー入力ハンドラ。
+   * - Esc: 編集キャンセル
+   * - Cmd+Enter: 確定
+   *
+   * Enter 単独は意図的にハンドリングしない（CLAUDE.md のプロジェクト方針:
+   * 誤操作防止のため Enter 単独での確定は禁止）。将来「Enter で確定」を追加したい
+   * 場合は、先に方針の見直しが必要。
+   */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
