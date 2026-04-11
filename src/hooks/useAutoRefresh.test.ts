@@ -1,38 +1,28 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import { mockIPC } from "@tauri-apps/api/mocks";
 import { useAutoRefresh } from "./useAutoRefresh";
 import { useAppStore } from "../stores/appStore";
-
-// listWorktrees のモック
-const mockListWorktrees = vi.fn();
-vi.mock("../lib/tauri", () => ({
-  listWorktrees: (...args: unknown[]) => mockListWorktrees(...args),
-}));
+import { mockRepository, mockWorktree } from "../test/fixtures";
 
 describe("useAutoRefresh", () => {
+  let invokeSpy: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.useFakeTimers();
-    mockListWorktrees.mockClear();
-    mockListWorktrees.mockResolvedValue([
-      {
-        path: "/mock/main",
-        branch: "main",
-        isMain: true,
-        head: "abc",
-        lastCommitMessage: "init",
-        lastCommitTime: 0,
-        modifiedCount: 0,
-      },
-    ]);
+
+    // IPC を mockIPC でインターセプト
+    // spy できるように vi.fn() でラップし、コマンドごとに振り分ける
+    invokeSpy = vi.fn((cmd: string, _args: unknown) => {
+      if (cmd === "list_worktrees") {
+        return [mockWorktree()];
+      }
+      return null;
+    });
+    mockIPC(invokeSpy as (cmd: string, args: unknown) => unknown);
+
     useAppStore.setState({
-      repositories: [
-        {
-          id: "repo-1",
-          name: "test",
-          path: "/mock/repo",
-          addedAt: "2026-04-10T00:00:00Z",
-        },
-      ],
+      repositories: [mockRepository({ path: "/mock/repo" })],
       selectedRepositoryId: "repo-1",
       worktrees: {},
       isRefreshing: false,
@@ -41,27 +31,29 @@ describe("useAutoRefresh", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.restoreAllMocks();
   });
 
-  it("5秒間隔で listWorktrees を呼ぶ", async () => {
+  /** invokeSpy から list_worktrees の呼び出しだけを抽出 */
+  const listWorktreeCalls = () => invokeSpy.mock.calls.filter(([cmd]) => cmd === "list_worktrees");
+
+  it("5秒間隔で list_worktrees を呼ぶ", async () => {
     renderHook(() => useAutoRefresh());
 
     // 初回は呼ばれない（interval のみ）
-    expect(mockListWorktrees).not.toHaveBeenCalled();
+    expect(listWorktreeCalls()).toHaveLength(0);
 
     // 5秒後
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
-    expect(mockListWorktrees).toHaveBeenCalledTimes(1);
-    expect(mockListWorktrees).toHaveBeenCalledWith("/mock/repo");
+    expect(listWorktreeCalls()).toHaveLength(1);
+    expect(listWorktreeCalls()[0][1]).toEqual({ repositoryPath: "/mock/repo" });
 
     // 10秒後
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
-    expect(mockListWorktrees).toHaveBeenCalledTimes(2);
+    expect(listWorktreeCalls()).toHaveLength(2);
   });
 
   it("selectedRepositoryId が null の場合はポーリングしない", async () => {
@@ -72,7 +64,7 @@ describe("useAutoRefresh", () => {
     await act(async () => {
       vi.advanceTimersByTime(10000);
     });
-    expect(mockListWorktrees).not.toHaveBeenCalled();
+    expect(listWorktreeCalls()).toHaveLength(0);
   });
 
   it("unmount 時に clearInterval する", async () => {
@@ -81,7 +73,7 @@ describe("useAutoRefresh", () => {
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
-    expect(mockListWorktrees).toHaveBeenCalledTimes(1);
+    expect(listWorktreeCalls()).toHaveLength(1);
 
     unmount();
 
@@ -89,7 +81,7 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(10000);
     });
     // unmount 後は呼ばれない
-    expect(mockListWorktrees).toHaveBeenCalledTimes(1);
+    expect(listWorktreeCalls()).toHaveLength(1);
   });
 
   it("refresh() を手動で呼べる", async () => {
@@ -108,7 +100,7 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(500);
     });
 
-    expect(mockListWorktrees).toHaveBeenCalledTimes(1);
+    expect(listWorktreeCalls()).toHaveLength(1);
     expect(done).toBe(true);
   });
 
