@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CircleAlert, X } from "lucide-react";
 
 interface PreflightBannerProps {
@@ -7,6 +7,12 @@ interface PreflightBannerProps {
 
 export default function PreflightBanner({ visible }: PreflightBannerProps) {
   const [dismissed, setDismissed] = useState(false);
+
+  // visible が false に戻ったら dismiss 状態をリセットする。
+  // これにより、一度閉じた後に問題が解消→再発した場合でも再度バナーが出る。
+  useEffect(() => {
+    if (!visible) setDismissed(false);
+  }, [visible]);
 
   if (!visible || dismissed) return null;
 
