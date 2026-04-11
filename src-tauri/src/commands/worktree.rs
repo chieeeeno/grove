@@ -182,8 +182,9 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
 
 /// 単一 worktree の変更ファイル数を取得する軽量ステータス API。
 ///
-/// ADR-0013 の 5 秒ポーリングから呼ばれる想定（M0 時点では `list_worktrees` で
-/// 十分で、このコマンドは将来のファイル監視移行まで未使用の可能性あり）。
+/// M0 時点ではフロントからの呼び出し箇所なし（`list_worktrees` が同等情報を
+/// 返しているため）。M1 のファイル監視移行で単一 worktree だけ差分更新したい
+/// 場面で利用する予定。
 ///
 /// # Arguments
 /// * `worktree_path` - 対象 worktree の絶対パス

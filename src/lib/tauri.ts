@@ -19,10 +19,11 @@ export const validateRepository = (path: string): Promise<RepositoryInfo> =>
 /**
  * tauri-plugin-store から AppConfig を読み込む。
  *
- * 初回起動時（store が空）でもデフォルト値の AppConfig が返る（reject ではない）。
+ * 初回起動時（store が空）でも JSON デシリアライズに失敗しても、どちらも
+ * デフォルト値の AppConfig が返る（reject ではない）。
  *
- * @returns 永続化されている `AppConfig`。未登録時は `AppConfig::default()` 相当
- *          （空 repositories / editor="vscode" / theme="system" / refreshInterval=5000）
+ * @returns 永続化されている `AppConfig`。未登録 or 破損時は `AppConfig::default()`
+ *          相当（空 repositories / editor="vscode" / theme="system" / refreshInterval=5000）
  * @throws tauri-plugin-store のハンドル取得に失敗した場合のみ reject
  */
 export const loadConfig = (): Promise<AppConfig> => invoke("load_config");
@@ -61,12 +62,13 @@ export const listWorktrees = (repositoryPath: string): Promise<WorktreeInfo[]> =
 /**
  * 単一 worktree の変更ファイル数を取得する（ADR-0011: 種別合計のみ）。
  *
- * `listWorktrees` より軽量で、コミット情報は返さない。M0 時点では未使用の可能性あり
- * （将来のファイル監視移行時の差分取得用）。
+ * `listWorktrees` より軽量でコミット情報は返さない。M0 時点では呼び出し箇所なし
+ * （`listWorktrees` が同等情報を返すため）。M1 のファイル監視移行で単一 worktree
+ * だけ差分更新したい場面で利用する予定。
  *
  * @param worktreePath 対象 worktree の絶対パス
  * @returns `{ path, modifiedCount, hasUncommitted }`。`hasUncommitted` は
- *          `modifiedCount > 0` と等価の派生値
+ *          `modifiedCount > 0` の派生値
  * @throws worktree を Repository として開けない場合に reject
  */
 export const getWorktreeStatus = (worktreePath: string): Promise<WorktreeStatus> =>
@@ -81,8 +83,8 @@ export const getWorktreeStatus = (worktreePath: string): Promise<WorktreeStatus>
  * @param worktreePath 削除対象 worktree の絶対パス
  * @returns `path`: 引数と同じ絶対パス /
  *          `branch`: 現在のブランチ名（detached HEAD のときは `"HEAD"`） /
- *          `hasUncommitted`: 未コミットの変更があれば true /
- *          `modifiedCount`: 変更ファイル数合計（`hasUncommitted` が false のときは常に 0）
+ *          `modifiedCount`: 変更ファイル数合計（ADR-0011） /
+ *          `hasUncommitted`: `modifiedCount > 0` の派生値（`WorktreeStatus` と同じ規約）
  * @throws worktree を開けない場合に reject
  */
 export const checkBeforeRemove = (

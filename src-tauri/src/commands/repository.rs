@@ -13,8 +13,8 @@ const CONFIG_KEY: &str = "app_config";
 /// 一致する必要がある。フィールド名は `#[serde(rename)]` で camelCase に変換する。
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RepositoryConfig {
-    /// リポジトリ識別子。M0 では絶対パスをそのまま ID として使う
-    /// （`validate_repository` で `path.clone()` している）。M1 以降で UUID 化する可能性あり。
+    /// リポジトリ識別子。M0 では `path` と同値（`validate_repository` が
+    /// そのまま返す）。M1 以降で UUID 化する可能性あり。
     pub id: String,
     /// サイドバーに表示するリポジトリ名。`validate_repository` では workdir の末尾
     /// ディレクトリ名から生成する。

@@ -79,7 +79,8 @@ pub fn load_labels<R: Runtime>(app: AppHandle<R>) -> Result<HashMap<String, Stri
 /// `STORE_PATH` に書き込み、`store.save()` で同期的にディスクへ flush する。
 ///
 /// # Errors
-/// store のオープン / シリアライズ / save に失敗した場合。
+/// store のオープン / シリアライズ / save に失敗した場合
+/// （`HashMap<String, String>` のシリアライズは現実的には失敗しない）。
 #[tauri::command]
 pub fn save_label<R: Runtime>(
     app: AppHandle<R>,
@@ -105,7 +106,8 @@ pub fn save_label<R: Runtime>(
 /// `STORE_PATH` に書き込み、`store.save()` で同期的にディスクへ flush する。
 ///
 /// # Errors
-/// store のオープン / save に失敗した場合のみ。
+/// store のオープン / シリアライズ / save に失敗した場合
+/// （`save_label` と同じ `update_labels` ヘルパー経由。シリアライズ失敗は実質的に起きない）。
 #[tauri::command]
 pub fn delete_label<R: Runtime>(app: AppHandle<R>, worktree_path: String) -> Result<(), String> {
     update_labels(&app, "ラベルの削除に失敗しました", |labels| {
