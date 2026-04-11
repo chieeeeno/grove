@@ -9,6 +9,7 @@ import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAppStore } from "./stores/appStore";
+import { dirName } from "./lib/path";
 import {
   validateRepository,
   loadConfig,
@@ -179,10 +180,9 @@ function App() {
   const handleRemoveWorktree = useCallback(async (worktreePath: string) => {
     try {
       const check = await checkBeforeRemove(worktreePath);
-      const name = worktreePath.split("/").pop() ?? worktreePath;
       setDeleteTarget({
         path: check.path,
-        name,
+        name: dirName(worktreePath),
         branch: check.branch,
         hasUncommitted: check.hasUncommitted,
         modifiedCount: check.modifiedCount,
