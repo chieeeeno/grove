@@ -171,6 +171,10 @@ function App() {
     [setLabel]
   );
 
+  const handleOpenInEditor = useCallback((worktreePath: string) => {
+    openInEditor(worktreePath).catch(console.error);
+  }, []);
+
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
   const handleRemoveWorktree = useCallback(async (worktreePath: string) => {
     try {
@@ -240,7 +244,7 @@ function App() {
               worktrees={currentWorktrees}
               labels={labels}
               codeAvailable={codeAvailable}
-              onOpenInEditor={(path) => openInEditor(path).catch(console.error)}
+              onOpenInEditor={handleOpenInEditor}
               onRemove={handleRemoveWorktree}
               onSaveLabel={handleSaveLabel}
             />

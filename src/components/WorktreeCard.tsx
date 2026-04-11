@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { ShieldCheck, GitCommitHorizontal, FilePen, Code, Trash2 } from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
@@ -8,12 +8,13 @@ interface WorktreeCardProps {
   worktree: WorktreeInfo;
   label: string;
   codeAvailable: boolean;
-  onOpenInEditor: () => void;
-  onRemove: () => void;
-  onSaveLabel: (newLabel: string) => void;
+  // worktree パスを引数に取る形に統一（親から closure を作らず参照を安定化できる）
+  onOpenInEditor: (worktreePath: string) => void;
+  onRemove: (worktreePath: string) => void;
+  onSaveLabel: (worktreePath: string, newLabel: string) => void;
 }
 
-export default function WorktreeCard({
+function WorktreeCard({
   worktree,
   label,
   codeAvailable,
@@ -21,6 +22,13 @@ export default function WorktreeCard({
   onRemove,
   onSaveLabel,
 }: WorktreeCardProps) {
+  const path = worktree.path;
+  const handleOpenInEditor = useCallback(() => onOpenInEditor(path), [onOpenInEditor, path]);
+  const handleRemove = useCallback(() => onRemove(path), [onRemove, path]);
+  const handleSaveLabel = useCallback(
+    (newLabel: string) => onSaveLabel(path, newLabel),
+    [onSaveLabel, path]
+  );
   const [isLabelEditing, setIsLabelEditing] = useState(false);
   const hasChanges = worktree.modifiedCount > 0;
 
@@ -32,7 +40,7 @@ export default function WorktreeCard({
           label={label}
           branch={worktree.branch}
           isMain={worktree.isMain}
-          onSave={onSaveLabel}
+          onSave={handleSaveLabel}
           onEditingChange={setIsLabelEditing}
         />
         {!isLabelEditing &&
@@ -76,7 +84,7 @@ export default function WorktreeCard({
       {/* アクション */}
       <div className="flex items-center justify-end gap-2">
         <button
-          onClick={codeAvailable ? onOpenInEditor : undefined}
+          onClick={codeAvailable ? handleOpenInEditor : undefined}
           disabled={!codeAvailable}
           className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
             ${codeAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
@@ -87,7 +95,7 @@ export default function WorktreeCard({
         </button>
         {!worktree.isMain && (
           <button
-            onClick={onRemove}
+            onClick={handleRemove}
             className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium cursor-pointer border outline-none text-accent-red border-border bg-transparent hover:bg-remove-hover hover:border-accent-red active:bg-accent-red active:text-white transition-colors duration-150"
           >
             <Trash2 size={14} />
@@ -98,3 +106,5 @@ export default function WorktreeCard({
     </div>
   );
 }
+
+export default memo(WorktreeCard);

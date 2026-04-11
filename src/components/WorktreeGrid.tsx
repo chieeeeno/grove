@@ -1,18 +1,14 @@
 import type { WorktreeInfo } from "../types";
 import WorktreeCard from "./WorktreeCard";
+import { dirName } from "../lib/path";
 
 interface WorktreeGridProps {
   worktrees: WorktreeInfo[];
   labels: Record<string, string>;
   codeAvailable: boolean;
-  onOpenInEditor: (path: string) => void;
-  onRemove: (path: string) => void;
+  onOpenInEditor: (worktreePath: string) => void;
+  onRemove: (worktreePath: string) => void;
   onSaveLabel: (worktreePath: string, newLabel: string) => void;
-}
-
-/** worktree のディレクトリ名を取得（ラベル未設定時のデフォルト表示） */
-function dirName(path: string): string {
-  return path.split("/").pop() ?? path;
 }
 
 export default function WorktreeGrid({
@@ -49,9 +45,9 @@ export default function WorktreeGrid({
           worktree={wt}
           label={labels[wt.path] ?? dirName(wt.path)}
           codeAvailable={codeAvailable}
-          onOpenInEditor={() => onOpenInEditor(wt.path)}
-          onRemove={() => onRemove(wt.path)}
-          onSaveLabel={(newLabel) => onSaveLabel(wt.path, newLabel)}
+          onOpenInEditor={onOpenInEditor}
+          onRemove={onRemove}
+          onSaveLabel={onSaveLabel}
         />
       ))}
     </div>
