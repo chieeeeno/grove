@@ -5,27 +5,25 @@ use tauri_plugin_store::StoreExt;
 
 const LABELS_KEY: &str = "worktree_labels";
 
-/// ラベル一覧を読み込む（キー: worktree 絶対パス、値: ラベル文字列）
-#[tauri::command]
-pub fn load_labels<R: Runtime>(app: AppHandle<R>) -> Result<HashMap<String, String>, String> {
+/// store からラベル一覧を読み込む（内部ヘルパー）
+fn read_labels<R: Runtime>(app: &AppHandle<R>) -> Result<HashMap<String, String>, String> {
     let store = app
         .store(STORE_PATH)
         .map_err(|e| format!("ストアを開けませんでした: {}", e))?;
 
-    let labels: HashMap<String, String> = store
+    Ok(store
         .get(LABELS_KEY)
         .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    Ok(labels)
+        .unwrap_or_default())
 }
 
-/// ラベルを保存する（ADR-0008: worktree 絶対パスをキー）
-#[tauri::command]
-pub fn save_label<R: Runtime>(
-    app: AppHandle<R>,
-    worktree_path: String,
-    label: String,
+/// ラベル一覧を mutate して store に書き戻す（内部ヘルパー）
+///
+/// 失敗時のエラーメッセージは呼び出し側で上書きできるように context で受け取る。
+fn update_labels<R: Runtime>(
+    app: &AppHandle<R>,
+    context: &str,
+    mutator: impl FnOnce(&mut HashMap<String, String>),
 ) -> Result<(), String> {
     let store = app
         .store(STORE_PATH)
@@ -36,38 +34,39 @@ pub fn save_label<R: Runtime>(
         .and_then(|v| serde_json::from_value(v).ok())
         .unwrap_or_default();
 
-    labels.insert(worktree_path, label);
+    mutator(&mut labels);
 
     let value = serde_json::to_value(&labels).map_err(|e| format!("シリアライズ失敗: {}", e))?;
     store.set(LABELS_KEY, value);
-    store
-        .save()
-        .map_err(|e| format!("ラベルの保存に失敗しました: {}", e))?;
+    store.save().map_err(|e| format!("{}: {}", context, e))?;
 
     Ok(())
+}
+
+/// ラベル一覧を読み込む（キー: worktree 絶対パス、値: ラベル文字列）
+#[tauri::command]
+pub fn load_labels<R: Runtime>(app: AppHandle<R>) -> Result<HashMap<String, String>, String> {
+    read_labels(&app)
+}
+
+/// ラベルを保存する（ADR-0008: worktree 絶対パスをキー）
+#[tauri::command]
+pub fn save_label<R: Runtime>(
+    app: AppHandle<R>,
+    worktree_path: String,
+    label: String,
+) -> Result<(), String> {
+    update_labels(&app, "ラベルの保存に失敗しました", |labels| {
+        labels.insert(worktree_path, label);
+    })
 }
 
 /// ラベルを削除する（worktree 削除時に連動）
 #[tauri::command]
 pub fn delete_label<R: Runtime>(app: AppHandle<R>, worktree_path: String) -> Result<(), String> {
-    let store = app
-        .store(STORE_PATH)
-        .map_err(|e| format!("ストアを開けませんでした: {}", e))?;
-
-    let mut labels: HashMap<String, String> = store
-        .get(LABELS_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    labels.remove(&worktree_path);
-
-    let value = serde_json::to_value(&labels).map_err(|e| format!("シリアライズ失敗: {}", e))?;
-    store.set(LABELS_KEY, value);
-    store
-        .save()
-        .map_err(|e| format!("ラベルの削除に失敗しました: {}", e))?;
-
-    Ok(())
+    update_labels(&app, "ラベルの削除に失敗しました", |labels| {
+        labels.remove(&worktree_path);
+    })
 }
 
 #[cfg(test)]
