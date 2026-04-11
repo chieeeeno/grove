@@ -14,7 +14,6 @@ import {
   validateRepository,
   loadConfig,
   saveConfig,
-  listWorktrees,
   openInEditor,
   loadLabels,
   saveLabel,
@@ -56,7 +55,6 @@ function App() {
   const removeRepository = useAppStore((s) => s.removeRepository);
   const selectRepository = useAppStore((s) => s.selectRepository);
   const setRepositories = useAppStore((s) => s.setRepositories);
-  const setWorktrees = useAppStore((s) => s.setWorktrees);
   const setLabel = useAppStore((s) => s.setLabel);
   const setAllLabels = useAppStore((s) => s.setAllLabels);
   const removeLabel = useAppStore((s) => s.removeLabel);
@@ -108,20 +106,6 @@ function App() {
     loadLabels().then(setAllLabels).catch(console.error);
     checkCodeCommand().then(setCodeAvailable).catch(console.error);
   }, [setRepositories, selectRepository, setAllLabels, setCodeAvailable, setRefreshInterval]);
-
-  // ===== 選択中リポジトリの worktree 取得 =====
-  // 依存配列に repositories 全体を入れると、追加/削除のたびに再実行されて
-  // 余分な listWorktrees を叩くため、selectedRepositoryId のみを依存にし、
-  // 内部では getState() で最新の repositories を引く。
-  useEffect(() => {
-    if (!selectedRepositoryId) return;
-    const repo = useAppStore.getState().repositories.find((r) => r.id === selectedRepositoryId);
-    if (!repo) return;
-
-    listWorktrees(repo.path)
-      .then((wts) => setWorktrees(repo.id, wts))
-      .catch(console.error);
-  }, [selectedRepositoryId, setWorktrees]);
 
   // ===== リポジトリ追加 =====
   const handleAddRepository = useCallback(async () => {

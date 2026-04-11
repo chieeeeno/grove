@@ -36,24 +36,27 @@ describe("useAutoRefresh", () => {
   /** invokeSpy から list_worktrees の呼び出しだけを抽出 */
   const listWorktreeCalls = () => invokeSpy.mock.calls.filter(([cmd]) => cmd === "list_worktrees");
 
-  it("5秒間隔で list_worktrees を呼ぶ", async () => {
+  it("マウント時に即時 fetch + 5秒間隔でポーリングする", async () => {
     renderHook(() => useAutoRefresh());
 
-    // 初回は呼ばれない（interval のみ）
-    expect(listWorktreeCalls()).toHaveLength(0);
+    // マウント時に即時 1 回呼ばれる（選択 repo の初期表示用）
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(listWorktreeCalls()).toHaveLength(1);
+    expect(listWorktreeCalls()[0][1]).toEqual({ repositoryPath: "/mock/repo" });
 
     // 5秒後
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
-    expect(listWorktreeCalls()).toHaveLength(1);
-    expect(listWorktreeCalls()[0][1]).toEqual({ repositoryPath: "/mock/repo" });
+    expect(listWorktreeCalls()).toHaveLength(2);
 
     // 10秒後
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
-    expect(listWorktreeCalls()).toHaveLength(2);
+    expect(listWorktreeCalls()).toHaveLength(3);
   });
 
   it("selectedRepositoryId が null の場合はポーリングしない", async () => {
@@ -70,8 +73,9 @@ describe("useAutoRefresh", () => {
   it("unmount 時に clearInterval する", async () => {
     const { unmount } = renderHook(() => useAutoRefresh());
 
+    // 初回の即時 fetch を解決
     await act(async () => {
-      vi.advanceTimersByTime(5000);
+      await Promise.resolve();
     });
     expect(listWorktreeCalls()).toHaveLength(1);
 
@@ -87,7 +91,13 @@ describe("useAutoRefresh", () => {
   it("refresh() を手動で呼べる", async () => {
     const { result } = renderHook(() => useAutoRefresh());
 
-    // refresh を開始（内部で setTimeout を使うので即 await しない）
+    // 初回の即時 fetch を解決
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(listWorktreeCalls()).toHaveLength(1);
+
+    // 手動 refresh を開始（内部で setTimeout を使うので即 await しない）
     let done = false;
     act(() => {
       result.current.refresh().then(() => {
@@ -100,12 +110,17 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(500);
     });
 
-    expect(listWorktreeCalls()).toHaveLength(1);
+    expect(listWorktreeCalls()).toHaveLength(2);
     expect(done).toBe(true);
   });
 
   it("手動リフレッシュ時に isRefreshing が true になる", async () => {
     const { result } = renderHook(() => useAutoRefresh());
+
+    // 初回の即時 fetch を解決（これ自体は isRefreshing を触らない）
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     act(() => {
       result.current.refresh();
@@ -124,7 +139,9 @@ describe("useAutoRefresh", () => {
   it("ポーリングでは isRefreshing を変更しない", async () => {
     renderHook(() => useAutoRefresh());
 
+    // 初回の即時 fetch とそれ以降のポーリングのいずれも isRefreshing を触らない
     await act(async () => {
+      await Promise.resolve();
       vi.advanceTimersByTime(5000);
     });
 
@@ -132,37 +149,33 @@ describe("useAutoRefresh", () => {
   });
 
   it("手動リフレッシュ中はポーリングが skip される", async () => {
-    // listWorktrees を長引かせて手動 refresh を実行中の状態にする
-    let resolveList: (v: unknown) => void = () => {};
+    // listWorktrees を pending にしたいので、mock を先に置き換える。
+    // マウント時の初回 silent fetch もこの pending にはまり inFlightRef を保持する。
+    // その状態でポーリングを走らせても skip されることを検証する。
     invokeSpy.mockImplementation((cmd: string) => {
       if (cmd === "list_worktrees") {
-        return new Promise((resolve) => {
-          resolveList = resolve;
+        return new Promise(() => {
+          // 意図的に resolve しない（inFlightRef が解除されない）
         });
       }
       return null;
     });
 
-    const { result } = renderHook(() => useAutoRefresh());
+    renderHook(() => useAutoRefresh());
 
-    // 手動 refresh を開始（まだ resolve しない）
-    let refreshPromise: Promise<void> | undefined;
-    act(() => {
-      refreshPromise = result.current.refresh();
-    });
+    // マウント直後の即時 fetch で 1 回呼ばれ、その promise は pending のまま
     expect(listWorktreeCalls()).toHaveLength(1);
 
-    // 手動 refresh 中にポーリングが走っても skip される
+    // pending 中にポーリングが走っても skip される
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
     expect(listWorktreeCalls()).toHaveLength(1);
 
-    // 手動 refresh を完了させる
+    // さらにもう 1 ラウンド
     await act(async () => {
-      resolveList([]);
-      vi.advanceTimersByTime(500);
-      await refreshPromise;
+      vi.advanceTimersByTime(5000);
     });
+    expect(listWorktreeCalls()).toHaveLength(1);
   });
 });
