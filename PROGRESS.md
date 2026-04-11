@@ -244,11 +244,12 @@
 
 ### 12. 仕上げ
 
-- [ ] テンプレート由来の不要ファイル削除（public/tauri.svg, public/vite.svg, src/assets/react.svg 等）
-- [ ] UI テキストの日本語化（ADR-0009）
-- [ ] エラーメッセージの日本語化
-- [ ] preflight 警告バナーの日本語テキスト
-- [ ] 自分の grove-app worktree でドッグフーディング開始
+- [x] テンプレート由来の不要ファイル削除（public/tauri.svg, public/vite.svg, src/assets/react.svg）
+- [x] index.html を Grove 用に更新（lang="ja" / title=Grove / vite.svg 参照削除）
+- [x] UI テキストの日本語化（ADR-0009）
+- [x] エラーメッセージの日本語化
+- [x] preflight 警告バナーの日本語テキスト
+- [ ] 自分の grove-app worktree でドッグフーディング開始（タスク13 QA で実施）
 - [ ] NEXT.md の更新（次セッションへの引き継ぎ）
 
 ---
