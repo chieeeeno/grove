@@ -67,7 +67,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --lib  # clippy
   - 失敗条件（throw / Err のタイミングとメッセージ）
   - 副作用（store 更新、ファイル I/O、プロセス起動、ネットワーク呼び出し）
   - 呼び出し側が前提とすべき状態（「事前に X を呼んでおくこと」等）
-- プロセの説明と `@param` / `@returns` は **併用** する（どちらか片方だけにしない）
+- 概要説明と `@param` / `@returns` は **併用** する（どちらか片方だけにしない）
 
 ### TypeScript / TSX（JSDoc）
 
