@@ -343,7 +343,8 @@ Playwright も WebKitGTK/WKWebView に直接接続できない。
 - ❌ 選択中リポジトリの永続化（M1）
 - ❌ Detail Panel（M1+）
 - ❌ Claude Code エージェント可視化（Phase 2）
-- ❌ Terminal 起動 / Diff 表示ボタン（M2）
+- ❌ ターミナルで開くボタン（M1 優先度:中、VS Code ボタン横に配置）
+- ❌ Diff 表示ボタン（M1+、Detail Panel 内）
 - ❌ テーマ対応（M2）
 - ❌ i18n / 英語対応（M2、ADR-0009）
 - ❌ テレメトリ（M2、ADR-0006）

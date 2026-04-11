@@ -77,7 +77,8 @@
 - Claude Code エージェント可視化（Phase 2 = M0 完成後）
 - Detail Panel
 - 詳細パネル系の機能（変更ファイル一覧、コミット履歴、エージェントチーム表示）
-- Terminal 起動 / Diff 表示ボタン
+- ターミナルで開くボタン（M1 に昇格予定、VS Code ボタンの横に配置）
+- Diff 表示ボタン（Detail Panel 内で実装、M1 以降）
 - テーマ対応（ADR-0006 のテレメトリ同様、M2 以降）
 - i18n / 英語対応（ADR-0009）
 
@@ -109,6 +110,13 @@
   - 設計書では Phase 1 に含まれていたが、開発者本人が外部スキルで作成する運用のため M0 から外していた
   - 配布先のユーザーは Claude Code スキルを持っていないため M1 では必須
   - 仕様詳細は M1 着手時に詰める（既存ブランチ / 新規ブランチ、base 指定、dir 名指定 等）
+- [ ] **ターミナルで開くボタン**
+  - VS Code ボタンの横に配置（カードのアクション行）
+  - クリックで worktree のパスをターミナルで開く
+  - デフォルトターミナル: macOS Terminal.app（AppleScript / `open -a Terminal <path>` 経由）
+  - 将来対応: iTerm2、Warp、Alacritty 等の選択（設定ダイアログに追加）
+  - preflight チェック（ADR-0012）: ターミナルアプリの存在確認
+  - ボタンアイコン: lucide `terminal` or `square-terminal`
 - [ ] **エラーハンドリングの整備**
   - M0 で握りつぶしていたエラーをユーザーに伝える
   - ADR-0012 の preflight 原則に従う
