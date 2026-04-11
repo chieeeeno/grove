@@ -30,10 +30,10 @@ import type { AppConfig, RepositoryConfig } from "./types";
  * 部分更新時に他のフィールドをハードコードすると保存済み設定を上書きしてしまうため、
  * 設定保存は常にこのヘルパー経由で行う。
  */
-function buildConfigFromStore(repositoriesOverride?: RepositoryConfig[]): AppConfig {
+function buildConfigFromStore(): AppConfig {
   const state = useAppStore.getState();
   return {
-    repositories: repositoriesOverride ?? state.repositories,
+    repositories: state.repositories,
     editor: "vscode",
     theme: "system",
     refreshInterval: state.refreshInterval,
@@ -141,7 +141,7 @@ function App() {
       };
 
       addRepository(newRepo);
-      await saveConfig(buildConfigFromStore([...current, newRepo]));
+      await saveConfig(buildConfigFromStore());
       selectRepository(newRepo.id);
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
@@ -152,12 +152,11 @@ function App() {
   const handleRemoveRepository = useCallback(
     async (id: string) => {
       removeRepository(id);
-
-      const next = useAppStore.getState().repositories.filter((r) => r.id !== id);
-      await saveConfig(buildConfigFromStore(next)).catch(console.error);
+      await saveConfig(buildConfigFromStore()).catch(console.error);
 
       if (selectedRepositoryId === id) {
-        selectRepository(next.length > 0 ? next[0].id : null);
+        const remaining = useAppStore.getState().repositories;
+        selectRepository(remaining.length > 0 ? remaining[0].id : null);
       }
     },
     [selectedRepositoryId, removeRepository, selectRepository]
