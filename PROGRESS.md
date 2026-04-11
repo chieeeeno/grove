@@ -235,10 +235,10 @@
 
 ### 11. アプリアイコン
 
-- [ ] アイコンデザインの作成（Grove のコンセプトに合ったアイコン）
-- [ ] 各サイズのアイコンファイル生成（`tauri icon` コマンド用の 1024x1024 PNG）
-- [ ] `tauri.conf.json` のアイコン設定を更新
-- [ ] macOS 用 .icns ファイルの生成・配置
+- [x] アイコンデザインの作成（Pencil で複数案を作成 → C1 採用）
+- [x] 1024×1024 PNG の書き出し（`docs/design/exports/grove-icon-1024.png`）
+- [x] `tauri icon` コマンドで全プラットフォーム向けアイコン生成
+- [x] macOS 用 .icns ファイルの配置（`tauri.conf.json` のパスは変更不要）
 
 ---
 
