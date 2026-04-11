@@ -53,6 +53,40 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --lib  # clippy
 - Tauri API に依存する部分はモック（`src/test/setup.ts` で設定済み）
 - テストファイルは実装ファイルと同階層に配置（`*.test.ts` / `*.test.tsx`）
 
+## Doc コメントルール
+
+**新規追加・変更した関数には必ず適切な doc コメントをセットで書くこと。** 後から
+「どう呼ぶか」「何が返るか」「失敗条件は何か」を読み取れないコードは commit 不可。
+
+### 共通方針
+
+- 型シグネチャだけで十分自明な場合（例: `id: string` を「id」と説明する等）は冗長なので省略可
+- ただし以下のいずれかが **非自明** なら省略不可:
+  - 引数の単位・フォーマット・許容範囲・正規化責任
+  - 戻り値の null / 空ケース / センチネル値
+  - 失敗条件（throw / Err のタイミングとメッセージ）
+  - 副作用（store 更新、ファイル I/O、プロセス起動、ネットワーク呼び出し）
+  - 呼び出し側が前提とすべき状態（「事前に X を呼んでおくこと」等）
+- プロセの説明と `@param` / `@returns` は **併用** する（どちらか片方だけにしない）
+
+### TypeScript / TSX（JSDoc）
+
+- `@param name - 説明` と `@returns 説明` を省略せず書く
+- 例外を投げる関数は `@throws` で条件を明示
+- React コンポーネントの props は interface に JSDoc、コンポーネント本体は
+  責務の概要（何を描画するか、特殊な state の扱い等）を書く
+- 自明な React.FC（props 型で全部読み取れる静的コンポーネント）は省略可
+
+### Rust（rustdoc）
+
+- `pub fn` / `#[tauri::command]` には `# Arguments` / `# Returns` セクションを書く
+- `Result` を返す関数は `# Errors` で Err 条件を列挙
+- 破壊的操作や I/O を含む場合は `# 副作用` セクション
+- `pub struct` のフィールドで単位・フォーマット・センチネル値が非自明なら
+  フィールドレベル rustdoc を付ける（DTO は特に厳しく）
+- private helper でも、呼び出し側が気にすべき制約（エラー時のフォールバック値等）が
+  あれば必ず記載
+
 ## アーキテクチャ概要
 
 Grove は Git worktree を GUI 管理するデスクトップアプリ（Tauri 2）。フロントエンド（React + TypeScript）と Rust バックエンドが Tauri IPC を通じて通信する。
