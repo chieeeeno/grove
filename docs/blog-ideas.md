@@ -343,6 +343,209 @@
 
 ---
 
+## リファクタリング・品質改善
+
+### /simplify スキルで自分のコードを定期レビューする開発ループ
+**タグ**: AI活用, コードレビュー, Claude Code, 開発プロセス
+**一言**: 書いたコードに 3 種類のレビューエージェントをかけて、指摘を 1 件 1 コミットで潰していく「自分で自分をレビューする」ワークフローの実例。
+
+**ネタ**:
+- `/simplify` は 3 種類の review agent（Reuse / Quality / Efficiency）を並列起動する自作スキル
+- 1 セッションで同じコード範囲に対して 3 回 simplify を回した事例:
+  - 1 回目: 実装直後のコードへ → 27 件の指摘 → 11 コミットで修正
+  - 2 回目: 修正されたコード範囲へ → さらに 10 件の指摘 → 10 コミットで修正
+  - 3 回目: doc コメント追加後へ → 事実誤認 3 件・記述精度 4 件 → 3 コミットで修正
+- **却下の勇気**: 全ての指摘に従う必要はない。プロジェクト方針（例: doc はサボらず書く）と衝突する指摘は却下する判断が重要
+- 却下例: 「Rust struct と TS interface のフィールド doc は片方に集約すべき」→ 「両方に書く方針」と衝突するのでスキップ
+- false positive 例: git2 の `update_index(false)` はデフォルトで OFF なので明示しても no-op
+- エージェントの指摘を 1 件 1 コミットにすることで、後から差分を追いやすい
+- レビュー結果を TaskCreate で追跡 → completed / deleted を使い分ける
+
+---
+
+### コミットは指摘項目ごとに分ける — AI ペア開発での粒度ルール
+**タグ**: Git, ワークフロー, AI活用, 個人開発
+**一言**: AI が「まとめて直しておきました」とやると後で追えない。レビュー指摘 1 件 = 1 コミット を徹底すると差分が読める。
+
+**ネタ**:
+- AI に「これとこれ直して」と依頼するとデフォルトで 1 コミットにまとめがち
+- 「指摘項目ごとにコミット」と明示的に指示した理由
+- 間違って 2 件まとめてしまった時は `git commit --amend` で分離するか、作り直す
+- コミットメッセージは日本語で「なぜ直すか」を書く
+- lefthook の pre-commit が走るので、各コミットでテストが通っている保証が得られる
+- あとから半年経って `git log` を読んだ時に、それぞれの判断理由が追える
+- 副次効果: AI の「まとめすぎ」を防ぐことで、1 つ 1 つの判断を確認できる
+- コミット粒度の保全は memory（`feedback_commit_granularity.md`）に書いて全セッションで一貫化
+
+---
+
+## パフォーマンス最適化
+
+### Tauri アプリの GUI 起動時に `code` コマンドが見つからない — macOS launchd の PATH 問題
+**タグ**: Tauri, macOS, トラブルシューティング, PATH
+**一言**: `zsh` のターミナルからは動くのに、Finder から起動すると「code コマンド見つかりません」のバナーが出続ける。犯人は macOS の launchd。
+
+**ネタ**:
+- 症状: preflight バナー（ADR-0012）が消えない。VS Code の「Install 'code' command in PATH」は実行済み
+- ユーザーの誤解: 「VS Code の Install PATH は `.zshrc` に追加してるはず」→ **実は `/usr/local/bin/code` にシンボリックリンクを張るだけ**
+- 本当の原因: macOS launchd は GUI 起動時に PATH = `/usr/bin:/bin:/usr/sbin:/sbin` のみ渡す。`/usr/local/bin` は入らない
+- `pnpm tauri dev`（ターミナル起動）では親シェルの PATH を継承するので動く → だから開発中は気付かない
+- 解決策の 2 段階:
+  1. 既知パス（`/usr/local/bin/code`, `/opt/homebrew/bin/code`, `/Applications/Visual Studio Code.app/.../bin/code`）を直接 stat
+  2. フォールバックで `$SHELL -l -c 'command -v code'` でログインシェル経由で解決
+- さらに `OnceLock` でキャッシュして、open_in_editor のたびにシェル起動しない
+- Tauri 開発者が踏みがちな罠なのでドキュメント化したい
+- 類似問題: Homebrew の brew、nvm の node、pyenv の python 等も同じ
+
+**副題案**: 「Finder 起動の Tauri は PATH が貧弱 — 実行パスは自分で解決しろ」
+
+---
+
+### リポジトリ切り替え時のラグを分解する — Grove パフォーマンス分析の記録
+**タグ**: パフォーマンス, Tauri, Rust, libgit2
+**一言**: ユーザーが体感した「カードが出るまで一瞬待つ」ラグを 5 つの要因に分解して issue 化するまで。
+
+**ネタ**:
+- 症状: ワークツリーの多いリポジトリを選択すると、メインエリアにカードが並ぶまで体感で一瞬のラグ
+- 処理フローを 8 ステップに分解: click → selectedRepositoryId 更新 → useMemo → 空状態描画 → useEffect 発火 → listWorktrees IPC → Rust status 走査 → setWorktrees → カード描画
+- 時間の内訳:
+  - A. Rust `count_modified_files` の working tree 全走査（80%）
+  - B. main worktree の走査が `thread::scope` の前に直列（10%）
+  - C. React 描画（5%）
+  - D. IPC シリアライズ（<5%）
+  - E. 空状態フラッシュ（体感に直結、時間ではない）
+- 改善案の優先順位付け: main の並列化 + 起動時 pre-fetch + スケルトン UI で 3 点セット
+- プロファイリングを先にしてから最適化する価値
+- 「一瞬のラグ」を issue に落とすときの分析粒度
+
+**副題案**: 「原因を 5 つに分解して GitHub Issue に積むまで」
+
+---
+
+### Rust の `std::thread::scope` で worktree 走査を並列化する — rayon 不要のシンプル並列化
+**タグ**: Rust, 並列処理, libgit2, git2-rs
+**一言**: `std::thread::scope`（Rust 1.63+ stable）を使えば、borrow checker に怒られずに scope 内で短命スレッドを spawn できる。新 crate 不要。
+
+**ネタ**:
+- M0 では worktree 走査を `for` ループで直列実行していた
+- rayon を入れる前に `std::thread::scope` を試した
+- libgit2 の Repository インスタンスはスレッドセーフではないが、**別インスタンスなら別スレッドから使える**
+- パス一覧を先に収集 → 各スレッドで `Repository::open` + `count_modified_files`
+- scope 内で借用できるので `Arc` 不要
+- 10 worktree くらいなら thread spawn のオーバーヘッドを並列化の恩恵が上回る
+- コード例: `git_worktree_prune` と `Worktree` の Send/Sync 制約との付き合い方
+- rayon との比較: 今回は依存減らしたかったので std で完結
+
+---
+
+### Zustand の setter に差分検出を入れて React.memo の連鎖を効かせる
+**タグ**: React, Zustand, パフォーマンス, 状態管理
+**一言**: ポーリングで 5 秒ごとに setWorktrees するが、中身が同じなら参照を維持する。これで `React.memo` の連鎖が UI まで届く。
+
+**ネタ**:
+- 素朴な実装: `setWorktrees(id, worktrees)` は毎回 `{ ...state.worktrees, [id]: worktrees }` で新参照を作る
+- 問題: ポーリングで内容ゼロ変化でも store → App → Sidebar → WorktreeGrid → WorktreeCard まで再レンダーが伝播する
+- 解決: setter 内で `worktreesEqual(existing, worktrees)` を判定して同一なら `return s` で state を据え置く
+- ただしこれだけでは不十分 — **上流で毎回 `[...worktrees]` や新 object を作る親がいると効果が消える**
+- 親側も `useMemo` で派生値を安定化して、props の参照が変わらないようにする
+- `WorktreeCard` は `memo()` でラップし、callback は `useCallback` で stable に
+- これで 5 秒ポーリングでも **変化ゼロなら再描画ゼロ** が成立
+- 差分検出が Zustand の updater コールバックが同一参照を返した時に state を変更しない性質とセットで機能する
+- ベンチマーク: Chrome DevTools の Performance パネルで「本当に再描画されてない」を確認する方法
+
+**副題案**: 「no-op ガードの連鎖 — store から UI まで再レンダーを消す」
+
+---
+
+### OnceLock で Rust の重い初期化を一度だけ実行する
+**タグ**: Rust, パフォーマンス, 標準ライブラリ
+**一言**: プロセス寿命中に一度だけ計算したい値（`code` コマンドの絶対パスなど）を `std::sync::OnceLock` で遅延初期化。lazy_static も once_cell も不要。
+
+**ネタ**:
+- Rust 1.70+ で stable 化された `std::sync::OnceLock<T>`
+- 使いどころ: 環境変数解決、外部バイナリパス解決、ログインシェル経由の PATH 取得などの**重いが結果が変わらない処理**
+- 今回の例: `resolve_code_path()` はログインシェル（zsh -l）起動で数十〜数百 ms かかる
+- `OnceLock::get_or_init(expensive_fn)` で初回だけ実行、2 回目以降は `Option<&'static str>` を即返し
+- `lazy_static!` / `once_cell::sync::OnceCell` との比較
+- スレッドセーフ（`get_or_init` は競合時も 1 回しか実行されない）
+- null 可能な結果（`Option<String>`）もキャッシュできる
+- キャッシュ無効化が要らない場合限定 — 環境変化に追従したいときは別の仕組み
+
+---
+
+## Doc コメント・ドキュメンテーション
+
+### Doc コメントを後付けで導入するときの優先順位
+**タグ**: ドキュメンテーション, Rust, TypeScript, 個人開発
+**一言**: 実装が先行して doc コメントが手薄になったプロジェクトを整備するとき、どこから書けばいいか。
+
+**ネタ**:
+- 実装してから「関数の doc が足りない」と気付くのはよくある
+- 整備の優先順位:
+  1. 公開 API・IPC ブリッジ（呼び出し側が一次情報として参照する）
+  2. DTO 構造体のフィールド（単位・センチネル値・制約）
+  3. 副作用を持つ関数（store 更新・ファイル I/O）
+  4. 内部ヘルパー（自明なら省略可）
+- `#[tauri::command]` と JSDoc の両側で同じ情報を書く冗長性と、それを許容する判断
+- `@param` / `@returns` / `# Arguments` / `# Returns` / `# Errors` を省略しないルール
+- 「型で自明な情報」と「型で表現できない情報」の区別
+  - 自明: `id: string` を「文字列 id」と説明するのは冗長
+  - 非自明: 単位 (ms/seconds)、正規化責任、センチネル値、失敗条件
+- 後付けで整備する利点: 実装を読みながら書けるので誤情報が入りにくい
+- CLAUDE.md に「Doc コメントルール」を追加してルール化 → 今後の実装で自動適用
+
+---
+
+### AI ペア開発で「doc コメントをサボらせない」ためのルール保全
+**タグ**: AI活用, ドキュメンテーション, Claude Code, プロジェクト管理
+**一言**: AI が書くコードの doc コメントは油断すると「概要プロセ」で終わる。`@param` / `@returns` を必ず書かせるルール化の記録。
+
+**ネタ**:
+- AI に doc コメントを書かせると、自然文の概要だけで `@param` / `@returns` を省略しがち
+- ユーザーから「params とか return の記載もサボらずに書いてください」の指摘
+- **memory に feedback として保存** → 以降のセッションでも同じ方針で書く
+- プロジェクトの `CLAUDE.md` にもルールを追加 → プロジェクトレベルでも保全
+- 「サボらない」の具体化: 構造化セクション（@param/@returns/# Arguments）と概要文の**併用**
+- 型システムで表現できる情報と、表現できない情報の境界線
+- LLM は「読みやすい自然文」を優先しがちなので、構造化を明示的に指示しないと省略される
+- memory / CLAUDE.md / feedback の 3 層でルールを保全する設計
+
+---
+
+### レビューで「事実誤認」を拾う価値 — ADR の誤引用を見つけた話
+**タグ**: コードレビュー, ドキュメンテーション, AI活用
+**一言**: doc コメントに ADR-0009 参照があったが、ADR-0009 は UI 言語の話で theme とは無関係だった。`/simplify` のレビューで拾えた事実誤認。
+
+**ネタ**:
+- `theme: string` の doc に「M0 では `"system"` のみサポート（ADR-0009）」と書いていた
+- ADR-0009 は実際は「UI 言語は日本語のみ」で theme とは無関係
+- `/simplify` の Quality review agent が拾った
+- あわせて型は `"system" | "dark" | "light"` なのに doc は「`"system"` のみ」と書かれていた矛盾も発覚
+- 事実誤認は読み手を誤誘導するので、重複系の指摘より優先度が高い
+- AI エージェントは「事実として doc と実装が合っているか」を検証するのが得意
+- 却下すべき指摘（重複削減）と採用すべき指摘（事実誤認）を見分ける基準
+
+---
+
+## M0 完走・運用
+
+### 個人開発でも GitHub Issues 駆動開発する — 自分の体感バグを issue にする習慣
+**タグ**: 個人開発, GitHub, 開発プロセス
+**一言**: 「ちょっと遅い」「ちょっと混乱する」を全部 issue に積んで、優先度付きで積み残す。開発中の体感は揮発しやすい。
+
+**ネタ**:
+- 今日追加した 2 件:
+  - #24 成功時のトースト通知（「削除したのに何もフィードバックがない」という体感から）
+  - #25 選択ラグ改善（「カードが出るまで一瞬待つ」から原因分析まで）
+- 体感バグを 24 時間以内に issue にしないと忘れる
+- issue に書くときの情報量: 症状 + 原因分析 + 改善案の優先順位 + 計測方法
+- ユーザー兼開発者だからできる issue 起票（一般ユーザーは原因分析まで書かない）
+- 「自分で作って自分で使って自分で issue を立てる」サイクル
+- M1 マイルストーンに積んで、M0 リリースの前に焦って直さない判断
+- 優先度ラベル（priority:high/medium/low）の運用ルール
+
+---
+
 ## メモ（記事化の優先度が低いもの / アイデア段階）
 
 - Tauri 2 + React 19 の組み合わせで始める際の注意点（テンプレートとの差分など）
@@ -350,4 +553,8 @@
 - Tailwind CSS v4 を Tauri プロジェクトに入れる手順
 - tauri-plugin-store の使い方（Zustand との連携パターン）
 - 個人開発における ROADMAP.md と PROGRESS.md の運用
+- `Repository::commondir()` で worktree → メインリポジトリを解決する（`.git` ファイル手動パースの代替）
+- `React.memo` + `useCallback` + `useMemo` の三点セットで「変化がないときは描画しない」を実現する連鎖
+- `#[tauri::command]` に generics `<R: Runtime>` を付けて MockRuntime でテストする方法
+- lefthook の pre-commit で doc コメント不在を lint できるか（rustdoc の `#![warn(missing_docs)]` 活用）
 
