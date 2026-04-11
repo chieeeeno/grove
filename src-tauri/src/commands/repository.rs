@@ -1,8 +1,8 @@
+use super::STORE_PATH;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::StoreExt;
 
-const STORE_PATH: &str = "grove_config.json";
 const CONFIG_KEY: &str = "app_config";
 
 // ===== 永続化モデル =====

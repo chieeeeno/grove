@@ -1,8 +1,8 @@
+use super::STORE_PATH;
 use std::collections::HashMap;
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::StoreExt;
 
-const STORE_PATH: &str = "grove_config.json";
 const LABELS_KEY: &str = "worktree_labels";
 
 /// ラベル一覧を読み込む（キー: worktree 絶対パス、値: ラベル文字列）
