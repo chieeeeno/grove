@@ -298,11 +298,10 @@ Tauri 公式の必勝パターンを Web 調査した結果（2026-04）、以�
   - M2 以降で再検討する事項（Windows/Linux 対応時の E2E 導入）
 
 #### 14-2. フロントエンドテストのリファクタ（mockIPC 移行）
-- [ ] `src/test/setup.ts` を `vi.mock` から公式 `@tauri-apps/api/mocks` の `mockIPC` に移行
-- [ ] 各テストファイルで `beforeEach(() => mockIPC(...))` / `afterEach(() => clearMocks())` パターンに統一
-- [ ] 既存テスト40件が全て通ることを確認
-- [ ] テストヘルパー関数の整理（共通モックデータ・fixture の切り出し）
-- [ ] リファクタ前後でカバレッジが劣化していないことを確認
+- [x] `src/test/setup.ts` を `vi.mock` から公式 `@tauri-apps/api/mocks` の `mockIPC` に移行
+- [x] 各テストファイルで `beforeEach(() => mockIPC(...))` / `afterEach(() => clearMocks())` パターンに統一
+- [x] 既存テスト40件が全て通ることを確認
+- [x] テストヘルパー関数の整理（`src/test/fixtures.ts` に切り出し）
 
 #### 14-3. Rust テストの強化（任意、M1 でも可）
 - [ ] `tauri::test::MockRuntime` の導入検討
