@@ -9,6 +9,7 @@
 set -euo pipefail
 
 DMG_DIR="src-tauri/target/release/bundle/dmg"
+APP_DIR="src-tauri/target/release/bundle/macos"
 
 APP_VERSION=$(node -e "process.stdout.write(require('./src-tauri/tauri.conf.json').version)")
 BETA_TAG_PREFIX="v${APP_VERSION}-beta"
@@ -36,6 +37,28 @@ run() {
   else
     "$@"
   fi
+}
+
+# 指定ディレクトリから glob パターンにマッチするファイルを 1 つ返す。
+# 0 件ならエラー終了、複数件なら警告して最初のファイルを使用する。
+#
+# @param $1 検索ディレクトリ
+# @param $2 glob パターン (例: "*.dmg")
+# @param $3 エラーメッセージ用のファイル種別名
+# @returns stdout にファイルパスを 1 行出力
+find_bundle_file() {
+  local dir="$1" pattern="$2" label="$3"
+  shopt -s nullglob
+  local files=("${dir}"/${pattern})
+  shopt -u nullglob
+  if [ ${#files[@]} -eq 0 ]; then
+    echo "エラー: ${label}が見つかりません: ${dir}/" >&2
+    exit 1
+  fi
+  if [ ${#files[@]} -gt 1 ]; then
+    echo "警告: ${label}が複数見つかりました — 最初のファイルを使用: ${files[0]}" >&2
+  fi
+  echo "${files[0]}"
 }
 
 info "前提チェック..."
@@ -85,38 +108,20 @@ fi
 NEXT_TAG="${BETA_TAG_PREFIX}.${NEXT_NUM}"
 info "次のタグ: ${NEXT_TAG}"
 
-info "Tauri ビルドを実行 (ad-hoc 署名付き)..."
-run env APPLE_SIGNING_IDENTITY="-" pnpm tauri build
+info "Tauri ビルドを実行..."
+run pnpm tauri build
 
 if [ "$DRY_RUN" = true ]; then
   info "[dry-run] DMG ファイルの検出をスキップ (ビルド未実行のため)"
   DMG_FILE="${DMG_DIR}/<generated>.dmg"
 else
   info "DMG ファイルを検出..."
-  shopt -s nullglob
-  DMG_FILES=("${DMG_DIR}"/*.dmg)
-  shopt -u nullglob
-  if [ ${#DMG_FILES[@]} -eq 0 ]; then
-    echo "エラー: DMG ファイルが見つかりません: ${DMG_DIR}/"
-    exit 1
-  fi
-  if [ ${#DMG_FILES[@]} -gt 1 ]; then
-    echo "警告: DMG ファイルが複数見つかりました — 最初のファイルを使用: ${DMG_FILES[0]}"
-  fi
-  DMG_FILE="${DMG_FILES[0]}"
+  DMG_FILE=$(find_bundle_file "${DMG_DIR}" "*.dmg" "DMG ファイル")
   info "検出: ${DMG_FILE}"
 
   info "ad-hoc 署名を検証..."
-  APP_DIR="src-tauri/target/release/bundle/macos"
-  shopt -s nullglob
-  APP_FILES=("${APP_DIR}"/*.app)
-  shopt -u nullglob
-  if [ ${#APP_FILES[@]} -eq 0 ]; then
-    echo "エラー: .app バンドルが見つかりません: ${APP_DIR}/"
-    exit 1
-  fi
-  APP_FILE="${APP_FILES[0]}"
-  if codesign --verify --verbose=2 "$APP_FILE" 2>&1; then
+  APP_FILE=$(find_bundle_file "${APP_DIR}" "*.app" ".app バンドル")
+  if codesign --verify --verbose=2 "$APP_FILE"; then
     info "署名検証 OK: ${APP_FILE}"
   else
     echo "エラー: 署名検証に失敗しました: ${APP_FILE}"

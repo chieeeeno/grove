@@ -146,6 +146,8 @@ Git 操作はすべて `git2` crate（libgit2）を使用する。`git` コマ�
 
 **ahead/behind（ADR-0010）**: M0 では非表示。M1 以降で実装。
 
+**macOS コード署名**: `tauri.conf.json` の `bundle.macOS.signingIdentity` に `"-"`（ad-hoc 署名）をデフォルト設定している。正式版リリース時は環境変数 `APPLE_SIGNING_IDENTITY="Developer ID Application: ..."` で Developer ID 署名に上書きすること。正式版リリーススクリプトが整備されたらこのメモは削除してよい。
+
 ## データモデル（grove-design.md §5 準拠）
 
 ```typescript
