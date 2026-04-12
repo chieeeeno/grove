@@ -3,6 +3,9 @@ import type { WorktreeInfo } from "../types";
 import WorktreeCard from "./WorktreeCard";
 import { dirName } from "../lib/path";
 
+/** WorktreeGrid / WorktreeGridSkeleton で共有するグリッドレイアウトクラス */
+export const WORKTREE_GRID_CLASS = "grid grid-cols-2 gap-4";
+
 interface WorktreeGridProps {
   worktrees: WorktreeInfo[];
   labels: Record<string, string>;
@@ -34,7 +37,7 @@ export default function WorktreeGrid({
   );
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className={WORKTREE_GRID_CLASS}>
       {sorted.map((wt) => (
         <WorktreeCard
           key={wt.path}
