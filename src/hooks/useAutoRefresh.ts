@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAppStore } from "../stores/appStore";
 import { listWorktrees } from "../lib/tauri";
+import type { RepositoryConfig } from "../types";
 
 const MIN_SPIN_DURATION = 500; // 手動リフレッシュ時のスピナー最低表示時間（ms）
 
@@ -72,5 +73,22 @@ export function useAutoRefresh() {
     return () => clearInterval(id);
   }, [selectedRepositoryId, silentRefresh, refreshInterval]);
 
-  return { refresh };
+  /**
+   * 選択中以外のリポジトリの worktree を裏で pre-fetch する。
+   * 初回リポジトリ切り替え時にキャッシュヒットさせてラグを解消する。
+   * 選択中リポジトリは silentRefresh が担当するので skip する。
+   */
+  const prefetchAll = useCallback(
+    (repos: RepositoryConfig[], selectedId: string | null) => {
+      for (const repo of repos) {
+        if (repo.id === selectedId) continue;
+        listWorktrees(repo.path)
+          .then((wts) => setWorktrees(repo.id, wts))
+          .catch(console.error);
+      }
+    },
+    [setWorktrees]
+  );
+
+  return { refresh, prefetchAll };
 }
