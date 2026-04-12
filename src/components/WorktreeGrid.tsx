@@ -146,7 +146,7 @@ export default function WorktreeGrid({
 
         <DragOverlay>
           {activeWorktree ? (
-            <div className="opacity-80">
+            <div className="opacity-80" style={{ cursor: "grabbing" }}>
               <WorktreeCard
                 worktree={activeWorktree}
                 label={labels[activeWorktree.path] ?? dirName(activeWorktree.path)}
