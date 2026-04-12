@@ -10,9 +10,7 @@ const ORDER_KEY: &str = "worktree_order";
 /// # Returns
 /// キーはリポジトリ ID、値は worktree 絶対パスの配列。
 /// 未登録・デシリアライズ失敗時は空 `HashMap`。
-fn read_order<R: Runtime>(
-    app: &AppHandle<R>,
-) -> Result<HashMap<String, Vec<String>>, String> {
+fn read_order<R: Runtime>(app: &AppHandle<R>) -> Result<HashMap<String, Vec<String>>, String> {
     let store = app
         .store(STORE_PATH)
         .map_err(|e| format!("ストアを開けませんでした: {}", e))?;
@@ -65,9 +63,7 @@ fn update_order<R: Runtime>(
 /// # Errors
 /// tauri-plugin-store のハンドル取得に失敗した場合のみ。
 #[tauri::command]
-pub fn load_order<R: Runtime>(
-    app: AppHandle<R>,
-) -> Result<HashMap<String, Vec<String>>, String> {
+pub fn load_order<R: Runtime>(app: AppHandle<R>) -> Result<HashMap<String, Vec<String>>, String> {
     read_order(&app)
 }
 
@@ -115,10 +111,7 @@ pub fn save_order<R: Runtime>(
 /// # Errors
 /// store のオープン / シリアライズ / save に失敗した場合。
 #[tauri::command]
-pub fn delete_order<R: Runtime>(
-    app: AppHandle<R>,
-    repository_id: String,
-) -> Result<(), String> {
+pub fn delete_order<R: Runtime>(app: AppHandle<R>, repository_id: String) -> Result<(), String> {
     update_order(&app, "並び順の削除に失敗しました", |map| {
         map.remove(&repository_id);
     })

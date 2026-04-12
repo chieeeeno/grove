@@ -46,8 +46,6 @@ describe("WorktreeGrid", () => {
     const { container } = render(
       <WorktreeGrid {...defaultProps} worktrees={[featureA, mainWt, featureB]} />
     );
-    // グリッド内の最初のカード領域で main ブランチのバッジが表示されていること
-    const badges = container.querySelectorAll('[class*="badge"]');
     // main worktree は "primary" バッジを持つ（WorktreeCard の実装）
     const allText = container.textContent ?? "";
     const mainIndex = allText.indexOf("primary");
