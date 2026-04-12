@@ -2,26 +2,45 @@ use git2::{Repository, StatusOptions};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+/// `list_worktrees` の戻り値 1 件分。
+///
+/// フロントエンド `WorktreeInfo` 型（src/types/index.ts）と JSON で対応する。
+/// `ahead`/`behind`/`agentStatus` は M0 では返さない（ADR-0010 / Phase 2 で追加予定）。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorktreeInfo {
+    /// worktree の絶対パス（末尾スラッシュは除去済み）。
     pub path: String,
+    /// 現在のブランチの短縮名。HEAD が detached のとき、または取得失敗時は `"HEAD"`。
     pub branch: String,
+    /// メイン worktree（リポジトリ本体）かどうか。`list_worktrees` の戻り値では
+    /// 常に先頭要素のみ `true`。
     #[serde(rename = "isMain")]
     pub is_main: bool,
+    /// HEAD のコミットハッシュ（フル 40 文字）。HEAD が無い or 取得失敗時は空文字。
     pub head: String,
+    /// 最終コミットの summary（1 行目）。取得失敗時は空文字。
     #[serde(rename = "lastCommitMessage")]
     pub last_commit_message: String,
+    /// 最終コミットの時刻（Unix epoch 秒）。`0` はコミットなし or 取得失敗のセンチネル。
+    /// フロント側 `relativeTime()` は `0` を空文字で表示する。
     #[serde(rename = "lastCommitTime")]
     pub last_commit_time: i64,
+    /// 変更ファイル数の合計（ADR-0011: modified/added/deleted/untracked を種別で分けない）。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
 }
 
+/// `get_worktree_status` の戻り値。ポーリング用の軽量ステータス。
+///
+/// `WorktreeInfo` と違い最終コミット情報を返さないため、5 秒間隔のリフレッシュ用途で使う。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorktreeStatus {
+    /// 対象 worktree の絶対パス（呼び出し時の引数がそのまま返る）。
     pub path: String,
+    /// 変更ファイル数の合計（untracked 込み、ADR-0011）。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
+    /// `modified_count > 0` と等価の派生値。フロント側の条件分岐用。
     #[serde(rename = "hasUncommitted")]
     pub has_uncommitted: bool,
 }
@@ -59,14 +78,43 @@ fn count_modified_files(repo: &Repository) -> u32 {
         .unwrap_or(0)
 }
 
+/// リポジトリ配下の全 worktree を列挙する（メイン worktree + サブ worktree）。
+///
+/// # Arguments
+/// * `repository_path` - メインリポジトリの絶対パス
+///
+/// # Returns
+/// * `Ok(Vec<WorktreeInfo>)` - 先頭要素は必ずメイン worktree（`is_main = true`）。
+///   以降はサブ worktree で、順序は libgit2 の `worktrees()` が返す順
+///   （ソート保証なし、呼び出し側でソートすること）。開けないサブ worktree
+///   （壊れている / prune 待ち）は結果から黙って除外される
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # Errors
+/// - `repository_path` を `Repository::open` できない場合
+/// - bare リポジトリ（workdir を持たない）の場合
+/// - `worktrees()` 呼び出しの失敗
+///
+/// # パフォーマンス
+/// 各サブ worktree の `Repository::open` + status 走査は `std::thread::scope` で
+/// 並列実行する。メイン worktree の status 走査は先に直列で行うので、メインが
+/// 大きい場合はそこがボトルネックになる（改善候補: #25）。
 #[tauri::command]
-pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, String> {
-    let main_repo = Repository::open(&repository_path)
+pub async fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, String> {
+    // spawn_blocking で別スレッドに逃がし、WebView のメインスレッドを解放する。
+    // sync コマンドのままだとメインスレッドがブロックされて UI の paint が走らず、
+    // スケルトン等の中間状態が画面に反映されない。
+    tauri::async_runtime::spawn_blocking(move || list_worktrees_inner(&repository_path))
+        .await
+        .map_err(|e| format!("タスク実行に失敗しました: {}", e))?
+}
+
+fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, String> {
+    let main_repo = Repository::open(repository_path)
         .map_err(|e| format!("リポジトリを開けませんでした: {}", e))?;
 
-    let mut result: Vec<WorktreeInfo> = Vec::new();
-
-    // メイン worktree（リポジトリ本体）
+    // メイン worktree（リポジトリ本体）のパス・コミット情報を先に取得する。
+    // count_modified_files は重いので thread::scope 内で並列実行する。
     let main_workdir = main_repo
         .workdir()
         .ok_or_else(|| "bare リポジトリは非対応です".to_string())?;
@@ -76,18 +124,8 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
         .trim_end_matches('/')
         .to_string();
 
-    let (head_hash, commit_msg, commit_time) = get_last_commit(&main_repo);
-    let modified = count_modified_files(&main_repo);
-
-    result.push(WorktreeInfo {
-        path: main_path,
-        branch: get_branch_name(&main_repo),
-        is_main: true,
-        head: head_hash,
-        last_commit_message: commit_msg,
-        last_commit_time: commit_time,
-        modified_count: modified,
-    });
+    let main_branch = get_branch_name(&main_repo);
+    let (main_head, main_msg, main_time) = get_last_commit(&main_repo);
 
     // サブ worktree のパス一覧を先に収集する
     // （Worktree ハンドルはスレッドをまたげないため、パスにしてから並列化する）
@@ -106,10 +144,25 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
         })
         .collect();
 
-    // 各 worktree について Repository::open + status 走査を並列で実行する。
+    // main_repo は !Sync なのでスレッドに &main_repo を渡せない。
+    // main もパスから Repository::open し直して並列実行する。
+    // open のコストは数μs で、status walk（数十〜数百ms）に比べて無視できる。
+    let main_path_clone = main_path.clone();
+    drop(main_repo);
+
+    // main + サブ全 worktree の status 走査を同一スコープで並列実行する。
+    // main repo が最大のことが多いので、直列で先に走らせると全体の律速になっていた。
     // libgit2 は別 Repository インスタンスなら別スレッドから使えるので安全。
-    let sub_worktrees: Vec<WorktreeInfo> = std::thread::scope(|scope| {
-        let handles: Vec<_> = sub_paths
+    let result: Vec<WorktreeInfo> = std::thread::scope(|scope| {
+        // main worktree の count_modified_files を並列スレッドで実行
+        let main_handle = scope.spawn(move || {
+            Repository::open(&main_path_clone)
+                .map(|repo| count_modified_files(&repo))
+                .unwrap_or(0)
+        });
+
+        // サブ worktree も並列で実行
+        let sub_handles: Vec<_> = sub_paths
             .into_iter()
             .map(|wt_path| {
                 scope.spawn(move || {
@@ -130,16 +183,47 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
                 })
             })
             .collect();
-        handles
-            .into_iter()
-            .filter_map(|h| h.join().ok().flatten())
-            .collect()
+
+        // main の結果を先頭に配置
+        let main_modified = main_handle.join().unwrap_or(0);
+        let mut all = vec![WorktreeInfo {
+            path: main_path,
+            branch: main_branch,
+            is_main: true,
+            head: main_head,
+            last_commit_message: main_msg,
+            last_commit_time: main_time,
+            modified_count: main_modified,
+        }];
+
+        // サブの結果を追加
+        all.extend(
+            sub_handles
+                .into_iter()
+                .filter_map(|h| h.join().ok().flatten()),
+        );
+        all
     });
 
-    result.extend(sub_worktrees);
     Ok(result)
 }
 
+/// 単一 worktree の変更ファイル数を取得する軽量ステータス API。
+///
+/// M0 時点ではフロントからの呼び出し箇所なし（`list_worktrees` が同等情報を
+/// 返しているため）。M1 のファイル監視移行で単一 worktree だけ差分更新したい
+/// 場面で利用する予定。
+///
+/// # Arguments
+/// * `worktree_path` - 対象 worktree の絶対パス
+///
+/// # Returns
+/// * `Ok(WorktreeStatus)` - `path` は引数そのまま、`modified_count` は変更ファイル
+///   合計（ADR-0011）、`has_uncommitted` は `modified_count > 0` の派生値
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # Errors
+/// worktree を `Repository::open` できない場合。
 #[tauri::command]
 pub fn get_worktree_status(worktree_path: String) -> Result<WorktreeStatus, String> {
     let repo = Repository::open(&worktree_path)
@@ -154,17 +238,39 @@ pub fn get_worktree_status(worktree_path: String) -> Result<WorktreeStatus, Stri
     })
 }
 
-/// worktree 削除の事前チェック結果
+/// `check_before_remove` の戻り値。削除前ダイアログの表示内容を組み立てるために使う。
+///
+/// `has_uncommitted` が true の場合、フロント側は削除ボタンでさらに確認を取ってから
+/// `remove_worktree` を `force = true` で呼ぶ想定。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RemoveWorktreeCheck {
+    /// 対象 worktree の絶対パス（呼び出し時の引数がそのまま返る）。
     pub path: String,
+    /// 現在のブランチ名（`get_branch_name` と同じルール）。ダイアログの
+    /// 「ブランチも一緒に削除する」チェックボックスで表示する。
     pub branch: String,
+    /// 未コミットの変更があるか。true のとき force 削除が必要。
     #[serde(rename = "hasUncommitted")]
     pub has_uncommitted: bool,
+    /// 変更ファイル数の合計（ADR-0011）。ダイアログで「未コミットの変更が N 件」と表示する。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
 }
 
+/// worktree 削除前の事前チェック。削除ダイアログの表示情報を取得する。
+///
+/// このコマンド自体は破壊的操作を行わない（読み取りのみ）。`has_uncommitted = true` の場合、
+/// フロントは削除ダイアログで警告を出したうえで `remove_worktree` を `force = true` で呼ぶ。
+///
+/// # Arguments
+/// * `worktree_path` - 削除対象 worktree の絶対パス
+///
+/// # Returns
+/// * `Ok(RemoveWorktreeCheck)` - ダイアログ用のブランチ名・未コミット有無・変更件数
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # Errors
+/// worktree を `Repository::open` できない場合。
 #[tauri::command]
 pub fn check_before_remove(worktree_path: String) -> Result<RemoveWorktreeCheck, String> {
     let repo = Repository::open(&worktree_path)
@@ -181,6 +287,35 @@ pub fn check_before_remove(worktree_path: String) -> Result<RemoveWorktreeCheck,
     })
 }
 
+/// worktree を削除する（オプションでブランチも削除）。
+///
+/// # Arguments
+/// * `worktree_path` - 削除対象の絶対パス
+/// * `force` - true のとき未コミットの変更があっても強制削除する。prune の前に
+///   `remove_dir_all` を実行するフローに切り替わる（`check_before_remove` で
+///   事前確認した結果をそのまま渡す想定）
+/// * `delete_branch` - true のとき worktree が参照していたローカルブランチも削除する。
+///   ブランチが存在しない（detached HEAD 等）場合はサイレントに無視する
+///
+/// # Returns
+/// * `Ok(())` - 全ての削除ステップが成功した場合
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # 副作用（順序）
+/// 1. `force = true` かつ worktree ディレクトリが残っていれば先行削除
+/// 2. `Worktree::prune` で git の worktree レジストリから除外
+/// 3. prune 後もディレクトリが残っていれば `remove_dir_all` でクリーンアップ
+/// 4. `delete_branch = true` かつ該当ローカルブランチが存在すれば削除
+///
+/// # Errors
+/// - worktree または親リポジトリを開けない
+/// - worktree 名（末尾ディレクトリ名）の取得失敗
+/// - `find_worktree` が失敗（git の worktree レジストリに存在しない）
+/// - `remove_dir_all` / `prune` / `branch.delete()` の失敗
+///
+/// # 注意
+/// 途中失敗時はディレクトリ削除だけ済んで prune 未実行、のような中途半端な状態に
+/// なり得る。呼び出し側は失敗時に `list_worktrees` で再確認する想定。
 #[tauri::command]
 pub fn remove_worktree(
     worktree_path: String,
@@ -280,7 +415,7 @@ mod tests {
         let (dir, _repo) = create_test_repo();
         let path = dir.path().to_str().unwrap().to_string();
 
-        let result = list_worktrees(path.clone()).unwrap();
+        let result = list_worktrees_inner(&path).unwrap();
 
         assert_eq!(result.len(), 1);
         assert!(result[0].is_main);
@@ -314,7 +449,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = list_worktrees(main_path).unwrap();
+        let result = list_worktrees_inner(&main_path).unwrap();
 
         assert_eq!(result.len(), 2);
         assert!(result[0].is_main);
@@ -347,7 +482,7 @@ mod tests {
             .unwrap();
         }
 
-        let result = list_worktrees(main_path).unwrap();
+        let result = list_worktrees_inner(&main_path).unwrap();
 
         assert_eq!(result.len(), 4);
         assert!(result[0].is_main);
@@ -448,14 +583,14 @@ mod tests {
         let main_path = dir.path().to_str().unwrap().to_string();
 
         // 削除前: worktree が2つある
-        assert_eq!(list_worktrees(main_path.clone()).unwrap().len(), 2);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 2);
         assert!(Path::new(&wt_path).exists());
 
         // 削除
         remove_worktree(wt_path.clone(), false, false).unwrap();
 
         // 削除後: worktree が1つ（メインのみ）
-        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
     }
 
@@ -470,7 +605,7 @@ mod tests {
         // force=true で削除できる
         remove_worktree(wt_path.clone(), true, false).unwrap();
 
-        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
     }
 

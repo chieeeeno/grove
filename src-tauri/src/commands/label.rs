@@ -43,13 +43,44 @@ fn update_labels<R: Runtime>(
     Ok(())
 }
 
-/// ラベル一覧を読み込む（キー: worktree 絶対パス、値: ラベル文字列）
+/// worktree ラベル一覧を読み込む（ADR-0008）。
+///
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle
+///
+/// # Returns
+/// * `Ok(HashMap)` - キーは worktree の絶対パス、値はユーザーが付けたラベル文字列。
+///   store にラベル未登録、または JSON デシリアライズ失敗時は空 `HashMap`
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # Errors
+/// tauri-plugin-store のハンドル取得に失敗した場合のみ。
+///
+/// # 注意
+/// worktree を rename するとキーが変わりラベルは失われる（ADR-0008 で許容済み）。
 #[tauri::command]
 pub fn load_labels<R: Runtime>(app: AppHandle<R>) -> Result<HashMap<String, String>, String> {
     read_labels(&app)
 }
 
-/// ラベルを保存する（ADR-0008: worktree 絶対パスをキー）
+/// worktree にラベルを割り当てて保存する（ADR-0008）。既存のラベルは無条件に上書きされる。
+///
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle
+/// * `worktree_path` - 対象 worktree の絶対パス。文字列一致でキーとして扱うため、
+///   末尾スラッシュ等の正規化は呼び出し側の責務
+/// * `label` - ラベル文字列。空文字・長文の検証は行わないので UI 層で制御すること
+///
+/// # Returns
+/// * `Ok(())` - 保存成功（即座にディスクへ flush 済み）
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # 副作用
+/// `STORE_PATH` に書き込み、`store.save()` で同期的にディスクへ flush する。
+///
+/// # Errors
+/// store のオープン / シリアライズ / save に失敗した場合
+/// （`HashMap<String, String>` のシリアライズは現実的には失敗しない）。
 #[tauri::command]
 pub fn save_label<R: Runtime>(
     app: AppHandle<R>,
@@ -61,7 +92,22 @@ pub fn save_label<R: Runtime>(
     })
 }
 
-/// ラベルを削除する（worktree 削除時に連動）
+/// 指定 worktree のラベルを削除する（通常は `remove_worktree` 成功後に連動呼び出しする）。
+///
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle
+/// * `worktree_path` - 削除対象 worktree の絶対パス
+///
+/// # Returns
+/// * `Ok(())` - キーが存在しなくてもエラーにならず Ok を返す（冪等）
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # 副作用
+/// `STORE_PATH` に書き込み、`store.save()` で同期的にディスクへ flush する。
+///
+/// # Errors
+/// store のオープン / シリアライズ / save に失敗した場合
+/// （`save_label` と同じ `update_labels` ヘルパー経由。シリアライズ失敗は実質的に起きない）。
 #[tauri::command]
 pub fn delete_label<R: Runtime>(app: AppHandle<R>, worktree_path: String) -> Result<(), String> {
     update_labels(&app, "ラベルの削除に失敗しました", |labels| {

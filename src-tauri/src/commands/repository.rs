@@ -7,25 +7,45 @@ const CONFIG_KEY: &str = "app_config";
 
 // ===== 永続化モデル =====
 
+/// tauri-plugin-store に永続化される、ユーザーが登録したリポジトリ 1 件分の設定。
+///
+/// フロントエンド（`src/types/index.ts` の `RepositoryConfig`）と JSON スキーマが
+/// 一致する必要がある。フィールド名は `#[serde(rename)]` で camelCase に変換する。
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RepositoryConfig {
+    /// リポジトリ識別子。M0 では `path` と同値（`validate_repository` が
+    /// そのまま返す）。M1 以降で UUID 化する可能性あり。
     pub id: String,
+    /// サイドバーに表示するリポジトリ名。`validate_repository` では workdir の末尾
+    /// ディレクトリ名から生成する。
     pub name: String,
+    /// リポジトリの絶対パス（workdir ルート）。
     pub path: String,
+    /// リポジトリ追加日時。ISO 8601 文字列（例: `"2026-04-10T00:00:00Z"`）。
+    /// フロント側で生成してから `save_config` に渡すため、Rust 側では書式検証しない。
     #[serde(rename = "addedAt")]
     pub added_at: String,
 }
 
+/// アプリ全体の永続化設定。tauri-plugin-store の `STORE_PATH` にキー `"app_config"` で保存する。
+///
+/// フロントエンドの `AppConfig`（src/types/index.ts）と JSON 形式を共有する。
+/// 部分更新 API は持たず、`save_config` は常に全置換。
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
+    /// 登録済みリポジトリ一覧。順序はサイドバー表示順と一致する。
     pub repositories: Vec<RepositoryConfig>,
+    /// 使用するエディタ識別子。M0 では `"vscode"` のみサポート。
     pub editor: String,
+    /// UI テーマ。M0 では `"system"` のみ実装（ライト/ダーク切替は #16 で M2 対応予定）。
     pub theme: String,
+    /// worktree リフレッシュ間隔（ミリ秒）。ADR-0013 で既定 5000ms。
     #[serde(rename = "refreshInterval")]
     pub refresh_interval: u32,
 }
 
 impl Default for AppConfig {
+    /// M0 の既定値（リポジトリ空、VS Code、system テーマ、5 秒ポーリング）を返す。
     fn default() -> Self {
         AppConfig {
             repositories: vec![],
@@ -38,15 +58,36 @@ impl Default for AppConfig {
 
 // ===== コマンドの戻り値 =====
 
+/// `validate_repository` コマンドの戻り値。
+/// フロントエンドが `RepositoryConfig` を組み立てる際の素材として使う
+/// （`addedAt` は呼び出し側で現在時刻から付与する）。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RepositoryInfo {
+    /// 現状は `path` と同値。`RepositoryConfig::id` と同じ扱い。
     pub id: String,
+    /// workdir ディレクトリの末尾名。取得失敗時は `"unknown"`。
     pub name: String,
+    /// 検証に成功したリポジトリの絶対パス。
     pub path: String,
 }
 
 // ===== コマンド =====
 
+/// 指定パスが開ける git リポジトリか検証し、表示用のメタ情報を返す。
+///
+/// 副作用なし（読み取りのみ）。
+///
+/// # Arguments
+/// * `path` - 検証対象のローカル絶対パス。リポジトリの workdir ルートを想定する
+///
+/// # Returns
+/// * `Ok(RepositoryInfo)` - `id` は M0 では `path` と同値、`name` は workdir の
+///   末尾ディレクトリ名（取得失敗時は `"unknown"`）、`path` は引数そのまま
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # Errors
+/// - 指定パスを git リポジトリとして開けない場合（存在しない / `.git` が無い / 権限不足等）
+/// - bare リポジトリ（workdir を持たない）の場合: `"bare リポジトリは非対応です"`
 #[tauri::command]
 pub fn validate_repository(path: String) -> Result<RepositoryInfo, String> {
     let repo = git2::Repository::open(&path)
@@ -69,6 +110,20 @@ pub fn validate_repository(path: String) -> Result<RepositoryInfo, String> {
     })
 }
 
+/// tauri-plugin-store から `AppConfig` を読み込む。
+///
+/// 初回起動時でも Ok を返す（フォールバック値付き）。
+///
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle（MockRuntime でもテスト可能なように generics 化）
+///
+/// # Returns
+/// * `Ok(AppConfig)` - store にキー `"app_config"` があればそれを、無い or JSON
+///   デシリアライズ失敗時は `AppConfig::default()`（ADR-0013 の既定値）を返す
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # Errors
+/// tauri-plugin-store のハンドル取得に失敗した場合のみ（ディスク障害等）。
 #[tauri::command]
 pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
     let store = app
@@ -83,6 +138,27 @@ pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
     Ok(config)
 }
 
+/// `AppConfig` を tauri-plugin-store に **全置換** で保存する（差分更新ではない）。
+///
+/// 部分更新したい場合は呼び出し側で現在の state とマージしてから渡すこと
+/// （フロント側は `App.tsx` の `buildConfigFromStore()` がその役割）。
+///
+/// # Arguments
+/// * `app` - Tauri ランタイムの AppHandle
+/// * `config` - 保存する `AppConfig` の完全な状態
+///
+/// # Returns
+/// * `Ok(())` - 保存成功（`store.save()` で同期的にディスクへ flush 済み）
+/// * `Err(String)` - 日本語のエラーメッセージ
+///
+/// # 副作用
+/// `STORE_PATH`（例: `~/Library/Application Support/<app id>/grove_config.json`）
+/// を書き換え、同期的にディスクへ永続化する。
+///
+/// # Errors
+/// - store ハンドルの取得失敗
+/// - `serde_json::to_value` のシリアライズ失敗（現実的には発生しない）
+/// - `store.save()` のディスク書き込み失敗
 #[tauri::command]
 pub fn save_config<R: Runtime>(app: AppHandle<R>, config: AppConfig) -> Result<(), String> {
     let store = app

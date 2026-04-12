@@ -4,16 +4,48 @@ import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
 import EditableLabel from "./EditableLabel";
 
+/**
+ * `WorktreeCard` の props。
+ *
+ * コールバックは全て「worktree path を引数に取る」形で統一している。
+ * 親コンポーネント（WorktreeGrid）で closure をカードごとに作ると props の参照が
+ * 毎回変わり `memo` が効かなくなるため、閉包はカード内で `useCallback` 化する。
+ */
 interface WorktreeCardProps {
+  /** 表示対象の worktree 情報 */
   worktree: WorktreeInfo;
+  /** ヘッダーに表示するユーザー設定ラベル。未設定時は dirName(path) を渡す */
   label: string;
+  /**
+   * `code` コマンドが利用可能か（ADR-0012 preflight）。
+   * false のとき VS Code ボタンを無効化し、ツールチップで理由を表示する
+   */
   codeAvailable: boolean;
-  // worktree パスを引数に取る形に統一（親から closure を作らず参照を安定化できる）
+  /**
+   * 「VS Code で開く」ボタンを押したときに呼ばれる。
+   * @param worktreePath 対象 worktree の絶対パス
+   */
   onOpenInEditor: (worktreePath: string) => void;
+  /**
+   * 「Remove」ボタンを押したときに呼ばれる（メイン worktree では非表示）。
+   * @param worktreePath 削除対象 worktree の絶対パス
+   */
   onRemove: (worktreePath: string) => void;
+  /**
+   * ラベル編集で確定したときに呼ばれる。
+   * @param worktreePath 対象 worktree の絶対パス
+   * @param newLabel trim 済みの新しいラベル
+   */
   onSaveLabel: (worktreePath: string, newLabel: string) => void;
 }
 
+/**
+ * 単一 worktree を表示するカードコンポーネント。
+ *
+ * パフォーマンス: `memo` でラップしている（末尾の `export default` 参照）。
+ * appStore の `setWorktrees` が差分検出で参照を維持する前提で、ポーリング時に
+ * props が不変なら再レンダーを避ける。親側でも `useMemo` で派生値を安定化している。
+ */
 function WorktreeCard({
   worktree,
   label,
@@ -107,4 +139,6 @@ function WorktreeCard({
   );
 }
 
+// appStore の no-op ガードで worktrees の参照が安定している前提で、
+// 1 枚のカードの props が変わらない限り再レンダーしないようにする。
 export default memo(WorktreeCard);

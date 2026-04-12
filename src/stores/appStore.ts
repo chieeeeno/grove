@@ -2,9 +2,14 @@ import { create } from "zustand";
 import type { RepositoryConfig, WorktreeInfo } from "../types";
 
 /**
- * 2つの worktree 配列が内容的に同一かを判定する。
- * ポーリングで変化ゼロのときに再レンダーを起こさないために使う。
+ * 2 つの worktree 配列が内容的に同一かを判定する。
+ *
+ * ポーリングで変化ゼロのときに再レンダーを起こさないために使う差分検出用。
  * 比較対象は UI に影響するフィールドのみ（ADR-0011 に基づく）。
+ *
+ * @param a 比較対象の配列 A
+ * @param b 比較対象の配列 B
+ * @returns 同一なら true、一要素でも差分があれば false
  */
 function worktreesEqual(a: WorktreeInfo[], b: WorktreeInfo[]): boolean {
   if (a.length !== b.length) return false;
@@ -26,35 +31,125 @@ function worktreesEqual(a: WorktreeInfo[], b: WorktreeInfo[]): boolean {
   return true;
 }
 
+/**
+ * Grove のグローバル state。
+ *
+ * リポジトリ/worktree/ラベル/設定/UI 状態を一元管理する。tauri-plugin-store への
+ * 永続化は行わず、永続化が必要なエントリは呼び出し側で tauri IPC（`saveConfig` /
+ * `saveLabel` 等）とセットで呼ぶ設計。
+ */
 interface AppStore {
   // ===== リポジトリ =====
+
+  /** 登録済みリポジトリ一覧（サイドバー表示順と一致） */
   repositories: RepositoryConfig[];
+  /** 現在選択中のリポジトリ ID。未選択時は null */
   selectedRepositoryId: string | null;
+
+  /**
+   * リポジトリ一覧を全置換する。
+   * @param repos 置換後のリポジトリ配列
+   */
   setRepositories: (repos: RepositoryConfig[]) => void;
+
+  /**
+   * リポジトリを末尾に追加する（重複チェックなし。呼び出し側で確認する責務）。
+   * @param repo 追加するリポジトリ
+   */
   addRepository: (repo: RepositoryConfig) => void;
+
+  /**
+   * リポジトリを ID で削除する。
+   * 該当する `worktrees[id]` エントリも同時に除去される（メモリリーク防止）。
+   * 選択中だった場合のフォールバック選択は行わないので、呼び出し側で `selectRepository` する。
+   * @param id 削除対象のリポジトリ ID
+   */
   removeRepository: (id: string) => void;
+
+  /**
+   * 選択中リポジトリを変更する。
+   * @param id 新しい選択 ID。`null` を渡すと選択解除
+   */
   selectRepository: (id: string | null) => void;
 
   // ===== Worktree =====
-  // key: repositoryId
+
+  /**
+   * リポジトリ ID をキーにした worktree リストのマップ。
+   * key: repositoryId, value: worktree 配列
+   */
   worktrees: Record<string, WorktreeInfo[]>;
+
+  /**
+   * 指定リポジトリの worktree 一覧を差し替える。
+   *
+   * 既存の配列と内容が同一の場合（`worktreesEqual` で判定）は state を変更しない。
+   * これにより参照が安定し、React の `useMemo` や `React.memo` 経由で下流の
+   * 再レンダーを抑制できる（ポーリングの no-op 最適化）。
+   *
+   * @param repositoryId 対象のリポジトリ ID
+   * @param worktrees 新しい worktree 配列
+   */
   setWorktrees: (repositoryId: string, worktrees: WorktreeInfo[]) => void;
+
+  /**
+   * 指定 repo の worktree リストから、指定 path のエントリだけを除去する。
+   * worktree 削除後に store を最新化するために使う。
+   *
+   * @param repositoryId 対象のリポジトリ ID
+   * @param worktreePath 除去する worktree の絶対パス
+   */
   removeWorktreeEntry: (repositoryId: string, worktreePath: string) => void;
 
   // ===== ラベル（worktree 絶対パスをキー、ADR-0008） =====
+
+  /** ユーザー設定ラベルのマップ（key: worktree 絶対パス、value: ラベル文字列） */
   labels: Record<string, string>;
+
+  /**
+   * 単一 worktree のラベルを in-memory で設定する。
+   *
+   * この関数は store のみ更新し、tauri-plugin-store への永続化は行わない。
+   * 永続化が必要な呼び出し側は `saveLabel` IPC とセットで呼ぶこと
+   * （`App.tsx` の `handleSaveLabel` 参照）。
+   *
+   * @param worktreePath 対象 worktree の絶対パス
+   * @param label ラベル文字列
+   */
   setLabel: (worktreePath: string, label: string) => void;
+
+  /**
+   * 単一 worktree のラベルを in-memory で削除する。永続化は別途 `deleteLabel` IPC で行う。
+   * @param worktreePath 対象 worktree の絶対パス
+   */
   removeLabel: (worktreePath: string) => void;
+
+  /**
+   * ラベルマップを全置換する。起動時に `loadLabels` IPC の結果を流し込む用途。
+   * @param labels 新しいラベルマップ
+   */
   setAllLabels: (labels: Record<string, string>) => void;
 
   // ===== 設定 =====
+
+  /** worktree ポーリング間隔（ミリ秒、ADR-0013 で既定 5000ms） */
   refreshInterval: number;
+  /**
+   * ポーリング間隔を変更する（in-memory のみ。永続化は `saveConfig` IPC で別途行う）。
+   * @param v 新しい間隔（ms）
+   */
   setRefreshInterval: (v: number) => void;
 
   // ===== UI 状態 =====
+
+  /** `code` コマンドが利用可能か（ADR-0012 preflight 用。起動時に 1 回判定） */
   codeAvailable: boolean;
+  /** @param v `code` コマンドの利用可否 */
   setCodeAvailable: (v: boolean) => void;
+
+  /** 手動リフレッシュ実行中フラグ（スピナー表示用） */
   isRefreshing: boolean;
+  /** @param v リフレッシュ中なら true */
   setIsRefreshing: (v: boolean) => void;
 }
 
