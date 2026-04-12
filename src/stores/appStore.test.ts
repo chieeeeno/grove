@@ -8,6 +8,7 @@ describe("appStore", () => {
       repositories: [],
       selectedRepositoryId: null,
       worktrees: {},
+      worktreeOrder: {},
       labels: {},
       codeAvailable: false,
       isRefreshing: false,
@@ -122,6 +123,45 @@ describe("appStore", () => {
 
       expect(after).not.toBe(before);
       expect(after[1].modifiedCount).toBe(5);
+    });
+  });
+
+  describe("並び順管理（Issue #7）", () => {
+    it("setWorktreeOrder で並び順を保存できる", () => {
+      const order = ["/path/wt-1", "/path/wt-2"];
+      useAppStore.getState().setWorktreeOrder("repo-1", order);
+      expect(useAppStore.getState().worktreeOrder["repo-1"]).toEqual(order);
+    });
+
+    it("setAllWorktreeOrder で一括設定できる", () => {
+      const allOrder = {
+        "repo-a": ["/path/a-1", "/path/a-2"],
+        "repo-b": ["/path/b-1"],
+      };
+      useAppStore.getState().setAllWorktreeOrder(allOrder);
+      expect(useAppStore.getState().worktreeOrder).toEqual(allOrder);
+    });
+
+    it("removeWorktreeOrder で指定リポジトリの並び順を削除できる", () => {
+      useAppStore.getState().setWorktreeOrder("repo-1", ["/path/wt-1"]);
+      useAppStore.getState().setWorktreeOrder("repo-2", ["/path/wt-2"]);
+      useAppStore.getState().removeWorktreeOrder("repo-1");
+
+      expect(useAppStore.getState().worktreeOrder["repo-1"]).toBeUndefined();
+      expect(useAppStore.getState().worktreeOrder["repo-2"]).toEqual(["/path/wt-2"]);
+    });
+
+    it("removeRepository で worktreeOrder からも該当エントリが消える", () => {
+      useAppStore.getState().addRepository({
+        id: "repo-1",
+        name: "test",
+        path: "/path/to/repo",
+        addedAt: "2026-04-10T00:00:00Z",
+      });
+      useAppStore.getState().setWorktreeOrder("repo-1", ["/path/wt-1"]);
+
+      useAppStore.getState().removeRepository("repo-1");
+      expect(useAppStore.getState().worktreeOrder["repo-1"]).toBeUndefined();
     });
   });
 

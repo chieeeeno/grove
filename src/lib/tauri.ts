@@ -154,6 +154,39 @@ export const saveLabel = (worktreePath: string, label: string): Promise<void> =>
 export const deleteLabel = (worktreePath: string): Promise<void> =>
   invoke("delete_label", { worktreePath });
 
+// ===== 並び順（Issue #7） =====
+
+/**
+ * 全リポジトリの worktree 並び順を読み込む。
+ *
+ * @returns `Record<リポジトリ ID, worktree 絶対パスの配列>`。
+ *          未登録時は空オブジェクト
+ * @throws tauri-plugin-store のハンドル取得に失敗した場合のみ reject
+ */
+export const loadOrder = (): Promise<Record<string, string[]>> => invoke("load_order");
+
+/**
+ * 指定リポジトリの worktree 並び順を保存する。他リポジトリの順序は影響を受けない。
+ *
+ * @param repositoryId 対象リポジトリの UUID
+ * @param order worktree 絶対パスの配列（表示したい順番）
+ * @returns 保存完了時に resolve する Promise
+ * @throws store オープン / シリアライズ / save 失敗時に reject
+ */
+export const saveOrder = (repositoryId: string, order: string[]): Promise<void> =>
+  invoke("save_order", { repositoryId, order });
+
+/**
+ * 指定リポジトリの並び順データを削除する（リポジトリ削除時の連動用）。
+ * キーが存在しなくてもエラーにならない（冪等）。
+ *
+ * @param repositoryId 削除対象リポジトリの UUID
+ * @returns 削除完了時に resolve する Promise
+ * @throws store オープン / save 失敗時に reject
+ */
+export const deleteOrder = (repositoryId: string): Promise<void> =>
+  invoke("delete_order", { repositoryId });
+
 // ===== エディタ =====
 
 /**
