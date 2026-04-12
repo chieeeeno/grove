@@ -85,8 +85,8 @@ fi
 NEXT_TAG="${BETA_TAG_PREFIX}.${NEXT_NUM}"
 info "次のタグ: ${NEXT_TAG}"
 
-info "Tauri ビルドを実行..."
-run pnpm tauri build
+info "Tauri ビルドを実行 (ad-hoc 署名付き)..."
+run env APPLE_SIGNING_IDENTITY="-" pnpm tauri build
 
 if [ "$DRY_RUN" = true ]; then
   info "[dry-run] DMG ファイルの検出をスキップ (ビルド未実行のため)"
@@ -105,6 +105,23 @@ else
   fi
   DMG_FILE="${DMG_FILES[0]}"
   info "検出: ${DMG_FILE}"
+
+  info "ad-hoc 署名を検証..."
+  APP_DIR="src-tauri/target/release/bundle/macos"
+  shopt -s nullglob
+  APP_FILES=("${APP_DIR}"/*.app)
+  shopt -u nullglob
+  if [ ${#APP_FILES[@]} -eq 0 ]; then
+    echo "エラー: .app バンドルが見つかりません: ${APP_DIR}/"
+    exit 1
+  fi
+  APP_FILE="${APP_FILES[0]}"
+  if codesign --verify --verbose=2 "$APP_FILE" 2>&1; then
+    info "署名検証 OK: ${APP_FILE}"
+  else
+    echo "エラー: 署名検証に失敗しました: ${APP_FILE}"
+    exit 1
+  fi
 fi
 
 info "Git タグを作成: ${NEXT_TAG}"
