@@ -101,7 +101,7 @@ interface AppStore {
    */
   removeWorktreeEntry: (repositoryId: string, worktreePath: string) => void;
 
-  // ===== 並び順（Issue #7） =====
+  // ===== 並び順 =====
 
   /** リポジトリ ID ごとの worktree 表示順（key: repositoryId, value: worktree 絶対パス配列） */
   worktreeOrder: Record<string, string[]>;
@@ -222,7 +222,17 @@ export const useAppStore = create<AppStore>((set) => ({
   // 並び順
   worktreeOrder: {},
   setWorktreeOrder: (repositoryId, order) =>
-    set((s) => ({ worktreeOrder: { ...s.worktreeOrder, [repositoryId]: order } })),
+    set((s) => {
+      const existing = s.worktreeOrder[repositoryId];
+      if (
+        existing &&
+        existing.length === order.length &&
+        existing.every((p, i) => p === order[i])
+      ) {
+        return s;
+      }
+      return { worktreeOrder: { ...s.worktreeOrder, [repositoryId]: order } };
+    }),
   setAllWorktreeOrder: (order) => set({ worktreeOrder: order }),
   removeWorktreeOrder: (repositoryId) =>
     set((s) => {
