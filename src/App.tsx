@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { Toaster, toast } from "sonner";
 import Sidebar from "./components/Sidebar";
 import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
@@ -24,6 +25,15 @@ import {
   checkCodeCommand,
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
+
+/** Toaster に渡すスタイル設定。デザイントークンに合わせたダークテーマ用。 */
+const TOAST_OPTIONS = {
+  style: {
+    background: "var(--bg-card)",
+    border: "1px solid var(--border-default)",
+    color: "var(--text-primary)",
+  },
+} as const;
 
 /**
  * 現在の store 状態から `AppConfig` を組み立てるヘルパー。
@@ -83,7 +93,13 @@ function App() {
   const handleChangeRefreshInterval = useCallback(
     async (interval: number) => {
       setRefreshInterval(interval);
-      await saveConfig(buildConfigFromStore()).catch(console.error);
+      try {
+        await saveConfig(buildConfigFromStore());
+        toast.success("設定を保存しました");
+      } catch (e) {
+        console.error("設定保存に失敗:", e);
+        toast.error("設定の保存に失敗しました");
+      }
     },
     [setRefreshInterval]
   );
@@ -138,7 +154,7 @@ function App() {
    * （UI エラーは出さない）。
    *
    * 副作用: 新規追加したリポジトリを選択状態にし、設定を非同期に永続化する。
-   * 永続化失敗は `console.error` のみ（M0 では UI フィードバック未実装）。
+   * 成功/失敗をトーストで通知する。
    */
   const handleAddRepository = useCallback(async () => {
     const selected = await open({ directory: true, multiple: false });
@@ -159,8 +175,10 @@ function App() {
       addRepository(newRepo);
       selectRepository(newRepo.id);
       saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      toast.success("リポジトリを追加しました");
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
+      toast.error("リポジトリの追加に失敗しました");
     }
   }, [addRepository, selectRepository]);
 
@@ -183,6 +201,7 @@ function App() {
       }
 
       saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      toast.success("リポジトリを解除しました");
     },
     [selectedRepositoryId, removeRepository, selectRepository]
   );
@@ -191,8 +210,8 @@ function App() {
 
   /**
    * ラベル編集の確定時に呼ばれる。in-memory の store を即座に更新（楽観更新）してから
-   * IPC で永続化する。IPC 失敗時は `console.error` のみで UI は巻き戻さない
-   * （M0 の割り切り。失敗例は稀で、次回起動時にストアから読み直される）。
+   * IPC で永続化する。失敗時はトーストで通知するが、store は巻き戻さない
+   * （失敗例は稀で、次回起動時にストアから読み直される）。
    *
    * @param worktreePath 対象 worktree の絶対パス
    * @param newLabel 新しいラベル文字列
@@ -200,7 +219,13 @@ function App() {
   const handleSaveLabel = useCallback(
     async (worktreePath: string, newLabel: string) => {
       setLabel(worktreePath, newLabel);
-      await saveLabel(worktreePath, newLabel).catch(console.error);
+      try {
+        await saveLabel(worktreePath, newLabel);
+        toast.success("ラベルを保存しました");
+      } catch (e) {
+        console.error("ラベル保存に失敗:", e);
+        toast.error("ラベルの保存に失敗しました");
+      }
     },
     [setLabel]
   );
@@ -261,8 +286,10 @@ function App() {
         removeWorktreeEntry(selectedRepositoryId, deleteTarget.path);
         removeLabel(deleteTarget.path);
         await deleteLabel(deleteTarget.path).catch(console.error);
+        toast.success("worktree を削除しました");
       } catch (e) {
         console.error("worktree の削除に失敗:", e);
+        toast.error("worktree の削除に失敗しました");
       } finally {
         setDeleteTarget(null);
       }
@@ -347,6 +374,7 @@ function App() {
         )}
         {/* DetailPanel は M0 では非表示（M1 以降で実装） */}
       </div>
+      <Toaster position="bottom-right" duration={2500} theme="dark" toastOptions={TOAST_OPTIONS} />
     </div>
   );
 }
