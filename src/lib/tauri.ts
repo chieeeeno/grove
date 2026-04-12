@@ -154,7 +154,7 @@ export const saveLabel = (worktreePath: string, label: string): Promise<void> =>
 export const deleteLabel = (worktreePath: string): Promise<void> =>
   invoke("delete_label", { worktreePath });
 
-// ===== 並び順（Issue #7） =====
+// ===== 並び順 =====
 
 /**
  * 全リポジトリの worktree 並び順を読み込む。

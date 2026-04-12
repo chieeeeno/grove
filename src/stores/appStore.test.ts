@@ -126,7 +126,7 @@ describe("appStore", () => {
     });
   });
 
-  describe("並び順管理（Issue #7）", () => {
+  describe("並び順管理", () => {
     it("setWorktreeOrder で並び順を保存できる", () => {
       const order = ["/path/wt-1", "/path/wt-2"];
       useAppStore.getState().setWorktreeOrder("repo-1", order);

@@ -23,7 +23,7 @@ pub fn run() {
             label::load_labels,
             label::save_label,
             label::delete_label,
-            // 並び順（Issue #7）
+            // 並び順
             order::load_order,
             order::save_order,
             order::delete_order,
