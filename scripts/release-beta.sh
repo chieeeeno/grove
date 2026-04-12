@@ -17,6 +17,7 @@ DRY_RUN=false
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
+    --) ;;
     *)
       echo "エラー: 不明なオプション '$arg'"
       echo "使い方: pnpm release:beta -- --dry-run"
