@@ -60,8 +60,17 @@ fn count_modified_files(repo: &Repository) -> u32 {
 }
 
 #[tauri::command]
-pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, String> {
-    let main_repo = Repository::open(&repository_path)
+pub async fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, String> {
+    // spawn_blocking で別スレッドに逃がし、WebView のメインスレッドを解放する。
+    // sync コマンドのままだとメインスレッドがブロックされて UI の paint が走らず、
+    // スケルトン等の中間状態が画面に反映されない。
+    tauri::async_runtime::spawn_blocking(move || list_worktrees_inner(&repository_path))
+        .await
+        .map_err(|e| format!("タスク実行に失敗しました: {}", e))?
+}
+
+fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, String> {
+    let main_repo = Repository::open(repository_path)
         .map_err(|e| format!("リポジトリを開けませんでした: {}", e))?;
 
     // メイン worktree（リポジトリ本体）のパス・コミット情報を先に取得する。
@@ -299,7 +308,7 @@ mod tests {
         let (dir, _repo) = create_test_repo();
         let path = dir.path().to_str().unwrap().to_string();
 
-        let result = list_worktrees(path.clone()).unwrap();
+        let result = list_worktrees_inner(&path).unwrap();
 
         assert_eq!(result.len(), 1);
         assert!(result[0].is_main);
@@ -333,7 +342,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = list_worktrees(main_path).unwrap();
+        let result = list_worktrees_inner(&main_path).unwrap();
 
         assert_eq!(result.len(), 2);
         assert!(result[0].is_main);
@@ -366,7 +375,7 @@ mod tests {
             .unwrap();
         }
 
-        let result = list_worktrees(main_path).unwrap();
+        let result = list_worktrees_inner(&main_path).unwrap();
 
         assert_eq!(result.len(), 4);
         assert!(result[0].is_main);
@@ -467,14 +476,14 @@ mod tests {
         let main_path = dir.path().to_str().unwrap().to_string();
 
         // 削除前: worktree が2つある
-        assert_eq!(list_worktrees(main_path.clone()).unwrap().len(), 2);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 2);
         assert!(Path::new(&wt_path).exists());
 
         // 削除
         remove_worktree(wt_path.clone(), false, false).unwrap();
 
         // 削除後: worktree が1つ（メインのみ）
-        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
     }
 
@@ -489,7 +498,7 @@ mod tests {
         // force=true で削除できる
         remove_worktree(wt_path.clone(), true, false).unwrap();
 
-        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
     }
 
