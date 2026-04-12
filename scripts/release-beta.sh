@@ -10,8 +10,7 @@ set -euo pipefail
 
 DMG_DIR="src-tauri/target/release/bundle/dmg"
 
-# tauri.conf.json からバージョンを読み取ってタグ prefix を組み立てる
-APP_VERSION=$(python3 -c "import json; print(json.load(open('src-tauri/tauri.conf.json'))['version'])")
+APP_VERSION=$(node -e "process.stdout.write(require('./src-tauri/tauri.conf.json').version)")
 BETA_TAG_PREFIX="v${APP_VERSION}-beta"
 
 DRY_RUN=false
@@ -67,14 +66,13 @@ info "最新のベータタグを取得..."
 
 git fetch --tags --quiet
 
-# grep がマッチなしで exit 1 を返すため、pipefail 下では || true で吸収する
+# grep がマッチなしで exit 1 を返すため、pipefail 下では grep のみ || true で吸収する
 LATEST_NUM=$(
   git tag -l "${BETA_TAG_PREFIX}.*" \
     | sed "s/${BETA_TAG_PREFIX}\.//" \
-    | grep -E '^[0-9]+$' \
+    | { grep -E '^[0-9]+$' || true; } \
     | sort -n \
-    | tail -1 \
-    || true
+    | tail -1
 )
 
 if [ -z "$LATEST_NUM" ]; then
