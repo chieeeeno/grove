@@ -100,13 +100,21 @@ fn count_modified_files(repo: &Repository) -> u32 {
 /// 並列実行する。メイン worktree の status 走査は先に直列で行うので、メインが
 /// 大きい場合はそこがボトルネックになる（改善候補: #25）。
 #[tauri::command]
-pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, String> {
-    let main_repo = Repository::open(&repository_path)
+pub async fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, String> {
+    // spawn_blocking で別スレッドに逃がし、WebView のメインスレッドを解放する。
+    // sync コマンドのままだとメインスレッドがブロックされて UI の paint が走らず、
+    // スケルトン等の中間状態が画面に反映されない。
+    tauri::async_runtime::spawn_blocking(move || list_worktrees_inner(&repository_path))
+        .await
+        .map_err(|e| format!("タスク実行に失敗しました: {}", e))?
+}
+
+fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, String> {
+    let main_repo = Repository::open(repository_path)
         .map_err(|e| format!("リポジトリを開けませんでした: {}", e))?;
 
-    let mut result: Vec<WorktreeInfo> = Vec::new();
-
-    // メイン worktree（リポジトリ本体）
+    // メイン worktree（リポジトリ本体）のパス・コミット情報を先に取得する。
+    // count_modified_files は重いので thread::scope 内で並列実行する。
     let main_workdir = main_repo
         .workdir()
         .ok_or_else(|| "bare リポジトリは非対応です".to_string())?;
@@ -116,18 +124,8 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
         .trim_end_matches('/')
         .to_string();
 
-    let (head_hash, commit_msg, commit_time) = get_last_commit(&main_repo);
-    let modified = count_modified_files(&main_repo);
-
-    result.push(WorktreeInfo {
-        path: main_path,
-        branch: get_branch_name(&main_repo),
-        is_main: true,
-        head: head_hash,
-        last_commit_message: commit_msg,
-        last_commit_time: commit_time,
-        modified_count: modified,
-    });
+    let main_branch = get_branch_name(&main_repo);
+    let (main_head, main_msg, main_time) = get_last_commit(&main_repo);
 
     // サブ worktree のパス一覧を先に収集する
     // （Worktree ハンドルはスレッドをまたげないため、パスにしてから並列化する）
@@ -146,10 +144,25 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
         })
         .collect();
 
-    // 各 worktree について Repository::open + status 走査を並列で実行する。
+    // main_repo は !Sync なのでスレッドに &main_repo を渡せない。
+    // main もパスから Repository::open し直して並列実行する。
+    // open のコストは数μs で、status walk（数十〜数百ms）に比べて無視できる。
+    let main_path_clone = main_path.clone();
+    drop(main_repo);
+
+    // main + サブ全 worktree の status 走査を同一スコープで並列実行する。
+    // main repo が最大のことが多いので、直列で先に走らせると全体の律速になっていた。
     // libgit2 は別 Repository インスタンスなら別スレッドから使えるので安全。
-    let sub_worktrees: Vec<WorktreeInfo> = std::thread::scope(|scope| {
-        let handles: Vec<_> = sub_paths
+    let result: Vec<WorktreeInfo> = std::thread::scope(|scope| {
+        // main worktree の count_modified_files を並列スレッドで実行
+        let main_handle = scope.spawn(move || {
+            Repository::open(&main_path_clone)
+                .map(|repo| count_modified_files(&repo))
+                .unwrap_or(0)
+        });
+
+        // サブ worktree も並列で実行
+        let sub_handles: Vec<_> = sub_paths
             .into_iter()
             .map(|wt_path| {
                 scope.spawn(move || {
@@ -170,13 +183,28 @@ pub fn list_worktrees(repository_path: String) -> Result<Vec<WorktreeInfo>, Stri
                 })
             })
             .collect();
-        handles
-            .into_iter()
-            .filter_map(|h| h.join().ok().flatten())
-            .collect()
+
+        // main の結果を先頭に配置
+        let main_modified = main_handle.join().unwrap_or(0);
+        let mut all = vec![WorktreeInfo {
+            path: main_path,
+            branch: main_branch,
+            is_main: true,
+            head: main_head,
+            last_commit_message: main_msg,
+            last_commit_time: main_time,
+            modified_count: main_modified,
+        }];
+
+        // サブの結果を追加
+        all.extend(
+            sub_handles
+                .into_iter()
+                .filter_map(|h| h.join().ok().flatten()),
+        );
+        all
     });
 
-    result.extend(sub_worktrees);
     Ok(result)
 }
 
@@ -387,7 +415,7 @@ mod tests {
         let (dir, _repo) = create_test_repo();
         let path = dir.path().to_str().unwrap().to_string();
 
-        let result = list_worktrees(path.clone()).unwrap();
+        let result = list_worktrees_inner(&path).unwrap();
 
         assert_eq!(result.len(), 1);
         assert!(result[0].is_main);
@@ -421,7 +449,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = list_worktrees(main_path).unwrap();
+        let result = list_worktrees_inner(&main_path).unwrap();
 
         assert_eq!(result.len(), 2);
         assert!(result[0].is_main);
@@ -454,7 +482,7 @@ mod tests {
             .unwrap();
         }
 
-        let result = list_worktrees(main_path).unwrap();
+        let result = list_worktrees_inner(&main_path).unwrap();
 
         assert_eq!(result.len(), 4);
         assert!(result[0].is_main);
@@ -555,14 +583,14 @@ mod tests {
         let main_path = dir.path().to_str().unwrap().to_string();
 
         // 削除前: worktree が2つある
-        assert_eq!(list_worktrees(main_path.clone()).unwrap().len(), 2);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 2);
         assert!(Path::new(&wt_path).exists());
 
         // 削除
         remove_worktree(wt_path.clone(), false, false).unwrap();
 
         // 削除後: worktree が1つ（メインのみ）
-        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
     }
 
@@ -577,7 +605,7 @@ mod tests {
         // force=true で削除できる
         remove_worktree(wt_path.clone(), true, false).unwrap();
 
-        assert_eq!(list_worktrees(main_path).unwrap().len(), 1);
+        assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
     }
 

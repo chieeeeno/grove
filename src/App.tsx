@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import Sidebar from "./components/Sidebar";
 import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
+import WorktreeGridSkeleton from "./components/WorktreeGridSkeleton";
 import DeleteDialog from "./components/DeleteDialog";
 import PreflightBanner from "./components/PreflightBanner";
 import SettingsDialog from "./components/SettingsDialog";
@@ -66,7 +67,7 @@ function App() {
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
 
   // 自動リフレッシュ（ADR-0013: 5秒ポーリング）
-  const { refresh } = useAutoRefresh();
+  const { refresh, prefetchAll } = useAutoRefresh();
 
   // キーボードショートカット（Cmd+R でリフレッシュ）
   useKeyboardShortcuts({ onRefresh: refresh });
@@ -99,7 +100,7 @@ function App() {
     modifiedCount: number;
   } | null>(null);
 
-  // ===== 起動時: config + ラベル読み込み =====
+  // ===== 起動時: config + ラベル読み込み + 全リポジトリ pre-fetch =====
   useEffect(() => {
     loadConfig()
       .then((config) => {
@@ -107,15 +108,26 @@ function App() {
         if (config.refreshInterval) {
           setRefreshInterval(config.refreshInterval);
         }
-        if (config.repositories.length > 0) {
-          selectRepository(config.repositories[0].id);
+        const firstId = config.repositories.length > 0 ? config.repositories[0].id : null;
+        if (firstId) {
+          selectRepository(firstId);
         }
+
+        // 選択中以外のリポジトリを裏で pre-fetch（選択中は useAutoRefresh が担当）
+        prefetchAll(config.repositories, firstId);
       })
       .catch(console.error);
 
     loadLabels().then(setAllLabels).catch(console.error);
     checkCodeCommand().then(setCodeAvailable).catch(console.error);
-  }, [setRepositories, selectRepository, setAllLabels, setCodeAvailable, setRefreshInterval]);
+  }, [
+    setRepositories,
+    selectRepository,
+    setAllLabels,
+    setCodeAvailable,
+    setRefreshInterval,
+    prefetchAll,
+  ]);
 
   // ===== リポジトリ追加 =====
 
@@ -266,8 +278,9 @@ function App() {
     [repositories, selectedRepositoryId]
   );
 
+  // undefined = まだ取得していない（スケルトン表示）、[] = 取得済みだが 0 件（空状態表示）
   const currentWorktrees = useMemo(
-    () => (selectedRepo ? (worktrees[selectedRepo.id] ?? []) : []),
+    () => (selectedRepo ? worktrees[selectedRepo.id] : undefined),
     [selectedRepo, worktrees]
   );
 
@@ -299,15 +312,19 @@ function App() {
           isRefreshing={isRefreshing}
           onRefresh={refresh}
         >
-          {currentWorktrees.length > 0 && (
-            <WorktreeGrid
-              worktrees={currentWorktrees}
-              labels={labels}
-              codeAvailable={codeAvailable}
-              onOpenInEditor={handleOpenInEditor}
-              onRemove={handleRemoveWorktree}
-              onSaveLabel={handleSaveLabel}
-            />
+          {currentWorktrees === undefined ? (
+            <WorktreeGridSkeleton />
+          ) : (
+            currentWorktrees.length > 0 && (
+              <WorktreeGrid
+                worktrees={currentWorktrees}
+                labels={labels}
+                codeAvailable={codeAvailable}
+                onOpenInEditor={handleOpenInEditor}
+                onRemove={handleRemoveWorktree}
+                onSaveLabel={handleSaveLabel}
+              />
+            )
           )}
         </MainArea>
         {deleteTarget && (
