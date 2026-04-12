@@ -22,6 +22,9 @@ import {
   removeWorktree,
   deleteLabel,
   checkCodeCommand,
+  loadOrder,
+  saveOrder,
+  deleteOrder,
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
 
@@ -49,6 +52,7 @@ function App() {
   const repositories = useAppStore((s) => s.repositories);
   const selectedRepositoryId = useAppStore((s) => s.selectedRepositoryId);
   const worktrees = useAppStore((s) => s.worktrees);
+  const worktreeOrder = useAppStore((s) => s.worktreeOrder);
   const labels = useAppStore((s) => s.labels);
   const codeAvailable = useAppStore((s) => s.codeAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
@@ -63,6 +67,8 @@ function App() {
   const setAllLabels = useAppStore((s) => s.setAllLabels);
   const removeLabel = useAppStore((s) => s.removeLabel);
   const removeWorktreeEntry = useAppStore((s) => s.removeWorktreeEntry);
+  const setAllWorktreeOrder = useAppStore((s) => s.setAllWorktreeOrder);
+  const setWorktreeOrder = useAppStore((s) => s.setWorktreeOrder);
   const setCodeAvailable = useAppStore((s) => s.setCodeAvailable);
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
 
@@ -119,11 +125,13 @@ function App() {
       .catch(console.error);
 
     loadLabels().then(setAllLabels).catch(console.error);
+    loadOrder().then(setAllWorktreeOrder).catch(console.error);
     checkCodeCommand().then(setCodeAvailable).catch(console.error);
   }, [
     setRepositories,
     selectRepository,
     setAllLabels,
+    setAllWorktreeOrder,
     setCodeAvailable,
     setRefreshInterval,
     prefetchAll,
@@ -183,6 +191,7 @@ function App() {
       }
 
       saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      deleteOrder(id).catch((err) => console.error("並び順削除に失敗:", err));
     },
     [selectedRepositoryId, removeRepository, selectRepository]
   );
@@ -203,6 +212,23 @@ function App() {
       await saveLabel(worktreePath, newLabel).catch(console.error);
     },
     [setLabel]
+  );
+
+  // ===== 並び替え（Issue #7） =====
+
+  /**
+   * WorktreeGrid のドラッグ&ドロップ完了時に呼ばれる。
+   * in-memory の store を即座に更新（楽観更新）してから IPC で永続化する。
+   *
+   * @param repositoryId 対象リポジトリの ID
+   * @param newOrder 新しい並び順（non-main worktree のパス配列）
+   */
+  const handleReorder = useCallback(
+    async (repositoryId: string, newOrder: string[]) => {
+      setWorktreeOrder(repositoryId, newOrder);
+      await saveOrder(repositoryId, newOrder).catch(console.error);
+    },
+    [setWorktreeOrder]
   );
 
   /**
@@ -261,13 +287,19 @@ function App() {
         removeWorktreeEntry(selectedRepositoryId, deleteTarget.path);
         removeLabel(deleteTarget.path);
         await deleteLabel(deleteTarget.path).catch(console.error);
+
+        // 並び順から削除済み worktree を除去して永続化
+        const currentOrder = useAppStore.getState().worktreeOrder[selectedRepositoryId] ?? [];
+        const cleanedOrder = currentOrder.filter((p) => p !== deleteTarget.path);
+        setWorktreeOrder(selectedRepositoryId, cleanedOrder);
+        await saveOrder(selectedRepositoryId, cleanedOrder).catch(console.error);
       } catch (e) {
         console.error("worktree の削除に失敗:", e);
       } finally {
         setDeleteTarget(null);
       }
     },
-    [deleteTarget, selectedRepositoryId, removeWorktreeEntry, removeLabel]
+    [deleteTarget, selectedRepositoryId, removeWorktreeEntry, removeLabel, setWorktreeOrder]
   );
 
   // ===== 派生値は useMemo 化して、ポーリングで worktrees の参照が維持された時に
@@ -319,10 +351,13 @@ function App() {
               <WorktreeGrid
                 worktrees={currentWorktrees}
                 labels={labels}
+                worktreeOrder={worktreeOrder[selectedRepositoryId!] ?? []}
+                repositoryId={selectedRepositoryId!}
                 codeAvailable={codeAvailable}
                 onOpenInEditor={handleOpenInEditor}
                 onRemove={handleRemoveWorktree}
                 onSaveLabel={handleSaveLabel}
+                onReorder={handleReorder}
               />
             )
           )}
