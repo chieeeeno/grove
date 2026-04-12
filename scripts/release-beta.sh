@@ -67,12 +67,14 @@ info "最新のベータタグを取得..."
 
 git fetch --tags --quiet
 
+# grep がマッチなしで exit 1 を返すため、pipefail 下では || true で吸収する
 LATEST_NUM=$(
   git tag -l "${BETA_TAG_PREFIX}.*" \
     | sed "s/${BETA_TAG_PREFIX}\.//" \
     | grep -E '^[0-9]+$' \
     | sort -n \
-    | tail -1
+    | tail -1 \
+    || true
 )
 
 if [ -z "$LATEST_NUM" ]; then
