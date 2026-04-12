@@ -22,7 +22,10 @@ const MIN_SPIN_DURATION = 500; // 手動リフレッシュ時のスピナー最�
  * @returns `refresh` 関数を持つオブジェクト。呼ぶと手動リフレッシュが走り、
  *          スピナーが最低 500ms 表示される
  */
-export function useAutoRefresh(): { refresh: () => Promise<void> } {
+export function useAutoRefresh(): {
+  refresh: () => Promise<void>;
+  prefetchAll: (repos: RepositoryConfig[], selectedId: string | null) => void;
+} {
   const selectedRepositoryId = useAppStore((s) => s.selectedRepositoryId);
   const refreshInterval = useAppStore((s) => s.refreshInterval);
   const setWorktrees = useAppStore((s) => s.setWorktrees);
