@@ -22,7 +22,6 @@ import {
   removeWorktree,
   deleteLabel,
   checkCodeCommand,
-  listWorktrees,
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
 
@@ -65,7 +64,7 @@ function App() {
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
 
   // 自動リフレッシュ（ADR-0013: 5秒ポーリング）
-  const { refresh } = useAutoRefresh();
+  const { refresh, prefetchAll } = useAutoRefresh();
 
   // キーボードショートカット（Cmd+R でリフレッシュ）
   useKeyboardShortcuts({ onRefresh: refresh });
@@ -91,8 +90,6 @@ function App() {
     modifiedCount: number;
   } | null>(null);
 
-  const setWorktrees = useAppStore((s) => s.setWorktrees);
-
   // ===== 起動時: config + ラベル読み込み + 全リポジトリ pre-fetch =====
   useEffect(() => {
     loadConfig()
@@ -101,17 +98,13 @@ function App() {
         if (config.refreshInterval) {
           setRefreshInterval(config.refreshInterval);
         }
-        if (config.repositories.length > 0) {
-          selectRepository(config.repositories[0].id);
+        const firstId = config.repositories.length > 0 ? config.repositories[0].id : null;
+        if (firstId) {
+          selectRepository(firstId);
         }
 
-        // 全リポジトリの worktree を裏で pre-fetch する。
-        // 初回選択時にキャッシュヒットさせることで空状態フラッシュを回避する。
-        for (const repo of config.repositories) {
-          listWorktrees(repo.path)
-            .then((wts) => setWorktrees(repo.id, wts))
-            .catch(console.error);
-        }
+        // 選択中以外のリポジトリを裏で pre-fetch（選択中は useAutoRefresh が担当）
+        prefetchAll(config.repositories, firstId);
       })
       .catch(console.error);
 
@@ -123,7 +116,7 @@ function App() {
     setAllLabels,
     setCodeAvailable,
     setRefreshInterval,
-    setWorktrees,
+    prefetchAll,
   ]);
 
   // ===== リポジトリ追加 =====
