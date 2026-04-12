@@ -1,26 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { sortWorktrees } from "./sortWorktrees";
-import type { WorktreeInfo } from "../types";
-
-/** テスト用の WorktreeInfo を生成するヘルパー */
-function makeWorktree(path: string, overrides: Partial<WorktreeInfo> = {}): WorktreeInfo {
-  return {
-    path,
-    branch: "main",
-    isMain: false,
-    head: "abc123",
-    lastCommitMessage: "test",
-    lastCommitTime: 1000,
-    modifiedCount: 0,
-    ...overrides,
-  };
-}
+import { mockWorktree, mockSubWorktree } from "../test/fixtures";
 
 describe("sortWorktrees", () => {
-  const main = makeWorktree("/repo/main", { isMain: true, branch: "main" });
-  const featureA = makeWorktree("/repo/feature-a", { branch: "feature-a" });
-  const featureB = makeWorktree("/repo/feature-b", { branch: "feature-b" });
-  const featureC = makeWorktree("/repo/feature-c", { branch: "feature-c" });
+  const main = mockWorktree({ path: "/repo/main" });
+  const featureA = mockSubWorktree({ path: "/repo/feature-a", branch: "feature-a" });
+  const featureB = mockSubWorktree({ path: "/repo/feature-b", branch: "feature-b" });
+  const featureC = mockSubWorktree({ path: "/repo/feature-c", branch: "feature-c" });
 
   it("main worktree が常に先頭に来る", () => {
     const result = sortWorktrees([featureA, main, featureB], []);

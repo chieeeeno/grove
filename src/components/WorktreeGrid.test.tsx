@@ -1,21 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import WorktreeGrid from "./WorktreeGrid";
-import type { WorktreeInfo } from "../types";
-
-/** テスト用の WorktreeInfo を生成するヘルパー */
-function makeWorktree(path: string, overrides: Partial<WorktreeInfo> = {}): WorktreeInfo {
-  return {
-    path,
-    branch: "main",
-    isMain: false,
-    head: "abc123",
-    lastCommitMessage: "test commit",
-    lastCommitTime: 1000,
-    modifiedCount: 0,
-    ...overrides,
-  };
-}
+import { mockWorktree, mockSubWorktree } from "../test/fixtures";
 
 const noop = vi.fn();
 
@@ -31,9 +17,9 @@ const defaultProps = {
 };
 
 describe("WorktreeGrid", () => {
-  const mainWt = makeWorktree("/repo/main", { isMain: true, branch: "main" });
-  const featureA = makeWorktree("/repo/feature-a", { branch: "feature-a" });
-  const featureB = makeWorktree("/repo/feature-b", { branch: "feature-b" });
+  const mainWt = mockWorktree({ path: "/repo/main" });
+  const featureA = mockSubWorktree({ path: "/repo/feature-a", branch: "feature-a" });
+  const featureB = mockSubWorktree({ path: "/repo/feature-b", branch: "feature-b" });
 
   it("worktree カードがレンダリングされる", () => {
     render(<WorktreeGrid {...defaultProps} worktrees={[mainWt, featureA]} />);
