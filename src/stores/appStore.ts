@@ -101,6 +101,34 @@ interface AppStore {
    */
   removeWorktreeEntry: (repositoryId: string, worktreePath: string) => void;
 
+  // ===== 並び順 =====
+
+  /** リポジトリ ID ごとの worktree 表示順（key: repositoryId, value: worktree 絶対パス配列） */
+  worktreeOrder: Record<string, string[]>;
+
+  /**
+   * 指定リポジトリの worktree 並び順を in-memory で設定する。
+   * 永続化は呼び出し側で `saveOrder` IPC とセットで行う。
+   *
+   * @param repositoryId 対象のリポジトリ ID
+   * @param order worktree 絶対パスの配列（表示したい順番）
+   */
+  setWorktreeOrder: (repositoryId: string, order: string[]) => void;
+
+  /**
+   * 全リポジトリの並び順を全置換する。起動時に `loadOrder` IPC の結果を流し込む用途。
+   * @param order 新しい並び順マップ
+   */
+  setAllWorktreeOrder: (order: Record<string, string[]>) => void;
+
+  /**
+   * 指定リポジトリの並び順データを in-memory から除去する。
+   * リポジトリ削除時の連動用。永続化は別途 `deleteOrder` IPC で行う。
+   *
+   * @param repositoryId 削除対象のリポジトリ ID
+   */
+  removeWorktreeOrder: (repositoryId: string) => void;
+
   // ===== ラベル（worktree 絶対パスをキー、ADR-0008） =====
 
   /** ユーザー設定ラベルのマップ（key: worktree 絶対パス、value: ラベル文字列） */
@@ -161,11 +189,13 @@ export const useAppStore = create<AppStore>((set) => ({
   addRepository: (repo) => set((s) => ({ repositories: [...s.repositories, repo] })),
   removeRepository: (id) =>
     set((s) => {
-      // worktrees マップからも該当エントリを掃除する（長期稼働時のメモリリーク防止）
+      // worktrees・worktreeOrder マップからも該当エントリを掃除する（メモリリーク防止）
       const { [id]: _removed, ...remainingWorktrees } = s.worktrees;
+      const { [id]: _removedOrder, ...remainingOrder } = s.worktreeOrder;
       return {
         repositories: s.repositories.filter((r) => r.id !== id),
         worktrees: remainingWorktrees,
+        worktreeOrder: remainingOrder,
       };
     }),
   selectRepository: (id) => set({ selectedRepositoryId: id }),
@@ -188,6 +218,27 @@ export const useAppStore = create<AppStore>((set) => ({
         [repositoryId]: (s.worktrees[repositoryId] ?? []).filter((w) => w.path !== worktreePath),
       },
     })),
+
+  // 並び順
+  worktreeOrder: {},
+  setWorktreeOrder: (repositoryId, order) =>
+    set((s) => {
+      const existing = s.worktreeOrder[repositoryId];
+      if (
+        existing &&
+        existing.length === order.length &&
+        existing.every((p, i) => p === order[i])
+      ) {
+        return s;
+      }
+      return { worktreeOrder: { ...s.worktreeOrder, [repositoryId]: order } };
+    }),
+  setAllWorktreeOrder: (order) => set({ worktreeOrder: order }),
+  removeWorktreeOrder: (repositoryId) =>
+    set((s) => {
+      const { [repositoryId]: _removed, ...rest } = s.worktreeOrder;
+      return { worktreeOrder: rest };
+    }),
 
   // ラベル
   labels: {},

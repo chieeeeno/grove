@@ -1,6 +1,6 @@
 mod commands;
 
-use commands::{editor, label, repository, worktree};
+use commands::{editor, label, order, repository, worktree};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -23,6 +23,10 @@ pub fn run() {
             label::load_labels,
             label::save_label,
             label::delete_label,
+            // 並び順
+            order::load_order,
+            order::save_order,
+            order::delete_order,
             // エディタ
             editor::open_in_editor,
             editor::check_code_command,
