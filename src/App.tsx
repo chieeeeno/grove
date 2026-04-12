@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { Toaster, toast } from "sonner";
 import Sidebar from "./components/Sidebar";
 import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
@@ -73,6 +74,7 @@ function App() {
     async (interval: number) => {
       setRefreshInterval(interval);
       await saveConfig(buildConfigFromStore()).catch(console.error);
+      toast.success("設定を保存しました");
     },
     [setRefreshInterval]
   );
@@ -127,8 +129,10 @@ function App() {
       addRepository(newRepo);
       selectRepository(newRepo.id);
       saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      toast.success("リポジトリを追加しました");
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
+      toast.error("リポジトリの追加に失敗しました");
     }
   }, [addRepository, selectRepository]);
 
@@ -143,6 +147,7 @@ function App() {
       }
 
       saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      toast.success("リポジトリを解除しました");
     },
     [selectedRepositoryId, removeRepository, selectRepository]
   );
@@ -152,6 +157,7 @@ function App() {
     async (worktreePath: string, newLabel: string) => {
       setLabel(worktreePath, newLabel);
       await saveLabel(worktreePath, newLabel).catch(console.error);
+      toast.success("ラベルを保存しました");
     },
     [setLabel]
   );
@@ -185,8 +191,10 @@ function App() {
         removeWorktreeEntry(selectedRepositoryId, deleteTarget.path);
         removeLabel(deleteTarget.path);
         await deleteLabel(deleteTarget.path).catch(console.error);
+        toast.success("worktree を削除しました");
       } catch (e) {
         console.error("worktree の削除に失敗:", e);
+        toast.error("worktree の削除に失敗しました");
       } finally {
         setDeleteTarget(null);
       }
@@ -266,6 +274,18 @@ function App() {
         )}
         {/* DetailPanel は M0 では非表示（M1 以降で実装） */}
       </div>
+      <Toaster
+        position="bottom-right"
+        duration={2500}
+        theme="dark"
+        toastOptions={{
+          style: {
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-primary)",
+          },
+        }}
+      />
     </div>
   );
 }
