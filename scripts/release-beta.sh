@@ -108,10 +108,7 @@ fi
 NEXT_TAG="${BETA_TAG_PREFIX}.${NEXT_NUM}"
 info "次のタグ: ${NEXT_TAG}"
 
-# 前回ベータタグからの変更内容をリリースノートとして生成する。
-# 前回タグが存在しない（初回ベータ）場合は固定メッセージを使用する。
-#
-# @returns RELEASE_NOTES 変数にリリースノート文字列を格納
+# マージコミットはリリースノートのノイズになるため --no-merges で除外
 info "リリースノートを生成..."
 
 if [ -n "$LATEST_NUM" ]; then
@@ -132,7 +129,7 @@ fi
 if [ "$DRY_RUN" = true ]; then
   info "[dry-run] リリースノート:"
   echo "$RELEASE_NOTES"
-  echo ""
+  echo
 fi
 
 info "Tauri ビルドを実行..."
