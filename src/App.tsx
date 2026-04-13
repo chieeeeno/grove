@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Toaster, toast } from "sonner";
+import { toastError, toastRetryableError } from "./lib/toast";
 import Sidebar from "./components/Sidebar";
 import MainArea from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
@@ -101,7 +102,7 @@ function App() {
         toast.success("設定を保存しました");
       } catch (e) {
         console.error("設定保存に失敗:", e);
-        toast.error("設定の保存に失敗しました");
+        toastError("設定の保存に失敗しました");
       }
     },
     [setRefreshInterval]
@@ -139,7 +140,10 @@ function App() {
         // 選択中以外のリポジトリを裏で pre-fetch（選択中は useAutoRefresh が担当）
         prefetchAll(config.repositories, firstId);
       })
-      .catch(console.error);
+      .catch((e) => {
+        console.error("設定読み込みに失敗:", e);
+        toastError("設定の読み込みに失敗しました。アプリを再起動してください。");
+      });
 
     loadLabels().then(setAllLabels).catch(console.error);
     loadOrder().then(setAllWorktreeOrder).catch(console.error);
@@ -187,7 +191,7 @@ function App() {
       toast.success("リポジトリを追加しました");
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
-      toast.error("リポジトリの追加に失敗しました");
+      toastError("リポジトリの追加に失敗しました");
     }
   }, [addRepository, selectRepository]);
 
@@ -234,7 +238,7 @@ function App() {
         toast.success("ラベルを保存しました");
       } catch (e) {
         console.error("ラベル保存に失敗:", e);
-        toast.error("ラベルの保存に失敗しました");
+        toastError("ラベルの保存に失敗しました");
       }
     },
     [setLabel]
@@ -252,19 +256,30 @@ function App() {
   const handleReorder = useCallback(
     async (repositoryId: string, newOrder: string[]) => {
       setWorktreeOrder(repositoryId, newOrder);
-      await saveOrder(repositoryId, newOrder).catch(console.error);
+      await saveOrder(repositoryId, newOrder).catch((e) => {
+        console.error("並び替え保存に���敗:", e);
+        toastError("並び替えの保存に失敗しました");
+      });
     },
     [setWorktreeOrder]
   );
 
   /**
    * WorktreeCard の「VS Code で開く」ボタンから呼ばれる。
-   * Tauri IPC でパスを渡すだけ。失敗はログに残すのみ（preflight バナーで事前告知済み）。
+   * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
    *
    * @param worktreePath 開く worktree の絶対パス
    */
   const handleOpenInEditor = useCallback((worktreePath: string) => {
-    openInEditor(worktreePath).catch(console.error);
+    openInEditor(worktreePath).catch((e) => {
+      console.error("VS Code 起動に失敗:", e);
+      toastRetryableError("VS Code の起動に失敗しました", () =>
+        openInEditor(worktreePath).catch((retryErr) => {
+          console.error("VS Code 起動リトライ失敗:", retryErr);
+          toastError("VS Code の起動に再度失敗しました");
+        })
+      );
+    });
   }, []);
 
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
@@ -288,6 +303,7 @@ function App() {
       });
     } catch (e) {
       console.error("削除前チェック失敗:", e);
+      toastRetryableError("削除前チェックに失敗しました", () => handleRemoveWorktree(worktreePath));
     }
   }, []);
 
@@ -322,7 +338,7 @@ function App() {
         toast.success("worktree を削除しました");
       } catch (e) {
         console.error("worktree の削除に失敗:", e);
-        toast.error("worktree の削除に失敗しました");
+        toastError("worktree の削除に失敗しました");
       } finally {
         setDeleteTarget(null);
       }

@@ -179,6 +179,19 @@ interface AppStore {
   isRefreshing: boolean;
   /** @param v リフレッシュ中なら true */
   setIsRefreshing: (v: boolean) => void;
+
+  /**
+   * 最新のリフレッシュエラーメッセージ。
+   *
+   * ポーリングエラーが発生したときにセットし、連続する同一エラーでトーストが
+   * 繰り返し表示されるのを抑制するために使う。fetch 成功時に `null` にリセットする。
+   */
+  refreshError: string | null;
+  /**
+   * リフレッシュエラー状態を設定する。
+   * @param msg エラーメッセージ、またはクリア時は `null`
+   */
+  setRefreshError: (msg: string | null) => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -261,4 +274,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setCodeAvailable: (v) => set({ codeAvailable: v }),
   isRefreshing: false,
   setIsRefreshing: (v) => set({ isRefreshing: v }),
+
+  refreshError: null,
+  setRefreshError: (msg) => set((s) => (s.refreshError === msg ? s : { refreshError: msg })),
 }));

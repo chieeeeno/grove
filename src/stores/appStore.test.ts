@@ -12,6 +12,7 @@ describe("appStore", () => {
       labels: {},
       codeAvailable: false,
       isRefreshing: false,
+      refreshError: null,
     });
   });
 
@@ -183,6 +184,23 @@ describe("appStore", () => {
         "/path/b": "ラベルB",
       });
       expect(Object.keys(useAppStore.getState().labels)).toHaveLength(2);
+    });
+  });
+
+  describe("refreshError 管理", () => {
+    it("初期値は null", () => {
+      expect(useAppStore.getState().refreshError).toBeNull();
+    });
+
+    it("setRefreshError でエラーメッセージをセットできる", () => {
+      useAppStore.getState().setRefreshError("リフレッシュ失敗");
+      expect(useAppStore.getState().refreshError).toBe("リフレッシュ失敗");
+    });
+
+    it("setRefreshError(null) でクリアできる", () => {
+      useAppStore.getState().setRefreshError("リフレッシュ失敗");
+      useAppStore.getState().setRefreshError(null);
+      expect(useAppStore.getState().refreshError).toBeNull();
     });
   });
 });
