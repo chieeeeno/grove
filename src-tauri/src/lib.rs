@@ -1,6 +1,8 @@
 mod commands;
+mod menu;
 
 use commands::{editor, label, order, repository, worktree};
+use tauri::Emitter;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -9,6 +11,23 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            let m = menu::build_menu(app)?;
+            app.set_menu(m)?;
+            Ok(())
+        })
+        .on_menu_event(|app_handle, event| {
+            let id = event.id().0.as_str();
+            match id {
+                "refresh" => {
+                    let _ = app_handle.emit("menu-refresh", ());
+                }
+                "settings" => {
+                    let _ = app_handle.emit("menu-settings", ());
+                }
+                _ => {}
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             // リポジトリ
             repository::validate_repository,
