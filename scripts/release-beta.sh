@@ -108,6 +108,30 @@ fi
 NEXT_TAG="${BETA_TAG_PREFIX}.${NEXT_NUM}"
 info "次のタグ: ${NEXT_TAG}"
 
+# マージコミットはリリースノートのノイズになるため --no-merges で除外
+info "リリースノートを生成..."
+
+if [ -n "$LATEST_NUM" ]; then
+  PREV_TAG="${BETA_TAG_PREFIX}.${LATEST_NUM}"
+  CHANGELOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+  if [ -z "$CHANGELOG" ]; then
+    CHANGELOG="（前回リリースからの変更はありません）"
+  fi
+  RELEASE_NOTES="## 変更内容（${PREV_TAG} → ${NEXT_TAG}）
+
+${CHANGELOG}"
+else
+  RELEASE_NOTES="## ${NEXT_TAG}
+
+初回ベータリリース"
+fi
+
+if [ "$DRY_RUN" = true ]; then
+  info "[dry-run] リリースノート:"
+  echo "$RELEASE_NOTES"
+  echo
+fi
+
 info "Tauri ビルドを実行..."
 run pnpm tauri build
 
@@ -137,7 +161,7 @@ info "GitHub Release を作成 (prerelease)..."
 run gh release create "$NEXT_TAG" "$DMG_FILE" \
   --prerelease \
   --title "$NEXT_TAG" \
-  --notes "Beta release ${NEXT_TAG}"
+  --notes "$RELEASE_NOTES"
 
 if [ "$DRY_RUN" = true ]; then
   echo ""
