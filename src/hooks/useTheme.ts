@@ -10,31 +10,32 @@ const DARK_MQ = "(prefers-color-scheme: dark)";
  * `document.documentElement.dataset.theme` への反映と `prefers-color-scheme` の監視を行う。
  *
  * `"system"` の場合は OS の設定に追従し、リアルタイムで切り替わる。
+ * `resolvedTheme` は派生値として計算されるため、不要な再レンダーが発生しない。
  *
  * @returns resolvedTheme — 実際に適用されている `"dark"` | `"light"`
  */
 export function useTheme(): "dark" | "light" {
   const theme = useAppStore((s) => s.theme);
 
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() => resolveTheme(theme));
+  // system モード用: OS のダーク設定を追跡する state
+  const [sysDark, setSysDark] = useState(() => window.matchMedia(DARK_MQ).matches);
 
-  // theme 設定 or OS 設定の変更時に resolvedTheme を再計算
+  // system モード時のみメディアクエリを監視
   useEffect(() => {
-    if (theme !== "system") {
-      setResolvedTheme(theme);
-      return;
-    }
+    if (theme !== "system") return;
 
-    // system モード: 現在値をセットし、変更を監視
     const mq = window.matchMedia(DARK_MQ);
-    setResolvedTheme(mq.matches ? "dark" : "light");
+    setSysDark(mq.matches);
 
     const handler = (e: MediaQueryListEvent) => {
-      setResolvedTheme(e.matches ? "dark" : "light");
+      setSysDark(e.matches);
     };
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
+
+  // resolvedTheme は派生値（useState 不要）
+  const resolvedTheme: "dark" | "light" = theme === "system" ? (sysDark ? "dark" : "light") : theme;
 
   // resolvedTheme を DOM + Tauri ウィンドウに反映
   useEffect(() => {
@@ -43,17 +44,6 @@ export function useTheme(): "dark" | "light" {
   }, [resolvedTheme]);
 
   return resolvedTheme;
-}
-
-/**
- * theme 設定値を実際のテーマに解決する（初期値計算用）。
- *
- * @param theme store の theme 設定値
- * @returns 解決済みの `"dark"` | `"light"`
- */
-function resolveTheme(theme: "system" | "dark" | "light"): "dark" | "light" {
-  if (theme !== "system") return theme;
-  return window.matchMedia(DARK_MQ).matches ? "dark" : "light";
 }
 
 /**

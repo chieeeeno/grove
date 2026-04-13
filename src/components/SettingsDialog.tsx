@@ -1,4 +1,5 @@
 import { X, ChevronDown } from "lucide-react";
+import { useAppStore } from "../stores/appStore";
 
 const THEME_OPTIONS = [
   { value: "system" as const, label: "システム" },
@@ -12,10 +13,51 @@ const REFRESH_OPTIONS = [
   { value: 30000, label: "30 秒" },
 ];
 
+/**
+ * 設定ダイアログ内のセレクトボックス行。ラベル + 説明 + select + ChevronDown アイコンの
+ * 共通レイアウトを提供する。M1 のエディタ選択でも再利用する想定。
+ */
+function SettingsSelect<T extends string | number>({
+  label,
+  description,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <span className="text-[13px] font-semibold text-fg">{label}</span>
+        <span className="text-[12px] text-fg-muted">{description}</span>
+      </div>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value as T)}
+          className="w-full appearance-none rounded-lg px-3 py-2 text-[13px] text-fg bg-input border border-border outline-none cursor-pointer"
+        >
+          {options.map((opt) => (
+            <option key={String(opt.value)} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={16}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none"
+        />
+      </div>
+    </div>
+  );
+}
+
 interface SettingsDialogProps {
-  /** 現在のテーマ設定 */
-  theme: "system" | "dark" | "light";
-  /** テーマ変更ハンドラ */
   onChangeTheme: (theme: "system" | "dark" | "light") => void;
   refreshInterval: number;
   onChangeRefreshInterval: (interval: number) => void;
@@ -23,12 +65,14 @@ interface SettingsDialogProps {
 }
 
 export default function SettingsDialog({
-  theme,
   onChangeTheme,
   refreshInterval,
   onChangeRefreshInterval,
   onClose,
 }: SettingsDialogProps) {
+  // theme は App レベルでの購読を避け、ダイアログ内部で直接購読する
+  const theme = useAppStore((s) => s.theme);
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
@@ -55,56 +99,24 @@ export default function SettingsDialog({
         <div className="h-px bg-border" />
 
         {/* テーマ */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[13px] font-semibold text-fg">テーマ</span>
-            <span className="text-[12px] text-fg-muted">アプリの外観テーマを選択</span>
-          </div>
-          <div className="relative">
-            <select
-              value={theme}
-              onChange={(e) => onChangeTheme(e.target.value as "system" | "dark" | "light")}
-              className="w-full appearance-none rounded-lg px-3 py-2 text-[13px] text-fg bg-input border border-border outline-none cursor-pointer"
-            >
-              {THEME_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none"
-            />
-          </div>
-        </div>
+        <SettingsSelect
+          label="テーマ"
+          description="アプリの外観テーマを選択"
+          value={theme}
+          options={THEME_OPTIONS}
+          onChange={onChangeTheme}
+        />
 
         {/* TODO: エディタ選択（M1 で複数エディタ対応予定） */}
 
         {/* 自動更新間隔 */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[13px] font-semibold text-fg">自動更新</span>
-            <span className="text-[12px] text-fg-muted">worktree の状態を自動的に更新する間隔</span>
-          </div>
-          <div className="relative">
-            <select
-              value={refreshInterval}
-              onChange={(e) => onChangeRefreshInterval(Number(e.target.value))}
-              className="w-full appearance-none rounded-lg px-3 py-2 text-[13px] text-fg bg-input border border-border outline-none cursor-pointer"
-            >
-              {REFRESH_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none"
-            />
-          </div>
-        </div>
+        <SettingsSelect
+          label="自動更新"
+          description="worktree の状態を自動的に更新する間隔"
+          value={refreshInterval}
+          options={REFRESH_OPTIONS}
+          onChange={(v) => onChangeRefreshInterval(Number(v))}
+        />
       </div>
     </div>
   );

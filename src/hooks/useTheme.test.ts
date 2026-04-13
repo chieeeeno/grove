@@ -28,6 +28,9 @@ describe("useTheme", () => {
 
   beforeEach(() => {
     originalMatchMedia = window.matchMedia;
+    // デフォルトでダークモードの matchMedia モックを設定（全テストで matchMedia が必要）
+    const { mock } = createMatchMediaMock(true);
+    window.matchMedia = mock;
     useAppStore.setState({ theme: "system" });
     delete document.documentElement.dataset.theme;
   });

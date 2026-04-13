@@ -278,7 +278,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // 設定
   theme: "system",
-  setTheme: (v) => set({ theme: v }),
+  setTheme: (v) => set((s) => (s.theme === v ? s : { theme: v })),
   refreshInterval: 5000,
   setRefreshInterval: (v) => set({ refreshInterval: v }),
 

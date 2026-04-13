@@ -1,5 +1,24 @@
 use tauri::{Runtime, WebviewWindow};
 
+/// テーマ文字列を `tauri::Theme` に変換する。
+///
+/// # Arguments
+/// * `s` - `"dark"` または `"light"`
+///
+/// # Returns
+/// * `Ok(tauri::Theme)` - 変換成功
+/// * `Err(String)` - 不正な値の場合
+///
+/// # Errors
+/// `s` が `"dark"` / `"light"` 以外の場合
+fn parse_theme(s: &str) -> Result<tauri::Theme, String> {
+    match s {
+        "dark" => Ok(tauri::Theme::Dark),
+        "light" => Ok(tauri::Theme::Light),
+        other => Err(format!("不正なテーマ値です: {}", other)),
+    }
+}
+
 /// macOS タイトルバーのテーマを同期する。
 ///
 /// フロントエンドの `useTheme` フックが resolvedTheme を計算した後に呼び出し、
@@ -18,11 +37,7 @@ use tauri::{Runtime, WebviewWindow};
 /// - Tauri の `set_theme()` API が失敗した場合
 #[tauri::command]
 pub fn set_window_theme<R: Runtime>(window: WebviewWindow<R>, theme: String) -> Result<(), String> {
-    let tauri_theme = match theme.as_str() {
-        "dark" => tauri::Theme::Dark,
-        "light" => tauri::Theme::Light,
-        other => return Err(format!("不正なテーマ値です: {}", other)),
-    };
+    let tauri_theme = parse_theme(&theme)?;
 
     window
         .set_theme(Some(tauri_theme))
@@ -31,28 +46,18 @@ pub fn set_window_theme<R: Runtime>(window: WebviewWindow<R>, theme: String) -> 
 
 #[cfg(test)]
 mod tests {
-    // set_window_theme は WebviewWindow を必要とするため、
-    // 引数バリデーションのみユニットテストする（ウィンドウ操作は E2E で確認）
+    use super::*;
 
     #[test]
-    fn test_theme_value_validation() {
-        // match 分岐のロジックを直接テスト
-        let valid_values = ["dark", "light"];
-        for v in valid_values {
-            let result = match v {
-                "dark" => Ok(tauri::Theme::Dark),
-                "light" => Ok(tauri::Theme::Light),
-                other => Err(format!("不正なテーマ値です: {}", other)),
-            };
-            assert!(result.is_ok(), "{} should be valid", v);
-        }
+    fn test_parse_theme_valid_values() {
+        assert!(matches!(parse_theme("dark"), Ok(tauri::Theme::Dark)));
+        assert!(matches!(parse_theme("light"), Ok(tauri::Theme::Light)));
+    }
 
-        let invalid = "invalid";
-        let result: Result<tauri::Theme, String> = match invalid {
-            "dark" => Ok(tauri::Theme::Dark),
-            "light" => Ok(tauri::Theme::Light),
-            other => Err(format!("不正なテーマ値です: {}", other)),
-        };
-        assert!(result.is_err());
+    #[test]
+    fn test_parse_theme_invalid_values() {
+        assert!(parse_theme("system").is_err());
+        assert!(parse_theme("invalid").is_err());
+        assert!(parse_theme("").is_err());
     }
 }

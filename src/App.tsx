@@ -66,7 +66,6 @@ function App() {
   const worktrees = useAppStore((s) => s.worktrees);
   const worktreeOrder = useAppStore((s) => s.worktreeOrder);
   const labels = useAppStore((s) => s.labels);
-  const theme = useAppStore((s) => s.theme);
   const codeAvailable = useAppStore((s) => s.codeAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
   const refreshInterval = useAppStore((s) => s.refreshInterval);
@@ -95,43 +94,31 @@ function App() {
   // ===== 設定変更 =====
 
   /**
-   * 設定ダイアログからテーマ変更を受けるハンドラ。
-   * store の値を更新し、現在の設定全体を永続化する。
+   * store のセッターを呼んだ後に設定全体を永続化する共通ヘルパー。
+   * `buildConfigFromStore()` は `useAppStore.getState()` を読むため、
+   * セッター呼び出し後の最新 state が反映される。
    *
-   * @param newTheme 新しいテーマ設定（`"system"` | `"dark"` | `"light"`）
+   * @param applyToStore store を更新するサンク
    */
+  const saveSettingWithToast = useCallback(async (applyToStore: () => void) => {
+    applyToStore();
+    try {
+      await saveConfig(buildConfigFromStore());
+      toast.success("設定を保存しました");
+    } catch (e) {
+      console.error("設定保存に失敗:", e);
+      toastError("設定の保存に失敗しました");
+    }
+  }, []);
+
   const handleChangeTheme = useCallback(
-    async (newTheme: "system" | "dark" | "light") => {
-      setTheme(newTheme);
-      try {
-        await saveConfig(buildConfigFromStore());
-        toast.success("設定を保存しました");
-      } catch (e) {
-        console.error("設定保存に失敗:", e);
-        toastError("設定の保存に失敗しました");
-      }
-    },
-    [setTheme]
+    (newTheme: "system" | "dark" | "light") => saveSettingWithToast(() => setTheme(newTheme)),
+    [saveSettingWithToast, setTheme]
   );
 
-  /**
-   * 設定ダイアログから自動更新間隔の変更を受けるハンドラ。
-   * store の値を更新し、現在の設定全体を永続化する。
-   *
-   * @param interval 新しいポーリング間隔（ms）
-   */
   const handleChangeRefreshInterval = useCallback(
-    async (interval: number) => {
-      setRefreshInterval(interval);
-      try {
-        await saveConfig(buildConfigFromStore());
-        toast.success("設定を保存しました");
-      } catch (e) {
-        console.error("設定保存に失敗:", e);
-        toastError("設定の保存に失敗しました");
-      }
-    },
-    [setRefreshInterval]
+    (interval: number) => saveSettingWithToast(() => setRefreshInterval(interval)),
+    [saveSettingWithToast, setRefreshInterval]
   );
 
   // 設定ダイアログの状態
@@ -449,7 +436,6 @@ function App() {
         )}
         {isSettingsOpen && (
           <SettingsDialog
-            theme={theme}
             onChangeTheme={handleChangeTheme}
             refreshInterval={refreshInterval}
             onChangeRefreshInterval={handleChangeRefreshInterval}
