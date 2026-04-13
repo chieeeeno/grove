@@ -127,7 +127,7 @@ body,
 }
 
 /* ===== カスタムスクロールバー ===== */
-/* Tauri WKWebView（macOS）向け。「常に表示」設定時にダークテーマに馴染むスタイル */
+/* Tauri WKWebView（macOS）向け。「常に表示」設定時にテーマに馴染むスタイル */
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -145,4 +145,12 @@ body,
 *::-webkit-scrollbar-thumb:hover {
   background: #9CA3AF60;
   border-radius: 4px;
+}
+
+[data-theme="light"] *::-webkit-scrollbar-thumb {
+  background: #9CA3AF40;
+}
+
+[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
+  background: #6B728060;
 }
