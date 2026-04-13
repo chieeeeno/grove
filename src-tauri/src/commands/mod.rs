@@ -2,6 +2,7 @@ pub mod editor;
 pub mod label;
 pub mod order;
 pub mod repository;
+pub mod theme;
 pub mod worktree;
 
 /// tauri-plugin-store の保存先ファイル名（全コマンドで共通）

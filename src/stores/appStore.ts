@@ -160,6 +160,17 @@ interface AppStore {
 
   // ===== 設定 =====
 
+  /**
+   * UI テーマ設定。`"system"` の場合は OS のダーク/ライト設定に追従する。
+   * 実際の適用は `useTheme` フックが担当し、store は設定値の保持のみ行う。
+   */
+  theme: "system" | "dark" | "light";
+  /**
+   * テーマ設定を変更する（in-memory のみ。永続化は `saveConfig` IPC で別途行う）。
+   * @param v 新しいテーマ設定
+   */
+  setTheme: (v: "system" | "dark" | "light") => void;
+
   /** worktree ポーリング間隔（ミリ秒、ADR-0013 で既定 5000ms） */
   refreshInterval: number;
   /**
@@ -266,6 +277,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setAllLabels: (labels) => set({ labels }),
 
   // 設定
+  theme: "system",
+  setTheme: (v) => set((s) => (s.theme === v ? s : { theme: v })),
   refreshInterval: 5000,
   setRefreshInterval: (v) => set({ refreshInterval: v }),
 

@@ -187,6 +187,23 @@ export const saveOrder = (repositoryId: string, order: string[]): Promise<void> 
 export const deleteOrder = (repositoryId: string): Promise<void> =>
   invoke("delete_order", { repositoryId });
 
+// ===== テーマ =====
+
+/**
+ * ウィンドウテーマを設定する。
+ *
+ * `"system"` を渡すと `set_theme(None)` が呼ばれ、OS テーマに追従する。
+ * これにより WebView 内の `prefers-color-scheme` が OS 設定を反映し、
+ * `matchMedia` の change イベントが正しく発火するようになる。
+ * `"dark"` / `"light"` はウィンドウテーマを固定する。
+ *
+ * @param theme `"system"` / `"dark"` / `"light"`
+ * @returns テーマ設定完了時に resolve する Promise
+ * @throws 不正な theme 値 / ウィンドウ API 失敗時に reject
+ */
+export const setWindowTheme = (theme: "system" | "dark" | "light"): Promise<void> =>
+  invoke("set_window_theme", { theme });
+
 // ===== エディタ =====
 
 /**

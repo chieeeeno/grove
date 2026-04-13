@@ -1,7 +1,7 @@
 mod commands;
 mod menu;
 
-use commands::{editor, label, order, repository, worktree};
+use commands::{editor, label, order, repository, theme, worktree};
 use tauri::Emitter;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -49,6 +49,8 @@ pub fn run() {
             // エディタ
             editor::open_in_editor,
             editor::check_code_command,
+            // テーマ
+            theme::set_window_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

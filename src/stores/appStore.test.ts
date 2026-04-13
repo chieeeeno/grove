@@ -10,6 +10,7 @@ describe("appStore", () => {
       worktrees: {},
       worktreeOrder: {},
       labels: {},
+      theme: "system",
       codeAvailable: false,
       isRefreshing: false,
       refreshError: null,
@@ -184,6 +185,28 @@ describe("appStore", () => {
         "/path/b": "ラベルB",
       });
       expect(Object.keys(useAppStore.getState().labels)).toHaveLength(2);
+    });
+  });
+
+  describe("テーマ管理", () => {
+    it("初期値は system", () => {
+      expect(useAppStore.getState().theme).toBe("system");
+    });
+
+    it("setTheme で dark に変更できる", () => {
+      useAppStore.getState().setTheme("dark");
+      expect(useAppStore.getState().theme).toBe("dark");
+    });
+
+    it("setTheme で light に変更できる", () => {
+      useAppStore.getState().setTheme("light");
+      expect(useAppStore.getState().theme).toBe("light");
+    });
+
+    it("setTheme で system に戻せる", () => {
+      useAppStore.getState().setTheme("dark");
+      useAppStore.getState().setTheme("system");
+      expect(useAppStore.getState().theme).toBe("system");
     });
   });
 

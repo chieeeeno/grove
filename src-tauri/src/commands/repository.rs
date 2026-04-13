@@ -37,7 +37,7 @@ pub struct AppConfig {
     pub repositories: Vec<RepositoryConfig>,
     /// 使用するエディタ識別子。M0 では `"vscode"` のみサポート。
     pub editor: String,
-    /// UI テーマ。M0 では `"system"` のみ実装（ライト/ダーク切替は #16 で M2 対応予定）。
+    /// UI テーマ。`"system"` / `"dark"` / `"light"` の 3 値（#16 で実装済み）。
     pub theme: String,
     /// worktree リフレッシュ間隔（ミリ秒）。ADR-0013 で既定 5000ms。
     #[serde(rename = "refreshInterval")]

@@ -5,7 +5,7 @@ import SettingsDialog from "./SettingsDialog";
 
 describe("SettingsDialog", () => {
   const defaultProps = {
-    refreshInterval: 5000,
+    onChangeTheme: vi.fn(),
     onChangeRefreshInterval: vi.fn(),
     onClose: vi.fn(),
   };
@@ -13,7 +13,20 @@ describe("SettingsDialog", () => {
   it("ダイアログが表示される", () => {
     render(<SettingsDialog {...defaultProps} />);
     expect(screen.getByText("設定")).toBeInTheDocument();
+    expect(screen.getByText("テーマ")).toBeInTheDocument();
     expect(screen.getByText("自動更新")).toBeInTheDocument();
+  });
+
+  it("テーマを変更できる", async () => {
+    const onChangeTheme = vi.fn();
+    const user = userEvent.setup();
+    render(<SettingsDialog {...defaultProps} onChangeTheme={onChangeTheme} />);
+
+    const selects = screen.getAllByRole("combobox");
+    // テーマは最初のセレクトボックス
+    await user.selectOptions(selects[0], "dark");
+
+    expect(onChangeTheme).toHaveBeenCalledWith("dark");
   });
 
   it("自動更新間隔を変更できる", async () => {
@@ -21,8 +34,9 @@ describe("SettingsDialog", () => {
     const user = userEvent.setup();
     render(<SettingsDialog {...defaultProps} onChangeRefreshInterval={onChangeRefreshInterval} />);
 
-    const select = screen.getByRole("combobox");
-    await user.selectOptions(select, "10000");
+    const selects = screen.getAllByRole("combobox");
+    // 自動更新間隔は 2 番目のセレクトボックス
+    await user.selectOptions(selects[1], "10000");
 
     expect(onChangeRefreshInterval).toHaveBeenCalledWith(10000);
   });
