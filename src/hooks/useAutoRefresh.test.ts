@@ -4,6 +4,7 @@ import { mockIPC } from "@tauri-apps/api/mocks";
 import { useAutoRefresh } from "./useAutoRefresh";
 import { useAppStore } from "../stores/appStore";
 import { mockRepository, mockWorktree } from "../test/fixtures";
+import * as toastModule from "../lib/toast";
 
 describe("useAutoRefresh", () => {
   let invokeSpy: ReturnType<typeof vi.fn>;
@@ -21,11 +22,14 @@ describe("useAutoRefresh", () => {
     });
     mockIPC(invokeSpy as (cmd: string, args: unknown) => unknown);
 
+    vi.spyOn(toastModule, "toastError").mockImplementation(() => {});
+
     useAppStore.setState({
       repositories: [mockRepository({ path: "/mock/repo" })],
       selectedRepositoryId: "repo-1",
       worktrees: {},
       isRefreshing: false,
+      refreshError: null,
     });
   });
 
@@ -177,5 +181,66 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(5000);
     });
     expect(listWorktreeCalls()).toHaveLength(1);
+  });
+
+  describe("エラー通知", () => {
+    it("リフレッシュ失敗時にトーストが 1 回表示される", async () => {
+      invokeSpy.mockImplementation((cmd: string) => {
+        if (cmd === "list_worktrees") {
+          return Promise.reject(new Error("接続エラー"));
+        }
+        return null;
+      });
+
+      renderHook(() => useAutoRefresh());
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(toastModule.toastError).toHaveBeenCalledWith("worktree 一覧の取得に失敗しました");
+      expect(useAppStore.getState().refreshError).toBe("接続エラー");
+    });
+
+    it("連続エラー時にポーリングではトーストが抑制される", async () => {
+      invokeSpy.mockImplementation((cmd: string) => {
+        if (cmd === "list_worktrees") {
+          return Promise.reject(new Error("接続エラー"));
+        }
+        return null;
+      });
+
+      renderHook(() => useAutoRefresh());
+
+      // 初回 fetch でエラー → refreshError がセットされる
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(useAppStore.getState().refreshError).toBe("接続エラー");
+
+      // 初回分のカウントを記録してから、ポーリングで増えないことを確認
+      const countAfterMount = vi.mocked(toastModule.toastError).mock.calls.length;
+
+      // ポーリング（refreshError が既にセット済みなのでトースト抑制）
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+        await Promise.resolve();
+      });
+      expect(toastModule.toastError).toHaveBeenCalledTimes(countAfterMount);
+    });
+
+    it("成功後に refreshError がクリアされる", async () => {
+      // まずエラーを起こす
+      useAppStore.setState({ refreshError: "前回のエラー" });
+
+      renderHook(() => useAutoRefresh());
+
+      // 成功する fetch（デフォルト mock は成功を返す）
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(useAppStore.getState().refreshError).toBeNull();
+    });
   });
 });

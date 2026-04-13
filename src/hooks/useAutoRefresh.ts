@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAppStore } from "../stores/appStore";
 import { listWorktrees } from "../lib/tauri";
+import { toastError } from "../lib/toast";
 import type { RepositoryConfig } from "../types";
 
 const MIN_SPIN_DURATION = 500; // 手動リフレッシュ時のスピナー最低表示時間（ms）
@@ -30,6 +31,7 @@ export function useAutoRefresh(): {
   const refreshInterval = useAppStore((s) => s.refreshInterval);
   const setWorktrees = useAppStore((s) => s.setWorktrees);
   const setIsRefreshing = useAppStore((s) => s.setIsRefreshing);
+  const setRefreshError = useAppStore((s) => s.setRefreshError);
   /** listWorktrees 実行中かどうか。手動 refresh とポーリングの同時実行を防ぐ。 */
   const inFlightRef = useRef(false);
 
@@ -46,10 +48,17 @@ export function useAutoRefresh(): {
     try {
       const wts = await listWorktrees(repo.path);
       setWorktrees(repo.id, wts);
+      setRefreshError(null);
     } catch (e) {
       console.error("リフレッシュ失敗:", e);
+      // 連続する同一エラーでトーストが繰り返し表示されるのを抑制する。
+      // refreshError が null（= 直前は正常だった）のときだけトーストを出す。
+      if (useAppStore.getState().refreshError === null) {
+        toastError("worktree 一覧の取得に失敗しました");
+      }
+      setRefreshError(e instanceof Error ? e.message : String(e));
     }
-  }, [setWorktrees]);
+  }, [setWorktrees, setRefreshError]);
 
   /**
    * 内部リフレッシュ（スピナーなし、ポーリング・初回 fetch 用）。
