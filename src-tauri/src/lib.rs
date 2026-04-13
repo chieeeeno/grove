@@ -19,11 +19,11 @@ pub fn run() {
         .on_menu_event(|app_handle, event| {
             let id = event.id().0.as_str();
             match id {
-                "refresh" => {
-                    let _ = app_handle.emit("menu-refresh", ());
+                menu::MENU_ID_REFRESH => {
+                    let _ = app_handle.emit(menu::EVENT_MENU_REFRESH, ());
                 }
-                "settings" => {
-                    let _ = app_handle.emit("menu-settings", ());
+                menu::MENU_ID_SETTINGS => {
+                    let _ = app_handle.emit(menu::EVENT_MENU_SETTINGS, ());
                 }
                 _ => {}
             }

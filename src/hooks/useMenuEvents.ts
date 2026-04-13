@@ -1,6 +1,10 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 
+/** Rust 側 `menu::EVENT_MENU_*` と一致させること */
+const EVENT_MENU_REFRESH = "menu-refresh";
+const EVENT_MENU_SETTINGS = "menu-settings";
+
 /**
  * `useMenuEvents` が受け取るハンドラのセット。
  */
@@ -27,16 +31,27 @@ interface MenuEventHandlers {
  */
 export function useMenuEvents({ onRefresh, onOpenSettings }: MenuEventHandlers): void {
   useEffect(() => {
-    const unlistenRefresh = listen("menu-refresh", () => {
-      onRefresh();
-    });
-    const unlistenSettings = listen("menu-settings", () => {
-      onOpenSettings();
+    let active = true;
+    let unlistenRefresh: (() => void) | undefined;
+    let unlistenSettings: (() => void) | undefined;
+
+    Promise.all([
+      listen(EVENT_MENU_REFRESH, () => onRefresh()),
+      listen(EVENT_MENU_SETTINGS, () => onOpenSettings()),
+    ]).then(([f1, f2]) => {
+      if (!active) {
+        f1();
+        f2();
+        return;
+      }
+      unlistenRefresh = f1;
+      unlistenSettings = f2;
     });
 
     return () => {
-      unlistenRefresh.then((f) => f());
-      unlistenSettings.then((f) => f());
+      active = false;
+      unlistenRefresh?.();
+      unlistenSettings?.();
     };
   }, [onRefresh, onOpenSettings]);
 }

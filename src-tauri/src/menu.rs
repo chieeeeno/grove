@@ -3,6 +3,15 @@ use tauri::{
     App, Runtime,
 };
 
+/// カスタムメニュー項目の ID。`on_menu_event` のマッチで使う。
+pub const MENU_ID_REFRESH: &str = "refresh";
+pub const MENU_ID_SETTINGS: &str = "settings";
+
+/// Rust → フロントエンドに emit するイベント名。
+/// フロントエンド側の `listen()` と一致させる必要がある。
+pub const EVENT_MENU_REFRESH: &str = "menu-refresh";
+pub const EVENT_MENU_SETTINGS: &str = "menu-settings";
+
 /// アプリケーションのカスタムメニューバーを構築する。
 ///
 /// Grove は日本語のみの UI（ADR-0009）のため、全メニュー項目を日本語ラベルで定義する。
@@ -31,7 +40,7 @@ pub fn build_menu<R: Runtime>(app: &App<R>) -> tauri::Result<Menu<R>> {
         .separator()
         .item(&MenuItem::with_id(
             app,
-            "settings",
+            MENU_ID_SETTINGS,
             "設定...",
             true,
             Some("CmdOrCtrl+,"),
@@ -48,7 +57,7 @@ pub fn build_menu<R: Runtime>(app: &App<R>) -> tauri::Result<Menu<R>> {
     let view_submenu = SubmenuBuilder::new(app, "表示")
         .item(&MenuItem::with_id(
             app,
-            "refresh",
+            MENU_ID_REFRESH,
             "再読み込み",
             true,
             Some("CmdOrCtrl+R"),
