@@ -10,7 +10,9 @@ const DARK_MQ = "(prefers-color-scheme: dark)";
  * `document.documentElement.dataset.theme` への反映と `prefers-color-scheme` の監視を行う。
  *
  * `"system"` の場合は OS の設定に追従し、リアルタイムで切り替わる。
- * `resolvedTheme` は派生値として計算されるため、不要な再レンダーが発生しない。
+ * Tauri ウィンドウテーマは store の `theme` 値（resolved ではなく）で同期する。
+ * `"system"` のとき `set_theme(None)` を呼ぶことで、WebView 内の
+ * `prefers-color-scheme` が OS 設定を反映し matchMedia の change イベントが発火する。
  *
  * @returns resolvedTheme — 実際に適用されている `"dark"` | `"light"`
  */
@@ -19,6 +21,13 @@ export function useTheme(): "dark" | "light" {
 
   // system モード用: OS のダーク設定を追跡する state
   const [sysDark, setSysDark] = useState(() => window.matchMedia(DARK_MQ).matches);
+
+  // Tauri ウィンドウテーマを store の theme 値で同期
+  // "system" → set_theme(None) で OS 追従に戻す（matchMedia が正しく動作するために必要）
+  // "dark"/"light" → 固定テーマに設定
+  useEffect(() => {
+    setWindowTheme(theme).catch((e) => console.error("ウィンドウテーマの同期に失敗:", e));
+  }, [theme]);
 
   // system モード時のみメディアクエリを監視
   useEffect(() => {
@@ -37,10 +46,9 @@ export function useTheme(): "dark" | "light" {
   // resolvedTheme は派生値（useState 不要）
   const resolvedTheme: "dark" | "light" = theme === "system" ? (sysDark ? "dark" : "light") : theme;
 
-  // resolvedTheme を DOM + Tauri ウィンドウに反映
+  // resolvedTheme を DOM に反映
   useEffect(() => {
     applyThemeToDOM(resolvedTheme);
-    setWindowTheme(resolvedTheme).catch((e) => console.error("ウィンドウテーマの同期に失敗:", e));
   }, [resolvedTheme]);
 
   return resolvedTheme;

@@ -190,16 +190,18 @@ export const deleteOrder = (repositoryId: string): Promise<void> =>
 // ===== テーマ =====
 
 /**
- * macOS タイトルバーのテーマを Web ビューのテーマと同期する。
+ * ウィンドウテーマを設定する。
  *
- * `useTheme` フックが resolvedTheme を計算した後に呼び出す。
- * ウィンドウ装飾（タイトルバー、トラフィックライト）の見た目を一致させる。
+ * `"system"` を渡すと `set_theme(None)` が呼ばれ、OS テーマに追従する。
+ * これにより WebView 内の `prefers-color-scheme` が OS 設定を反映し、
+ * `matchMedia` の change イベントが正しく発火するようになる。
+ * `"dark"` / `"light"` はウィンドウテーマを固定する。
  *
- * @param theme `"dark"` または `"light"`（resolved 済みの値）
+ * @param theme `"system"` / `"dark"` / `"light"`
  * @returns テーマ設定完了時に resolve する Promise
  * @throws 不正な theme 値 / ウィンドウ API 失敗時に reject
  */
-export const setWindowTheme = (theme: "dark" | "light"): Promise<void> =>
+export const setWindowTheme = (theme: "system" | "dark" | "light"): Promise<void> =>
   invoke("set_window_theme", { theme });
 
 // ===== エディタ =====
