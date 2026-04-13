@@ -11,6 +11,7 @@ import PreflightBanner from "./components/PreflightBanner";
 import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useMenuEvents } from "./hooks/useMenuEvents";
+import { useTheme } from "./hooks/useTheme";
 import { useAppStore } from "./stores/appStore";
 import { dirName } from "./lib/path";
 import {
@@ -30,7 +31,7 @@ import {
 } from "./lib/tauri";
 import type { AppConfig, RepositoryConfig } from "./types";
 
-/** Toaster に渡すスタイル設定。デザイントークンに合わせたダークテーマ用。 */
+/** Toaster に渡すスタイル設定。CSS 変数でテーマに追従する。 */
 const TOAST_OPTIONS = {
   style: {
     background: "var(--bg-card)",
@@ -52,7 +53,7 @@ function buildConfigFromStore(): AppConfig {
   return {
     repositories: state.repositories,
     editor: "vscode",
-    theme: "system",
+    theme: state.theme,
     refreshInterval: state.refreshInterval,
   };
 }
@@ -65,6 +66,7 @@ function App() {
   const worktrees = useAppStore((s) => s.worktrees);
   const worktreeOrder = useAppStore((s) => s.worktreeOrder);
   const labels = useAppStore((s) => s.labels);
+  const theme = useAppStore((s) => s.theme);
   const codeAvailable = useAppStore((s) => s.codeAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
   const refreshInterval = useAppStore((s) => s.refreshInterval);
@@ -80,13 +82,37 @@ function App() {
   const removeWorktreeEntry = useAppStore((s) => s.removeWorktreeEntry);
   const setAllWorktreeOrder = useAppStore((s) => s.setAllWorktreeOrder);
   const setWorktreeOrder = useAppStore((s) => s.setWorktreeOrder);
+  const setTheme = useAppStore((s) => s.setTheme);
   const setCodeAvailable = useAppStore((s) => s.setCodeAvailable);
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
+
+  // テーマ適用（CSS 変数切替 + Tauri ウィンドウテーマ同期）
+  const resolvedTheme = useTheme();
 
   // 自動リフレッシュ（ADR-0013: 5秒ポーリング）
   const { refresh, prefetchAll } = useAutoRefresh();
 
   // ===== 設定変更 =====
+
+  /**
+   * 設定ダイアログからテーマ変更を受けるハンドラ。
+   * store の値を更新し、現在の設定全体を永続化する。
+   *
+   * @param newTheme 新しいテーマ設定（`"system"` | `"dark"` | `"light"`）
+   */
+  const handleChangeTheme = useCallback(
+    async (newTheme: "system" | "dark" | "light") => {
+      setTheme(newTheme);
+      try {
+        await saveConfig(buildConfigFromStore());
+        toast.success("設定を保存しました");
+      } catch (e) {
+        console.error("設定保存に失敗:", e);
+        toastError("設定の保存に失敗しました");
+      }
+    },
+    [setTheme]
+  );
 
   /**
    * 設定ダイアログから自動更新間隔の変更を受けるハンドラ。
@@ -129,6 +155,9 @@ function App() {
     loadConfig()
       .then((config) => {
         setRepositories(config.repositories);
+        if (config.theme) {
+          setTheme(config.theme);
+        }
         if (config.refreshInterval) {
           setRefreshInterval(config.refreshInterval);
         }
@@ -151,6 +180,7 @@ function App() {
   }, [
     setRepositories,
     selectRepository,
+    setTheme,
     setAllLabels,
     setAllWorktreeOrder,
     setCodeAvailable,
@@ -419,6 +449,8 @@ function App() {
         )}
         {isSettingsOpen && (
           <SettingsDialog
+            theme={theme}
+            onChangeTheme={handleChangeTheme}
             refreshInterval={refreshInterval}
             onChangeRefreshInterval={handleChangeRefreshInterval}
             onClose={() => setIsSettingsOpen(false)}
@@ -426,7 +458,12 @@ function App() {
         )}
         {/* DetailPanel は M0 では非表示（M1 以降で実装） */}
       </div>
-      <Toaster position="bottom-right" duration={2500} theme="dark" toastOptions={TOAST_OPTIONS} />
+      <Toaster
+        position="bottom-right"
+        duration={2500}
+        theme={resolvedTheme}
+        toastOptions={TOAST_OPTIONS}
+      />
     </div>
   );
 }
