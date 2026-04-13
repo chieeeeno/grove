@@ -39,7 +39,10 @@ function SettingsSelect<T extends string | number>({
       <div className="relative">
         <select
           value={value}
-          onChange={(e) => onChange(e.target.value as T)}
+          onChange={(e) => {
+            const raw = e.target.value;
+            onChange((typeof value === "number" ? Number(raw) : raw) as T);
+          }}
           className="w-full appearance-none rounded-lg px-3 py-2 text-[13px] text-fg bg-input border border-border outline-none cursor-pointer"
         >
           {options.map((opt) => (
@@ -59,19 +62,18 @@ function SettingsSelect<T extends string | number>({
 
 interface SettingsDialogProps {
   onChangeTheme: (theme: "system" | "dark" | "light") => void;
-  refreshInterval: number;
   onChangeRefreshInterval: (interval: number) => void;
   onClose: () => void;
 }
 
 export default function SettingsDialog({
   onChangeTheme,
-  refreshInterval,
   onChangeRefreshInterval,
   onClose,
 }: SettingsDialogProps) {
-  // theme は App レベルでの購読を避け、ダイアログ内部で直接購読する
+  // App レベルでの購読を避け、ダイアログ内部で store を直接購読する
   const theme = useAppStore((s) => s.theme);
+  const refreshInterval = useAppStore((s) => s.refreshInterval);
 
   return (
     <div
@@ -115,7 +117,7 @@ export default function SettingsDialog({
           description="worktree の状態を自動的に更新する間隔"
           value={refreshInterval}
           options={REFRESH_OPTIONS}
-          onChange={(v) => onChangeRefreshInterval(Number(v))}
+          onChange={onChangeRefreshInterval}
         />
       </div>
     </div>

@@ -31,8 +31,8 @@ export interface AppConfig {
   /** 使用するエディタ識別子。M0 では `"vscode"` のみサポート */
   editor: "vscode";
   /**
-   * UI テーマ。型としては将来の拡張用に 3 値を受け入れるが、M0 では
-   * `"system"` のみ実装（ライト/ダーク切替の UI 実装は #16 で M2 対応予定）。
+   * UI テーマ。`"system"` は OS のダーク/ライト設定に追従する。
+   * 設定ダイアログから 3 値を選択可能（#16 で実装済み）。
    */
   theme: "system" | "dark" | "light";
   /** worktree リフレッシュ間隔（ミリ秒）。ADR-0013 で既定 5000ms */

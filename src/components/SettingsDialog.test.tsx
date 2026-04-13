@@ -6,7 +6,6 @@ import SettingsDialog from "./SettingsDialog";
 describe("SettingsDialog", () => {
   const defaultProps = {
     onChangeTheme: vi.fn(),
-    refreshInterval: 5000,
     onChangeRefreshInterval: vi.fn(),
     onClose: vi.fn(),
   };

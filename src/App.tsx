@@ -68,7 +68,6 @@ function App() {
   const labels = useAppStore((s) => s.labels);
   const codeAvailable = useAppStore((s) => s.codeAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
-  const refreshInterval = useAppStore((s) => s.refreshInterval);
 
   // actions は参照安定なので個別取得でよい
   const addRepository = useAppStore((s) => s.addRepository);
@@ -437,7 +436,6 @@ function App() {
         {isSettingsOpen && (
           <SettingsDialog
             onChangeTheme={handleChangeTheme}
-            refreshInterval={refreshInterval}
             onChangeRefreshInterval={handleChangeRefreshInterval}
             onClose={() => setIsSettingsOpen(false)}
           />
