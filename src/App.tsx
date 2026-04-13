@@ -10,7 +10,7 @@ import DeleteDialog from "./components/DeleteDialog";
 import PreflightBanner from "./components/PreflightBanner";
 import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
-import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useAppStore } from "./stores/appStore";
 import { dirName } from "./lib/path";
 import {
@@ -86,9 +86,6 @@ function App() {
   // 自動リフレッシュ（ADR-0013: 5秒ポーリング）
   const { refresh, prefetchAll } = useAutoRefresh();
 
-  // キーボードショートカット（Cmd+R でリフレッシュ）
-  useKeyboardShortcuts({ onRefresh: refresh });
-
   // ===== 設定変更 =====
 
   /**
@@ -113,6 +110,10 @@ function App() {
 
   // 設定ダイアログの状態
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // メニューバーイベント（Cmd+R で再読み込み、Cmd+, で設定）
+  const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
+  useMenuEvents({ onRefresh: refresh, onOpenSettings: handleOpenSettings });
 
   // 削除ダイアログの状態
   const [deleteTarget, setDeleteTarget] = useState<{
