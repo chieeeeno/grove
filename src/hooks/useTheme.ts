@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppStore } from "../stores/appStore";
+import { setWindowTheme } from "../lib/tauri";
 
 /** OS のダーク/ライト設定を判定するメディアクエリ */
 const DARK_MQ = "(prefers-color-scheme: dark)";
@@ -35,9 +36,10 @@ export function useTheme(): "dark" | "light" {
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
 
-  // resolvedTheme を DOM に反映
+  // resolvedTheme を DOM + Tauri ウィンドウに反映
   useEffect(() => {
     applyThemeToDOM(resolvedTheme);
+    setWindowTheme(resolvedTheme).catch((e) => console.error("ウィンドウテーマの同期に失敗:", e));
   }, [resolvedTheme]);
 
   return resolvedTheme;

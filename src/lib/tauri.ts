@@ -187,6 +187,21 @@ export const saveOrder = (repositoryId: string, order: string[]): Promise<void> 
 export const deleteOrder = (repositoryId: string): Promise<void> =>
   invoke("delete_order", { repositoryId });
 
+// ===== テーマ =====
+
+/**
+ * macOS タイトルバーのテーマを Web ビューのテーマと同期する。
+ *
+ * `useTheme` フックが resolvedTheme を計算した後に呼び出す。
+ * ウィンドウ装飾（タイトルバー、トラフィックライト）の見た目を一致させる。
+ *
+ * @param theme `"dark"` または `"light"`（resolved 済みの値）
+ * @returns テーマ設定完了時に resolve する Promise
+ * @throws 不正な theme 値 / ウィンドウ API 失敗時に reject
+ */
+export const setWindowTheme = (theme: "dark" | "light"): Promise<void> =>
+  invoke("set_window_theme", { theme });
+
 // ===== エディタ =====
 
 /**
