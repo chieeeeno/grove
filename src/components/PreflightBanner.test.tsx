@@ -16,19 +16,19 @@ describe("PreflightBanner", () => {
 
   it("terminalUnavailable=true のとき Terminal 警告バナーを表示する", () => {
     render(<PreflightBanner {...defaultProps} terminalUnavailable={true} />);
-    expect(screen.getByText(/Terminal\.app が見つかりません/)).toBeInTheDocument();
+    expect(screen.getByText(/対応するターミナルアプリが見つかりません/)).toBeInTheDocument();
   });
 
   it("両方 unavailable のとき 2 つのバナーを表示する", () => {
     render(<PreflightBanner codeUnavailable={true} terminalUnavailable={true} />);
     expect(screen.getByText(/code コマンドが見つかりません/)).toBeInTheDocument();
-    expect(screen.getByText(/Terminal\.app が見つかりません/)).toBeInTheDocument();
+    expect(screen.getByText(/対応するターミナルアプリが見つかりません/)).toBeInTheDocument();
   });
 
   it("両方 available のとき何も表示しない", () => {
     render(<PreflightBanner {...defaultProps} />);
     expect(screen.queryByText(/code コマンドが見つかりません/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Terminal\.app が見つかりません/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/対応するターミナルアプリが見つかりません/)).not.toBeInTheDocument();
   });
 
   it("× ボタンで個別にバナーを非表示にできる", async () => {
@@ -40,7 +40,7 @@ describe("PreflightBanner", () => {
     await user.click(closeButtons[0]);
 
     expect(screen.queryByText(/code コマンドが見つかりません/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Terminal\.app が見つかりません/)).toBeInTheDocument();
+    expect(screen.getByText(/対応するターミナルアプリが見つかりません/)).toBeInTheDocument();
   });
 
   it("dismiss 後に問題が解消→再発したら再表示する", async () => {

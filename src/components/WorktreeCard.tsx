@@ -150,7 +150,7 @@ function WorktreeCard({
           disabled={!terminalAvailable}
           className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium border-0 outline-none transition-colors duration-150
             ${terminalAvailable ? "bg-fg-muted/20 text-fg-secondary hover:bg-fg-muted/30 active:bg-fg-muted/40 cursor-pointer" : "bg-fg-muted/10 text-fg-muted cursor-not-allowed opacity-60"}`}
-          title={terminalAvailable ? undefined : "Terminal.app が見つかりません"}
+          title={terminalAvailable ? undefined : "ターミナルアプリが見つかりません"}
         >
           <SquareTerminal size={14} />
           Terminal

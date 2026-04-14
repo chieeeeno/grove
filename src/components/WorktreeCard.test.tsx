@@ -30,7 +30,7 @@ describe("WorktreeCard", () => {
       );
       const btn = screen.getByRole("button", { name: /Terminal/ });
       expect(btn).toBeDisabled();
-      expect(btn).toHaveAttribute("title", "Terminal.app が見つかりません");
+      expect(btn).toHaveAttribute("title", "ターミナルアプリが見つかりません");
     });
 
     it("Terminal ボタンクリックで onOpenInTerminal が呼ばれる", async () => {

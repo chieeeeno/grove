@@ -17,7 +17,8 @@ const BANNER_MESSAGES: Record<BannerKey, { message: string }> = {
       "code コマンドが見つかりません。VS Code で「Shell Command: Install 'code' command in PATH」を実行してください。",
   },
   terminal: {
-    message: "Terminal.app が見つかりません。macOS 標準のターミナルアプリが必要です。",
+    message:
+      "対応するターミナルアプリが見つかりません。Terminal.app, Ghostty, iTerm2, Alacritty, Warp, kitty のいずれかをインストールしてください。",
   },
 };
 
