@@ -50,8 +50,8 @@ pub fn run() {
             editor::open_in_editor,
             editor::check_code_command,
             // ターミナル
+            terminal::detect_installed_terminals,
             terminal::open_in_terminal,
-            terminal::check_terminal_app,
             // テーマ
             theme::set_window_theme,
         ])

@@ -42,6 +42,13 @@ pub struct AppConfig {
     /// worktree リフレッシュ間隔（ミリ秒）。ADR-0013 で既定 5000ms。
     #[serde(rename = "refreshInterval")]
     pub refresh_interval: u32,
+    /// 選択中のターミナルアプリ識別子。`detect_installed_terminals` が返す `TerminalApp::id` の値。
+    /// 空文字の場合は検出リストの先頭をフォールバックとして使用する。
+    ///
+    /// 既存ユーザーの store に `terminal` キーが無い場合でも `#[serde(default)]` により
+    /// 空文字にフォールバックし、他フィールドのデシリアライズに影響しない。
+    #[serde(default)]
+    pub terminal: String,
 }
 
 impl Default for AppConfig {
@@ -52,6 +59,7 @@ impl Default for AppConfig {
             editor: "vscode".to_string(),
             theme: "system".to_string(),
             refresh_interval: 5000,
+            terminal: String::new(),
         }
     }
 }
@@ -212,6 +220,7 @@ mod tests {
         assert_eq!(config.editor, "vscode");
         assert_eq!(config.theme, "system");
         assert_eq!(config.refresh_interval, 5000);
+        assert!(config.terminal.is_empty());
         assert!(config.repositories.is_empty());
     }
 
@@ -228,6 +237,7 @@ mod tests {
         assert_eq!(config.editor, "vscode");
         assert_eq!(config.theme, "system");
         assert_eq!(config.refresh_interval, 5000);
+        assert!(config.terminal.is_empty());
         assert!(config.repositories.is_empty());
     }
 
@@ -247,6 +257,7 @@ mod tests {
             editor: "vscode".to_string(),
             theme: "dark".to_string(),
             refresh_interval: 10000,
+            terminal: "ghostty".to_string(),
         };
 
         // 保存
@@ -261,7 +272,24 @@ mod tests {
         let loaded = load_config(handle).unwrap();
         assert_eq!(loaded.theme, "dark");
         assert_eq!(loaded.refresh_interval, 10000);
+        assert_eq!(loaded.terminal, "ghostty");
         assert_eq!(loaded.repositories.len(), 1);
         assert_eq!(loaded.repositories[0].name, "test-repo");
+    }
+
+    #[test]
+    fn test_load_config_missing_terminal_field() {
+        // terminal フィールドが無い JSON でも他フィールドが正常にデシリアライズされることを検証
+        // （既存ユーザーの store に terminal が無いケースの後方互換テスト）
+        let json = serde_json::json!({
+            "repositories": [],
+            "editor": "vscode",
+            "theme": "light",
+            "refreshInterval": 3000
+        });
+        let config: AppConfig = serde_json::from_value(json).expect("デシリアライズに失敗");
+        assert_eq!(config.theme, "light");
+        assert_eq!(config.refresh_interval, 3000);
+        assert!(config.terminal.is_empty(), "terminal は空文字にフォールバックすべき");
     }
 }
