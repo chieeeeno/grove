@@ -12,7 +12,7 @@ import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
-import { useAppStore } from "./stores/appStore";
+import { useAppStore, selectEffectiveTerminalId } from "./stores/appStore";
 import { dirName } from "./lib/path";
 import {
   validateRepository,
@@ -43,14 +43,6 @@ const TOAST_OPTIONS = {
 } as const;
 
 /**
- * 現在の store 状態から `AppConfig` を組み立てるヘルパー。
- *
- * 設定保存は常にこのヘルパー経由で行う。部分更新時に他のフィールドをハードコード
- * すると保存済み設定を上書きしてしまうため、常に現在の store 全体から組み立てる。
- *
- * @returns 現在の store 状態を反映した `AppConfig`
- */
-/**
  * 外部ツール起動の共通リトライロジック。
  *
  * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
@@ -75,6 +67,14 @@ function openWithRetry(
   });
 }
 
+/**
+ * 現在の store 状態から `AppConfig` を組み立てるヘルパー。
+ *
+ * 設定保存は常にこのヘルパー経由で行う。部分更新時に他のフィールドをハードコード
+ * すると保存済み設定を上書きしてしまうため、常に現在の store 全体から組み立てる。
+ *
+ * @returns 現在の store 状態を反映した `AppConfig`
+ */
 function buildConfigFromStore(): AppConfig {
   const state = useAppStore.getState();
   return {
@@ -327,10 +327,7 @@ function App() {
     []
   );
   const handleOpenInTerminal = useCallback((worktreePath: string) => {
-    const state = useAppStore.getState();
-    const terminalId =
-      state.selectedTerminal ||
-      (state.installedTerminals.length > 0 ? state.installedTerminals[0].id : "");
+    const terminalId = selectEffectiveTerminalId(useAppStore.getState());
     openWithRetry((path) => openInTerminal(path, terminalId), "ターミナル", worktreePath);
   }, []);
 

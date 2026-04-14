@@ -318,3 +318,16 @@ export const useAppStore = create<AppStore>((set) => ({
   refreshError: null,
   setRefreshError: (msg) => set((s) => (s.refreshError === msg ? s : { refreshError: msg })),
 }));
+
+/**
+ * 実効ターミナル ID を導出するセレクタ。
+ *
+ * `selectedTerminal` が設定済みならそれを返し、未設定（空文字）なら
+ * `installedTerminals` の先頭をフォールバックとして返す。
+ *
+ * @param state AppStore の状態
+ * @returns 実効ターミナル ID。検出済みターミナルが 0 件の場合は空文字
+ */
+export function selectEffectiveTerminalId(state: AppStore): string {
+  return state.selectedTerminal || (state.installedTerminals[0]?.id ?? "");
+}

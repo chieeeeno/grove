@@ -1,5 +1,5 @@
 import { X, ChevronDown } from "lucide-react";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, selectEffectiveTerminalId } from "../stores/appStore";
 
 const THEME_OPTIONS = [
   { value: "system" as const, label: "システム" },
@@ -77,7 +77,7 @@ export default function SettingsDialog({
   const theme = useAppStore((s) => s.theme);
   const refreshInterval = useAppStore((s) => s.refreshInterval);
   const installedTerminals = useAppStore((s) => s.installedTerminals);
-  const selectedTerminal = useAppStore((s) => s.selectedTerminal);
+  const effectiveTerminalId = useAppStore(selectEffectiveTerminalId);
 
   return (
     <div
@@ -120,7 +120,7 @@ export default function SettingsDialog({
           <SettingsSelect
             label="ターミナル"
             description="worktree を開くターミナルアプリを選択"
-            value={selectedTerminal || installedTerminals[0].id}
+            value={effectiveTerminalId}
             options={installedTerminals.map((t) => ({ value: t.id, label: t.name }))}
             onChange={onChangeTerminal}
           />
