@@ -210,6 +210,36 @@ describe("appStore", () => {
     });
   });
 
+  describe("ターミナル管理", () => {
+    const mockTerminals = [
+      { id: "terminal", name: "Terminal.app", path: "/System/Applications/Utilities/Terminal.app" },
+      { id: "ghostty", name: "Ghostty", path: "/Applications/Ghostty.app" },
+    ];
+
+    it("初期値は空配列・空文字・false", () => {
+      expect(useAppStore.getState().installedTerminals).toEqual([]);
+      expect(useAppStore.getState().selectedTerminal).toBe("");
+      expect(useAppStore.getState().terminalAvailable).toBe(false);
+    });
+
+    it("setInstalledTerminals で一覧を設定し terminalAvailable が連動する", () => {
+      useAppStore.getState().setInstalledTerminals(mockTerminals);
+      expect(useAppStore.getState().installedTerminals).toHaveLength(2);
+      expect(useAppStore.getState().terminalAvailable).toBe(true);
+    });
+
+    it("setInstalledTerminals に空配列を渡すと terminalAvailable が false になる", () => {
+      useAppStore.getState().setInstalledTerminals(mockTerminals);
+      useAppStore.getState().setInstalledTerminals([]);
+      expect(useAppStore.getState().terminalAvailable).toBe(false);
+    });
+
+    it("setSelectedTerminal で選択を変更できる", () => {
+      useAppStore.getState().setSelectedTerminal("ghostty");
+      expect(useAppStore.getState().selectedTerminal).toBe("ghostty");
+    });
+  });
+
   describe("refreshError 管理", () => {
     it("初期値は null", () => {
       expect(useAppStore.getState().refreshError).toBeNull();

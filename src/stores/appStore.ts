@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { RepositoryConfig, WorktreeInfo } from "../types";
+import type { RepositoryConfig, TerminalApp, WorktreeInfo } from "../types";
 
 /**
  * 2 つの worktree 配列が内容的に同一かを判定する。
@@ -186,10 +186,25 @@ interface AppStore {
   /** @param v `code` コマンドの利用可否 */
   setCodeAvailable: (v: boolean) => void;
 
-  /** Terminal.app が利用可能か（ADR-0012 preflight 用。起動時に 1 回判定） */
+  /** 検出済みターミナルアプリ一覧（起動時に `detect_installed_terminals` で取得） */
+  installedTerminals: TerminalApp[];
+  /**
+   * 検出済みターミナルアプリ一覧を設定する。
+   * `terminalAvailable` も連動して更新される（1 件以上あれば true）。
+   * @param terminals 検出されたターミナルアプリ配列
+   */
+  setInstalledTerminals: (terminals: TerminalApp[]) => void;
+
+  /** 選択中のターミナルアプリ識別子（`AppConfig.terminal` と同期） */
+  selectedTerminal: string;
+  /**
+   * 選択中のターミナルアプリを変更する（in-memory のみ。永続化は `saveConfig` IPC で別途行う）。
+   * @param id ターミナルアプリ識別子
+   */
+  setSelectedTerminal: (id: string) => void;
+
+  /** ターミナルアプリが利用可能か（ADR-0012 preflight 用。`installedTerminals.length > 0` の派生値） */
   terminalAvailable: boolean;
-  /** @param v Terminal.app の利用可否 */
-  setTerminalAvailable: (v: boolean) => void;
 
   /** 手動リフレッシュ実行中フラグ（スピナー表示用） */
   isRefreshing: boolean;
@@ -290,9 +305,13 @@ export const useAppStore = create<AppStore>((set) => ({
   // UI
   codeAvailable: false,
   setCodeAvailable: (v) => set((s) => (s.codeAvailable === v ? s : { codeAvailable: v })),
+  installedTerminals: [],
+  setInstalledTerminals: (terminals) =>
+    set({ installedTerminals: terminals, terminalAvailable: terminals.length > 0 }),
+  selectedTerminal: "",
+  setSelectedTerminal: (id) =>
+    set((s) => (s.selectedTerminal === id ? s : { selectedTerminal: id })),
   terminalAvailable: false,
-  setTerminalAvailable: (v) =>
-    set((s) => (s.terminalAvailable === v ? s : { terminalAvailable: v })),
   isRefreshing: false,
   setIsRefreshing: (v) => set({ isRefreshing: v }),
 

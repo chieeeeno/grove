@@ -235,24 +235,26 @@ export const checkCodeCommand = (): Promise<boolean> => invoke("check_code_comma
 // ===== ターミナル =====
 
 /**
- * 指定パスを Terminal.app で開く（`open -a Terminal <path>` を spawn）。
+ * インストール済みの既知ターミナルアプリを検出して一覧を返す。
  *
- * 親プロセスは起動完了を待たずに即 resolve する。ADR-0012 により、呼び出し側は
- * 事前に `checkTerminalApp` で可否を確認してボタンを無効化しておく想定。
+ * 起動時に 1 回呼ばれる想定。設定ダイアログ表示時にも再呼び出し可能
+ * （キャッシュなしで毎回走査するが、パス存在チェックのみなので十分高速）。
  *
- * @param path 開く対象の絶対パス（ディレクトリ）
- * @returns spawn 完了時に resolve する Promise
- * @throws Terminal.app が見つからない / spawn 失敗時に reject
+ * @returns 検出されたターミナルアプリの配列。何もインストールされていなければ空配列
  */
-export const openInTerminal = (path: string): Promise<void> => invoke("open_in_terminal", { path });
+export const detectInstalledTerminals = (): Promise<import("../types").TerminalApp[]> =>
+  invoke("detect_installed_terminals");
 
 /**
- * Terminal.app が利用可能かを調べる（ADR-0012 preflight）。
+ * 指定パスを選択中のターミナルアプリで開く（`open -a <app> <path>` を spawn）。
  *
- * アプリ起動時に 1 回だけ呼ばれる想定。Rust 側でキャッシュ済みなので、起動後の
- * 再呼び出しは即返る。
+ * 親プロセスは起動完了を待たずに即 resolve する。ADR-0012 により、呼び出し側は
+ * 事前に `detectInstalledTerminals` で可否を確認してボタンを無効化しておく想定。
  *
- * @returns Terminal.app が利用可能なら true。false のときフロントは上部バナー警告と
- *          関連ボタン無効化を表示する
+ * @param path 開く対象の絶対パス（ディレクトリ）
+ * @param terminalId 使用するターミナルアプリの識別子（`TerminalApp.id`）
+ * @returns spawn 完了時に resolve する Promise
+ * @throws 指定ターミナルが見つからない / spawn 失敗時に reject
  */
-export const checkTerminalApp = (): Promise<boolean> => invoke("check_terminal_app");
+export const openInTerminal = (path: string, terminalId: string): Promise<void> =>
+  invoke("open_in_terminal", { path, terminalId });
