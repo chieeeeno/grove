@@ -1,14 +1,23 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SettingsDialog from "./SettingsDialog";
+import { useAppStore } from "../stores/appStore";
 
 describe("SettingsDialog", () => {
   const defaultProps = {
     onChangeTheme: vi.fn(),
     onChangeRefreshInterval: vi.fn(),
+    onChangeTerminal: vi.fn(),
     onClose: vi.fn(),
   };
+
+  beforeEach(() => {
+    useAppStore.setState({
+      installedTerminals: [],
+      selectedTerminal: "",
+    });
+  });
 
   it("ダイアログが表示される", () => {
     render(<SettingsDialog {...defaultProps} />);
@@ -62,5 +71,53 @@ describe("SettingsDialog", () => {
     await user.click(overlay);
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe("ターミナル選択", () => {
+    it("検出済みターミナルがある場合にドロップダウンが表示される", () => {
+      useAppStore.setState({
+        installedTerminals: [
+          {
+            id: "terminal",
+            name: "Terminal.app",
+            path: "/System/Applications/Utilities/Terminal.app",
+          },
+          { id: "ghostty", name: "Ghostty", path: "/Applications/Ghostty.app" },
+        ],
+        selectedTerminal: "terminal",
+      });
+      render(<SettingsDialog {...defaultProps} />);
+      expect(screen.getByText("ターミナル")).toBeInTheDocument();
+      expect(screen.getByText("Terminal.app")).toBeInTheDocument();
+      expect(screen.getByText("Ghostty")).toBeInTheDocument();
+    });
+
+    it("検出済みターミナルが 0 件の場合はドロップダウンが表示されない", () => {
+      render(<SettingsDialog {...defaultProps} />);
+      expect(screen.queryByText("ターミナル")).not.toBeInTheDocument();
+    });
+
+    it("ターミナルを変更すると onChangeTerminal が呼ばれる", async () => {
+      const onChangeTerminal = vi.fn();
+      const user = userEvent.setup();
+      useAppStore.setState({
+        installedTerminals: [
+          {
+            id: "terminal",
+            name: "Terminal.app",
+            path: "/System/Applications/Utilities/Terminal.app",
+          },
+          { id: "ghostty", name: "Ghostty", path: "/Applications/Ghostty.app" },
+        ],
+        selectedTerminal: "terminal",
+      });
+      render(<SettingsDialog {...defaultProps} onChangeTerminal={onChangeTerminal} />);
+
+      const selects = screen.getAllByRole("combobox");
+      // ターミナルはテーマの次（2番目）
+      await user.selectOptions(selects[1], "ghostty");
+
+      expect(onChangeTerminal).toHaveBeenCalledWith("ghostty");
+    });
   });
 });
