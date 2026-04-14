@@ -17,8 +17,12 @@ interface SortableWorktreeCardProps {
   label: string;
   /** `code` コマンドが利用可能か */
   codeAvailable: boolean;
+  /** Terminal.app が利用可能か */
+  terminalAvailable: boolean;
   /** 「VS Code で開く」コールバック */
   onOpenInEditor: (worktreePath: string) => void;
+  /** 「Terminal で開く」コールバック */
+  onOpenInTerminal: (worktreePath: string) => void;
   /** 「Remove」コールバック */
   onRemove: (worktreePath: string) => void;
   /** ラベル保存コールバック */
@@ -39,7 +43,9 @@ export default function SortableWorktreeCard({
   worktree,
   label,
   codeAvailable,
+  terminalAvailable,
   onOpenInEditor,
+  onOpenInTerminal,
   onRemove,
   onSaveLabel,
 }: SortableWorktreeCardProps) {
@@ -60,7 +66,9 @@ export default function SortableWorktreeCard({
         worktree={worktree}
         label={label}
         codeAvailable={codeAvailable}
+        terminalAvailable={terminalAvailable}
         onOpenInEditor={onOpenInEditor}
+        onOpenInTerminal={onOpenInTerminal}
         onRemove={onRemove}
         onSaveLabel={onSaveLabel}
       />

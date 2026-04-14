@@ -33,7 +33,9 @@ interface WorktreeGridProps {
   /** 対象リポジトリの ID（onReorder に渡す） */
   repositoryId: string;
   codeAvailable: boolean;
+  terminalAvailable: boolean;
   onOpenInEditor: (worktreePath: string) => void;
+  onOpenInTerminal: (worktreePath: string) => void;
   onRemove: (worktreePath: string) => void;
   onSaveLabel: (worktreePath: string, newLabel: string) => void;
   /**
@@ -60,7 +62,9 @@ export default function WorktreeGrid({
   worktreeOrder,
   repositoryId,
   codeAvailable,
+  terminalAvailable,
   onOpenInEditor,
+  onOpenInTerminal,
   onRemove,
   onSaveLabel,
   onReorder,
@@ -115,7 +119,9 @@ export default function WorktreeGrid({
           worktree={wt}
           label={labels[wt.path] ?? dirName(wt.path)}
           codeAvailable={codeAvailable}
+          terminalAvailable={terminalAvailable}
           onOpenInEditor={onOpenInEditor}
+          onOpenInTerminal={onOpenInTerminal}
           onRemove={onRemove}
           onSaveLabel={onSaveLabel}
         />

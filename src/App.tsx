@@ -19,12 +19,14 @@ import {
   loadConfig,
   saveConfig,
   openInEditor,
+  openInTerminal,
   loadLabels,
   saveLabel,
   checkBeforeRemove,
   removeWorktree,
   deleteLabel,
   checkCodeCommand,
+  checkTerminalApp,
   loadOrder,
   saveOrder,
   deleteOrder,
@@ -67,6 +69,7 @@ function App() {
   const worktreeOrder = useAppStore((s) => s.worktreeOrder);
   const labels = useAppStore((s) => s.labels);
   const codeAvailable = useAppStore((s) => s.codeAvailable);
+  const terminalAvailable = useAppStore((s) => s.terminalAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
 
   // actions は参照安定なので個別取得でよい
@@ -82,6 +85,7 @@ function App() {
   const setWorktreeOrder = useAppStore((s) => s.setWorktreeOrder);
   const setTheme = useAppStore((s) => s.setTheme);
   const setCodeAvailable = useAppStore((s) => s.setCodeAvailable);
+  const setTerminalAvailable = useAppStore((s) => s.setTerminalAvailable);
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
 
   // テーマ適用（CSS 変数切替 + Tauri ウィンドウテーマ同期）
@@ -163,6 +167,7 @@ function App() {
     loadLabels().then(setAllLabels).catch(console.error);
     loadOrder().then(setAllWorktreeOrder).catch(console.error);
     checkCodeCommand().then(setCodeAvailable).catch(console.error);
+    checkTerminalApp().then(setTerminalAvailable).catch(console.error);
   }, [
     setRepositories,
     selectRepository,
@@ -170,6 +175,7 @@ function App() {
     setAllLabels,
     setAllWorktreeOrder,
     setCodeAvailable,
+    setTerminalAvailable,
     setRefreshInterval,
     prefetchAll,
   ]);
@@ -298,6 +304,24 @@ function App() {
     });
   }, []);
 
+  /**
+   * WorktreeCard の「Terminal で開く」ボタンから呼ばれる。
+   * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
+   *
+   * @param worktreePath 開く worktree の絶対パス
+   */
+  const handleOpenInTerminal = useCallback((worktreePath: string) => {
+    openInTerminal(worktreePath).catch((e) => {
+      console.error("Terminal 起動に失敗:", e);
+      toastRetryableError("Terminal の起動に失敗しました", () =>
+        openInTerminal(worktreePath).catch((retryErr) => {
+          console.error("Terminal 起動リトライ失敗:", retryErr);
+          toastError("Terminal の起動に再度失敗しました");
+        })
+      );
+    });
+  }, []);
+
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
 
   /**
@@ -388,7 +412,7 @@ function App() {
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: "var(--bg-app)" }}>
-      <PreflightBanner visible={!codeAvailable} />
+      <PreflightBanner codeUnavailable={!codeAvailable} terminalUnavailable={!terminalAvailable} />
       <div className="flex flex-1 min-h-0">
         <Sidebar
           repositories={sidebarRepos}
@@ -414,7 +438,9 @@ function App() {
                 worktreeOrder={worktreeOrder[selectedRepositoryId!] ?? []}
                 repositoryId={selectedRepositoryId!}
                 codeAvailable={codeAvailable}
+                terminalAvailable={terminalAvailable}
                 onOpenInEditor={handleOpenInEditor}
+                onOpenInTerminal={handleOpenInTerminal}
                 onRemove={handleRemoveWorktree}
                 onSaveLabel={handleSaveLabel}
                 onReorder={handleReorder}
