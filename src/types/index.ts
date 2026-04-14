@@ -37,6 +37,24 @@ export interface AppConfig {
   theme: "system" | "dark" | "light";
   /** worktree リフレッシュ間隔（ミリ秒）。ADR-0013 で既定 5000ms */
   refreshInterval: number;
+  /**
+   * 選択中のターミナルアプリ識別子。`TerminalApp.id` の値。
+   * 空文字は未設定を表し、検出リストの先頭をフォールバックとして使用する。
+   */
+  terminal: string;
+}
+
+/**
+ * Rust 側 `detect_installed_terminals` が返す、検出済みターミナルアプリ 1 件分の情報。
+ * 設定ダイアログの選択肢と `open_in_terminal` の `terminal_id` 引数に使う。
+ */
+export interface TerminalApp {
+  /** 識別子。`AppConfig.terminal` に保存される値（例: `"terminal"`, `"ghostty"`） */
+  id: string;
+  /** UI 表示名（例: `"Terminal.app"`, `"Ghostty"`） */
+  name: string;
+  /** `.app` バンドルの絶対パス */
+  path: string;
 }
 
 // ===== Rust コマンドの戻り値 =====

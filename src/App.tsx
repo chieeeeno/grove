@@ -12,7 +12,7 @@ import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
-import { useAppStore } from "./stores/appStore";
+import { useAppStore, selectEffectiveTerminalId } from "./stores/appStore";
 import { dirName } from "./lib/path";
 import {
   validateRepository,
@@ -26,7 +26,7 @@ import {
   removeWorktree,
   deleteLabel,
   checkCodeCommand,
-  checkTerminalApp,
+  detectInstalledTerminals,
   loadOrder,
   saveOrder,
   deleteOrder,
@@ -42,14 +42,6 @@ const TOAST_OPTIONS = {
   },
 } as const;
 
-/**
- * 現在の store 状態から `AppConfig` を組み立てるヘルパー。
- *
- * 設定保存は常にこのヘルパー経由で行う。部分更新時に他のフィールドをハードコード
- * すると保存済み設定を上書きしてしまうため、常に現在の store 全体から組み立てる。
- *
- * @returns 現在の store 状態を反映した `AppConfig`
- */
 /**
  * 外部ツール起動の共通リトライロジック。
  *
@@ -75,6 +67,14 @@ function openWithRetry(
   });
 }
 
+/**
+ * 現在の store 状態から `AppConfig` を組み立てるヘルパー。
+ *
+ * 設定保存は常にこのヘルパー経由で行う。部分更新時に他のフィールドをハードコード
+ * すると保存済み設定を上書きしてしまうため、常に現在の store 全体から組み立てる。
+ *
+ * @returns 現在の store 状態を反映した `AppConfig`
+ */
 function buildConfigFromStore(): AppConfig {
   const state = useAppStore.getState();
   return {
@@ -82,6 +82,7 @@ function buildConfigFromStore(): AppConfig {
     editor: "vscode",
     theme: state.theme,
     refreshInterval: state.refreshInterval,
+    terminal: state.selectedTerminal,
   };
 }
 
@@ -110,7 +111,8 @@ function App() {
   const setWorktreeOrder = useAppStore((s) => s.setWorktreeOrder);
   const setTheme = useAppStore((s) => s.setTheme);
   const setCodeAvailable = useAppStore((s) => s.setCodeAvailable);
-  const setTerminalAvailable = useAppStore((s) => s.setTerminalAvailable);
+  const setInstalledTerminals = useAppStore((s) => s.setInstalledTerminals);
+  const setSelectedTerminal = useAppStore((s) => s.setSelectedTerminal);
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
 
   // テーマ適用（CSS 変数切替 + Tauri ウィンドウテーマ同期）
@@ -149,6 +151,11 @@ function App() {
     [saveSettingWithToast, setRefreshInterval]
   );
 
+  const handleChangeTerminal = useCallback(
+    (id: string) => saveSettingWithToast(() => setSelectedTerminal(id)),
+    [saveSettingWithToast, setSelectedTerminal]
+  );
+
   // 設定ダイアログの状態
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -176,6 +183,9 @@ function App() {
         if (config.refreshInterval) {
           setRefreshInterval(config.refreshInterval);
         }
+        if (config.terminal) {
+          setSelectedTerminal(config.terminal);
+        }
         const firstId = config.repositories.length > 0 ? config.repositories[0].id : null;
         if (firstId) {
           selectRepository(firstId);
@@ -192,15 +202,16 @@ function App() {
     loadLabels().then(setAllLabels).catch(console.error);
     loadOrder().then(setAllWorktreeOrder).catch(console.error);
     checkCodeCommand().then(setCodeAvailable).catch(console.error);
-    checkTerminalApp().then(setTerminalAvailable).catch(console.error);
+    detectInstalledTerminals().then(setInstalledTerminals).catch(console.error);
   }, [
     setRepositories,
     selectRepository,
     setTheme,
+    setSelectedTerminal,
     setAllLabels,
     setAllWorktreeOrder,
     setCodeAvailable,
-    setTerminalAvailable,
+    setInstalledTerminals,
     setRefreshInterval,
     prefetchAll,
   ]);
@@ -315,10 +326,10 @@ function App() {
     (worktreePath: string) => openWithRetry(openInEditor, "VS Code", worktreePath),
     []
   );
-  const handleOpenInTerminal = useCallback(
-    (worktreePath: string) => openWithRetry(openInTerminal, "Terminal", worktreePath),
-    []
-  );
+  const handleOpenInTerminal = useCallback((worktreePath: string) => {
+    const terminalId = selectEffectiveTerminalId(useAppStore.getState());
+    openWithRetry((path) => openInTerminal(path, terminalId), "ターミナル", worktreePath);
+  }, []);
 
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
 
@@ -461,6 +472,7 @@ function App() {
           <SettingsDialog
             onChangeTheme={handleChangeTheme}
             onChangeRefreshInterval={handleChangeRefreshInterval}
+            onChangeTerminal={handleChangeTerminal}
             onClose={() => setIsSettingsOpen(false)}
           />
         )}

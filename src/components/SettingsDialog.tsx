@@ -1,5 +1,5 @@
 import { X, ChevronDown } from "lucide-react";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, selectEffectiveTerminalId } from "../stores/appStore";
 
 const THEME_OPTIONS = [
   { value: "system" as const, label: "システム" },
@@ -63,17 +63,21 @@ function SettingsSelect<T extends string | number>({
 interface SettingsDialogProps {
   onChangeTheme: (theme: "system" | "dark" | "light") => void;
   onChangeRefreshInterval: (interval: number) => void;
+  onChangeTerminal: (terminalId: string) => void;
   onClose: () => void;
 }
 
 export default function SettingsDialog({
   onChangeTheme,
   onChangeRefreshInterval,
+  onChangeTerminal,
   onClose,
 }: SettingsDialogProps) {
   // App レベルでの購読を避け、ダイアログ内部で store を直接購読する
   const theme = useAppStore((s) => s.theme);
   const refreshInterval = useAppStore((s) => s.refreshInterval);
+  const installedTerminals = useAppStore((s) => s.installedTerminals);
+  const effectiveTerminalId = useAppStore(selectEffectiveTerminalId);
 
   return (
     <div
@@ -110,6 +114,17 @@ export default function SettingsDialog({
         />
 
         {/* TODO: エディタ選択（M1 で複数エディタ対応予定） */}
+
+        {/* ターミナルアプリ */}
+        {installedTerminals.length > 0 && (
+          <SettingsSelect
+            label="ターミナル"
+            description="worktree を開くターミナルアプリを選択"
+            value={effectiveTerminalId}
+            options={installedTerminals.map((t) => ({ value: t.id, label: t.name }))}
+            onChange={onChangeTerminal}
+          />
+        )}
 
         {/* 自動更新間隔 */}
         <SettingsSelect

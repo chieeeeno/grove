@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useAppStore } from "./appStore";
+import { useAppStore, selectEffectiveTerminalId } from "./appStore";
 
 describe("appStore", () => {
   beforeEach(() => {
@@ -207,6 +207,53 @@ describe("appStore", () => {
       useAppStore.getState().setTheme("dark");
       useAppStore.getState().setTheme("system");
       expect(useAppStore.getState().theme).toBe("system");
+    });
+  });
+
+  describe("ターミナル管理", () => {
+    const mockTerminals = [
+      { id: "terminal", name: "Terminal.app", path: "/System/Applications/Utilities/Terminal.app" },
+      { id: "ghostty", name: "Ghostty", path: "/Applications/Ghostty.app" },
+    ];
+
+    it("初期値は空配列・空文字・false", () => {
+      expect(useAppStore.getState().installedTerminals).toEqual([]);
+      expect(useAppStore.getState().selectedTerminal).toBe("");
+      expect(useAppStore.getState().terminalAvailable).toBe(false);
+    });
+
+    it("setInstalledTerminals で一覧を設定し terminalAvailable が連動する", () => {
+      useAppStore.getState().setInstalledTerminals(mockTerminals);
+      expect(useAppStore.getState().installedTerminals).toHaveLength(2);
+      expect(useAppStore.getState().terminalAvailable).toBe(true);
+    });
+
+    it("setInstalledTerminals に空配列を渡すと terminalAvailable が false になる", () => {
+      useAppStore.getState().setInstalledTerminals(mockTerminals);
+      useAppStore.getState().setInstalledTerminals([]);
+      expect(useAppStore.getState().terminalAvailable).toBe(false);
+    });
+
+    it("setSelectedTerminal で選択を変更できる", () => {
+      useAppStore.getState().setSelectedTerminal("ghostty");
+      expect(useAppStore.getState().selectedTerminal).toBe("ghostty");
+    });
+
+    describe("selectEffectiveTerminalId", () => {
+      it("selectedTerminal が空のとき installedTerminals の先頭を返す", () => {
+        useAppStore.setState({ installedTerminals: mockTerminals, selectedTerminal: "" });
+        expect(selectEffectiveTerminalId(useAppStore.getState())).toBe("terminal");
+      });
+
+      it("selectedTerminal が設定済みならそれを返す", () => {
+        useAppStore.setState({ installedTerminals: mockTerminals, selectedTerminal: "ghostty" });
+        expect(selectEffectiveTerminalId(useAppStore.getState())).toBe("ghostty");
+      });
+
+      it("installedTerminals が空で selectedTerminal も空なら空文字を返す", () => {
+        useAppStore.setState({ installedTerminals: [], selectedTerminal: "" });
+        expect(selectEffectiveTerminalId(useAppStore.getState())).toBe("");
+      });
     });
   });
 

@@ -4,7 +4,7 @@ import { CircleAlert, X } from "lucide-react";
 interface PreflightBannerProps {
   /** `code` コマンドが利用不可のとき true */
   codeUnavailable: boolean;
-  /** Terminal.app が利用不可のとき true */
+  /** 対応するターミナルアプリが利用不可のとき true */
   terminalUnavailable: boolean;
 }
 
@@ -17,14 +17,15 @@ const BANNER_MESSAGES: Record<BannerKey, { message: string }> = {
       "code コマンドが見つかりません。VS Code で「Shell Command: Install 'code' command in PATH」を実行してください。",
   },
   terminal: {
-    message: "Terminal.app が見つかりません。macOS 標準のターミナルアプリが必要です。",
+    message:
+      "対応するターミナルアプリが見つかりません。Terminal.app, Ghostty, iTerm2, Alacritty, Warp, kitty のいずれかをインストールしてください。",
   },
 };
 
 /**
  * ADR-0012 に基づく事前警告バナー。
  *
- * `code` コマンドや Terminal.app が利用不可の場合に上部にバナー警告を表示する。
+ * `code` コマンドや対応ターミナルアプリが利用不可の場合に上部にバナー警告を表示する。
  * 各バナーは個別に dismiss 可能で、問題が解消→再発した場合は再表示される。
  *
  * @param props PreflightBannerProps
