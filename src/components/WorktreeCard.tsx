@@ -1,5 +1,12 @@
 import { memo, useCallback, useState } from "react";
-import { ShieldCheck, GitCommitHorizontal, FilePen, Code, Trash2 } from "lucide-react";
+import {
+  ShieldCheck,
+  GitCommitHorizontal,
+  FilePen,
+  Code,
+  SquareTerminal,
+  Trash2,
+} from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
 import EditableLabel from "./EditableLabel";
@@ -22,10 +29,20 @@ interface WorktreeCardProps {
    */
   codeAvailable: boolean;
   /**
+   * Terminal.app が利用可能か（ADR-0012 preflight）。
+   * false のとき Terminal ボタンを無効化し、ツールチップで理由を表示する
+   */
+  terminalAvailable: boolean;
+  /**
    * 「VS Code で開く」ボタンを押したときに呼ばれる。
    * @param worktreePath 対象 worktree の絶対パス
    */
   onOpenInEditor: (worktreePath: string) => void;
+  /**
+   * 「Terminal で開く」ボタンを押したときに呼ばれる。
+   * @param worktreePath 対象 worktree の絶対パス
+   */
+  onOpenInTerminal: (worktreePath: string) => void;
   /**
    * 「Remove」ボタンを押したときに呼ばれる（メイン worktree では非表示）。
    * @param worktreePath 削除対象 worktree の絶対パス
@@ -50,12 +67,15 @@ function WorktreeCard({
   worktree,
   label,
   codeAvailable,
+  terminalAvailable,
   onOpenInEditor,
+  onOpenInTerminal,
   onRemove,
   onSaveLabel,
 }: WorktreeCardProps) {
   const path = worktree.path;
   const handleOpenInEditor = useCallback(() => onOpenInEditor(path), [onOpenInEditor, path]);
+  const handleOpenInTerminal = useCallback(() => onOpenInTerminal(path), [onOpenInTerminal, path]);
   const handleRemove = useCallback(() => onRemove(path), [onRemove, path]);
   const handleSaveLabel = useCallback(
     (newLabel: string) => onSaveLabel(path, newLabel),
@@ -124,6 +144,16 @@ function WorktreeCard({
         >
           <Code size={14} />
           VS Code
+        </button>
+        <button
+          onClick={terminalAvailable ? handleOpenInTerminal : undefined}
+          disabled={!terminalAvailable}
+          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium border-0 outline-none transition-colors duration-150
+            ${terminalAvailable ? "bg-fg-muted/20 text-fg-secondary hover:bg-fg-muted/30 active:bg-fg-muted/40 cursor-pointer" : "bg-fg-muted/10 text-fg-muted cursor-not-allowed opacity-60"}`}
+          title={terminalAvailable ? undefined : "Terminal.app が見つかりません"}
+        >
+          <SquareTerminal size={14} />
+          Terminal
         </button>
         {!worktree.isMain && (
           <button

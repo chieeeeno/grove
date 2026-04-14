@@ -231,3 +231,28 @@ export const openInEditor = (path: string): Promise<void> => invoke("open_in_edi
  *          関連ボタン無効化を表示する
  */
 export const checkCodeCommand = (): Promise<boolean> => invoke("check_code_command");
+
+// ===== ターミナル =====
+
+/**
+ * 指定パスを Terminal.app で開く（`open -a Terminal <path>` を spawn）。
+ *
+ * 親プロセスは起動完了を待たずに即 resolve する。ADR-0012 により、呼び出し側は
+ * 事前に `checkTerminalApp` で可否を確認してボタンを無効化しておく想定。
+ *
+ * @param path 開く対象の絶対パス（ディレクトリ）
+ * @returns spawn 完了時に resolve する Promise
+ * @throws Terminal.app が見つからない / spawn 失敗時に reject
+ */
+export const openInTerminal = (path: string): Promise<void> => invoke("open_in_terminal", { path });
+
+/**
+ * Terminal.app が利用可能かを調べる（ADR-0012 preflight）。
+ *
+ * アプリ起動時に 1 回だけ呼ばれる想定。Rust 側でキャッシュ済みなので、起動後の
+ * 再呼び出しは即返る。
+ *
+ * @returns Terminal.app が利用可能なら true。false のときフロントは上部バナー警告と
+ *          関連ボタン無効化を表示する
+ */
+export const checkTerminalApp = (): Promise<boolean> => invoke("check_terminal_app");

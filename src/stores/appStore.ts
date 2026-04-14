@@ -186,6 +186,11 @@ interface AppStore {
   /** @param v `code` コマンドの利用可否 */
   setCodeAvailable: (v: boolean) => void;
 
+  /** Terminal.app が利用可能か（ADR-0012 preflight 用。起動時に 1 回判定） */
+  terminalAvailable: boolean;
+  /** @param v Terminal.app の利用可否 */
+  setTerminalAvailable: (v: boolean) => void;
+
   /** 手動リフレッシュ実行中フラグ（スピナー表示用） */
   isRefreshing: boolean;
   /** @param v リフレッシュ中なら true */
@@ -284,7 +289,10 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // UI
   codeAvailable: false,
-  setCodeAvailable: (v) => set({ codeAvailable: v }),
+  setCodeAvailable: (v) => set((s) => (s.codeAvailable === v ? s : { codeAvailable: v })),
+  terminalAvailable: false,
+  setTerminalAvailable: (v) =>
+    set((s) => (s.terminalAvailable === v ? s : { terminalAvailable: v })),
   isRefreshing: false,
   setIsRefreshing: (v) => set({ isRefreshing: v }),
 

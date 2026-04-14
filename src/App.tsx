@@ -19,12 +19,14 @@ import {
   loadConfig,
   saveConfig,
   openInEditor,
+  openInTerminal,
   loadLabels,
   saveLabel,
   checkBeforeRemove,
   removeWorktree,
   deleteLabel,
   checkCodeCommand,
+  checkTerminalApp,
   loadOrder,
   saveOrder,
   deleteOrder,
@@ -48,6 +50,31 @@ const TOAST_OPTIONS = {
  *
  * @returns 現在の store 状態を反映した `AppConfig`
  */
+/**
+ * 外部ツール起動の共通リトライロジック。
+ *
+ * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
+ *
+ * @param openFn Tauri invoke ラッパー関数
+ * @param toolName エラーメッセージに表示するツール名
+ * @param worktreePath 開く worktree の絶対パス
+ */
+function openWithRetry(
+  openFn: (path: string) => Promise<void>,
+  toolName: string,
+  worktreePath: string
+): void {
+  openFn(worktreePath).catch((e) => {
+    console.error(`${toolName} 起動に失敗:`, e);
+    toastRetryableError(`${toolName} の起動に失敗しました`, () =>
+      openFn(worktreePath).catch((retryErr) => {
+        console.error(`${toolName} 起動リトライ失敗:`, retryErr);
+        toastError(`${toolName} の起動に再度失敗しました`);
+      })
+    );
+  });
+}
+
 function buildConfigFromStore(): AppConfig {
   const state = useAppStore.getState();
   return {
@@ -67,6 +94,7 @@ function App() {
   const worktreeOrder = useAppStore((s) => s.worktreeOrder);
   const labels = useAppStore((s) => s.labels);
   const codeAvailable = useAppStore((s) => s.codeAvailable);
+  const terminalAvailable = useAppStore((s) => s.terminalAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
 
   // actions は参照安定なので個別取得でよい
@@ -82,6 +110,7 @@ function App() {
   const setWorktreeOrder = useAppStore((s) => s.setWorktreeOrder);
   const setTheme = useAppStore((s) => s.setTheme);
   const setCodeAvailable = useAppStore((s) => s.setCodeAvailable);
+  const setTerminalAvailable = useAppStore((s) => s.setTerminalAvailable);
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
 
   // テーマ適用（CSS 変数切替 + Tauri ウィンドウテーマ同期）
@@ -163,6 +192,7 @@ function App() {
     loadLabels().then(setAllLabels).catch(console.error);
     loadOrder().then(setAllWorktreeOrder).catch(console.error);
     checkCodeCommand().then(setCodeAvailable).catch(console.error);
+    checkTerminalApp().then(setTerminalAvailable).catch(console.error);
   }, [
     setRepositories,
     selectRepository,
@@ -170,6 +200,7 @@ function App() {
     setAllLabels,
     setAllWorktreeOrder,
     setCodeAvailable,
+    setTerminalAvailable,
     setRefreshInterval,
     prefetchAll,
   ]);
@@ -280,23 +311,14 @@ function App() {
     [setWorktreeOrder]
   );
 
-  /**
-   * WorktreeCard の「VS Code で開く」ボタンから呼ばれる。
-   * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
-   *
-   * @param worktreePath 開く worktree の絶対パス
-   */
-  const handleOpenInEditor = useCallback((worktreePath: string) => {
-    openInEditor(worktreePath).catch((e) => {
-      console.error("VS Code 起動に失敗:", e);
-      toastRetryableError("VS Code の起動に失敗しました", () =>
-        openInEditor(worktreePath).catch((retryErr) => {
-          console.error("VS Code 起動リトライ失敗:", retryErr);
-          toastError("VS Code の起動に再度失敗しました");
-        })
-      );
-    });
-  }, []);
+  const handleOpenInEditor = useCallback(
+    (worktreePath: string) => openWithRetry(openInEditor, "VS Code", worktreePath),
+    []
+  );
+  const handleOpenInTerminal = useCallback(
+    (worktreePath: string) => openWithRetry(openInTerminal, "Terminal", worktreePath),
+    []
+  );
 
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
 
@@ -388,7 +410,7 @@ function App() {
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: "var(--bg-app)" }}>
-      <PreflightBanner visible={!codeAvailable} />
+      <PreflightBanner codeUnavailable={!codeAvailable} terminalUnavailable={!terminalAvailable} />
       <div className="flex flex-1 min-h-0">
         <Sidebar
           repositories={sidebarRepos}
@@ -414,7 +436,9 @@ function App() {
                 worktreeOrder={worktreeOrder[selectedRepositoryId!] ?? []}
                 repositoryId={selectedRepositoryId!}
                 codeAvailable={codeAvailable}
+                terminalAvailable={terminalAvailable}
                 onOpenInEditor={handleOpenInEditor}
+                onOpenInTerminal={handleOpenInTerminal}
                 onRemove={handleRemoveWorktree}
                 onSaveLabel={handleSaveLabel}
                 onReorder={handleReorder}

@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
@@ -15,14 +14,6 @@ const CODE_CANDIDATES: &[&str] = &[
 /// 体感遅延が悪化する。`check_code_command` と `open_in_editor` で同じキャッシュを共用する。
 static CODE_PATH_CACHE: OnceLock<Option<String>> = OnceLock::new();
 
-/// 候補パスのリストから最初に実在するパスを返す（テスト可能な純粋関数）
-fn pick_existing_path(candidates: &[&str]) -> Option<String> {
-    candidates
-        .iter()
-        .find(|p| Path::new(p).exists())
-        .map(|p| (*p).to_string())
-}
-
 /// `code` コマンドの絶対パスを解決する（キャッシュなしの生処理）。
 ///
 /// macOS の GUI 起動（Finder/Dock）では子プロセスの PATH が
@@ -31,7 +22,7 @@ fn pick_existing_path(candidates: &[&str]) -> Option<String> {
 /// そのため (1) 既知パスを直接チェック → (2) ログインシェル経由で `command -v code`
 /// の順で解決する。
 fn resolve_code_path_uncached() -> Option<String> {
-    if let Some(path) = pick_existing_path(CODE_CANDIDATES) {
+    if let Some(path) = super::pick_existing_path(CODE_CANDIDATES) {
         return Some(path);
     }
 
@@ -101,28 +92,4 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
 #[tauri::command]
 pub fn check_code_command() -> bool {
     resolved_code_path().is_some()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_pick_existing_path_returns_first_existing() {
-        // 1 つ目が存在しない架空パス、2 つ目が必ず存在する /bin/sh、3 つ目も存在する /usr/bin/env
-        let candidates = ["/nonexistent/foo/bar", "/bin/sh", "/usr/bin/env"];
-        assert_eq!(pick_existing_path(&candidates), Some("/bin/sh".to_string()));
-    }
-
-    #[test]
-    fn test_pick_existing_path_returns_none_when_all_missing() {
-        let candidates = ["/nonexistent/foo", "/nonexistent/bar"];
-        assert_eq!(pick_existing_path(&candidates), None);
-    }
-
-    #[test]
-    fn test_pick_existing_path_empty_list() {
-        let candidates: [&str; 0] = [];
-        assert_eq!(pick_existing_path(&candidates), None);
-    }
 }
