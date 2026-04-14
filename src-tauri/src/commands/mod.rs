@@ -19,7 +19,7 @@ pub const STORE_PATH: &str = "grove_config.json";
 ///
 /// # Returns
 /// 最初に存在が確認できたパスの `Some(String)`。全て存在しなければ `None`
-pub(super) fn pick_existing_path(candidates: &[&str]) -> Option<String> {
+pub(crate) fn pick_existing_path(candidates: &[&str]) -> Option<String> {
     use std::path::Path;
     candidates
         .iter()

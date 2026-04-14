@@ -50,6 +50,31 @@ const TOAST_OPTIONS = {
  *
  * @returns 現在の store 状態を反映した `AppConfig`
  */
+/**
+ * 外部ツール起動の共通リトライロジック。
+ *
+ * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
+ *
+ * @param openFn Tauri invoke ラッパー関数
+ * @param toolName エラーメッセージに表示するツール名
+ * @param worktreePath 開く worktree の絶対パス
+ */
+function openWithRetry(
+  openFn: (path: string) => Promise<void>,
+  toolName: string,
+  worktreePath: string
+): void {
+  openFn(worktreePath).catch((e) => {
+    console.error(`${toolName} 起動に失敗:`, e);
+    toastRetryableError(`${toolName} の起動に失敗しました`, () =>
+      openFn(worktreePath).catch((retryErr) => {
+        console.error(`${toolName} 起動リトライ失敗:`, retryErr);
+        toastError(`${toolName} の起動に再度失敗しました`);
+      })
+    );
+  });
+}
+
 function buildConfigFromStore(): AppConfig {
   const state = useAppStore.getState();
   return {
@@ -286,36 +311,13 @@ function App() {
     [setWorktreeOrder]
   );
 
-  /**
-   * 外部ツール起動ハンドラのファクトリ。失敗時はリトライ付きトーストで通知し、
-   * リトライも失敗した場合はエラートーストを表示する。
-   *
-   * @param openFn Tauri invoke ラッパー関数
-   * @param toolName エラーメッセージに表示するツール名
-   * @returns worktree パスを受け取る起動ハンドラ
-   */
-  const makeOpenHandler = useCallback(
-    (openFn: (path: string) => Promise<void>, toolName: string) => (worktreePath: string) => {
-      openFn(worktreePath).catch((e) => {
-        console.error(`${toolName} 起動に失敗:`, e);
-        toastRetryableError(`${toolName} の起動に失敗しました`, () =>
-          openFn(worktreePath).catch((retryErr) => {
-            console.error(`${toolName} 起動リトライ失敗:`, retryErr);
-            toastError(`${toolName} の起動に再度失敗しました`);
-          })
-        );
-      });
-    },
+  const handleOpenInEditor = useCallback(
+    (worktreePath: string) => openWithRetry(openInEditor, "VS Code", worktreePath),
     []
   );
-
-  const handleOpenInEditor = useMemo(
-    () => makeOpenHandler(openInEditor, "VS Code"),
-    [makeOpenHandler]
-  );
-  const handleOpenInTerminal = useMemo(
-    () => makeOpenHandler(openInTerminal, "Terminal"),
-    [makeOpenHandler]
+  const handleOpenInTerminal = useCallback(
+    (worktreePath: string) => openWithRetry(openInTerminal, "Terminal", worktreePath),
+    []
   );
 
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====

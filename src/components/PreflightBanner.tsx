@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { CircleAlert, X } from "lucide-react";
 
 interface PreflightBannerProps {
@@ -30,10 +30,7 @@ const BANNER_MESSAGES: Record<BannerKey, { message: string }> = {
  * @param props PreflightBannerProps
  * @returns 警告バナー群、または表示対象がなければ null
  */
-export default function PreflightBanner({
-  codeUnavailable,
-  terminalUnavailable,
-}: PreflightBannerProps) {
+function PreflightBanner({ codeUnavailable, terminalUnavailable }: PreflightBannerProps) {
   const [dismissed, setDismissed] = useState<Record<BannerKey, boolean>>({
     code: false,
     terminal: false,
@@ -86,3 +83,5 @@ export default function PreflightBanner({
     </>
   );
 }
+
+export default memo(PreflightBanner);
