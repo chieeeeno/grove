@@ -289,9 +289,10 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // UI
   codeAvailable: false,
-  setCodeAvailable: (v) => set({ codeAvailable: v }),
+  setCodeAvailable: (v) => set((s) => (s.codeAvailable === v ? s : { codeAvailable: v })),
   terminalAvailable: false,
-  setTerminalAvailable: (v) => set({ terminalAvailable: v }),
+  setTerminalAvailable: (v) =>
+    set((s) => (s.terminalAvailable === v ? s : { terminalAvailable: v })),
   isRefreshing: false,
   setIsRefreshing: (v) => set({ isRefreshing: v }),
 

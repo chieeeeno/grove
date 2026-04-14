@@ -11,17 +11,12 @@ interface PreflightBannerProps {
 /** 個別バナーの dismiss 状態を管理するキー */
 type BannerKey = "code" | "terminal";
 
-const BANNER_MESSAGES: Record<
-  BannerKey,
-  { condition: keyof PreflightBannerProps; message: string }
-> = {
+const BANNER_MESSAGES: Record<BannerKey, { message: string }> = {
   code: {
-    condition: "codeUnavailable",
     message:
       "code コマンドが見つかりません。VS Code で「Shell Command: Install 'code' command in PATH」を実行してください。",
   },
   terminal: {
-    condition: "terminalUnavailable",
     message: "Terminal.app が見つかりません。macOS 標準のターミナルアプリが必要です。",
   },
 };
@@ -53,13 +48,13 @@ export default function PreflightBanner({
       setDismissed((prev) => (prev.terminal ? { ...prev, terminal: false } : prev));
   }, [terminalUnavailable]);
 
-  const props: Record<BannerKey, boolean> = {
+  const flagByKey: Record<BannerKey, boolean> = {
     code: codeUnavailable,
     terminal: terminalUnavailable,
   };
 
   const visibleBanners = (Object.keys(BANNER_MESSAGES) as BannerKey[]).filter(
-    (key) => props[key] && !dismissed[key]
+    (key) => flagByKey[key] && !dismissed[key]
   );
 
   if (visibleBanners.length === 0) return null;

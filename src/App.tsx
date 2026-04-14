@@ -287,40 +287,36 @@ function App() {
   );
 
   /**
-   * WorktreeCard の「VS Code で開く」ボタンから呼ばれる。
-   * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
+   * 外部ツール起動ハンドラのファクトリ。失敗時はリトライ付きトーストで通知し、
+   * リトライも失敗した場合はエラートーストを表示する。
    *
-   * @param worktreePath 開く worktree の絶対パス
+   * @param openFn Tauri invoke ラッパー関数
+   * @param toolName エラーメッセージに表示するツール名
+   * @returns worktree パスを受け取る起動ハンドラ
    */
-  const handleOpenInEditor = useCallback((worktreePath: string) => {
-    openInEditor(worktreePath).catch((e) => {
-      console.error("VS Code 起動に失敗:", e);
-      toastRetryableError("VS Code の起動に失敗しました", () =>
-        openInEditor(worktreePath).catch((retryErr) => {
-          console.error("VS Code 起動リトライ失敗:", retryErr);
-          toastError("VS Code の起動に再度失敗しました");
-        })
-      );
-    });
-  }, []);
+  const makeOpenHandler = useCallback(
+    (openFn: (path: string) => Promise<void>, toolName: string) => (worktreePath: string) => {
+      openFn(worktreePath).catch((e) => {
+        console.error(`${toolName} 起動に失敗:`, e);
+        toastRetryableError(`${toolName} の起動に失敗しました`, () =>
+          openFn(worktreePath).catch((retryErr) => {
+            console.error(`${toolName} 起動リトライ失敗:`, retryErr);
+            toastError(`${toolName} の起動に再度失敗しました`);
+          })
+        );
+      });
+    },
+    []
+  );
 
-  /**
-   * WorktreeCard の「Terminal で開く」ボタンから呼ばれる。
-   * 失敗時はリトライ付きトーストで通知し、リトライも失敗した場合はエラートーストを表示する。
-   *
-   * @param worktreePath 開く worktree の絶対パス
-   */
-  const handleOpenInTerminal = useCallback((worktreePath: string) => {
-    openInTerminal(worktreePath).catch((e) => {
-      console.error("Terminal 起動に失敗:", e);
-      toastRetryableError("Terminal の起動に失敗しました", () =>
-        openInTerminal(worktreePath).catch((retryErr) => {
-          console.error("Terminal 起動リトライ失敗:", retryErr);
-          toastError("Terminal の起動に再度失敗しました");
-        })
-      );
-    });
-  }, []);
+  const handleOpenInEditor = useMemo(
+    () => makeOpenHandler(openInEditor, "VS Code"),
+    [makeOpenHandler]
+  );
+  const handleOpenInTerminal = useMemo(
+    () => makeOpenHandler(openInTerminal, "Terminal"),
+    [makeOpenHandler]
+  );
 
   // ===== worktree 削除（Remove ボタン → 事前チェック → ダイアログ表示） =====
 

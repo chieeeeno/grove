@@ -143,7 +143,9 @@ export default function WorktreeGrid({
               worktree={wt}
               label={labels[wt.path] ?? dirName(wt.path)}
               codeAvailable={codeAvailable}
+              terminalAvailable={terminalAvailable}
               onOpenInEditor={onOpenInEditor}
+              onOpenInTerminal={onOpenInTerminal}
               onRemove={onRemove}
               onSaveLabel={onSaveLabel}
             />
@@ -157,7 +159,9 @@ export default function WorktreeGrid({
                 worktree={activeWorktree}
                 label={labels[activeWorktree.path] ?? dirName(activeWorktree.path)}
                 codeAvailable={codeAvailable}
+                terminalAvailable={terminalAvailable}
                 onOpenInEditor={onOpenInEditor}
+                onOpenInTerminal={onOpenInTerminal}
                 onRemove={onRemove}
                 onSaveLabel={onSaveLabel}
               />

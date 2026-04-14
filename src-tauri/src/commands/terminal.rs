@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
@@ -10,20 +9,6 @@ const TERMINAL_CANDIDATES: &[&str] = &[
 /// Terminal.app のパスのキャッシュ。プロセス寿命中は一度解決すれば十分。
 static TERMINAL_PATH_CACHE: OnceLock<Option<String>> = OnceLock::new();
 
-/// 候補パスのリストから最初に実在するパスを返す（テスト可能な純粋関数）。
-///
-/// # Arguments
-/// * `candidates` - チェック対象のパス候補スライス
-///
-/// # Returns
-/// 最初に存在が確認できたパスの `Some(String)`。全て存在しなければ `None`
-fn pick_existing_path(candidates: &[&str]) -> Option<String> {
-    candidates
-        .iter()
-        .find(|p| Path::new(p).exists())
-        .map(|p| (*p).to_string())
-}
-
 /// Terminal.app のパスを解決する（キャッシュなしの生処理）。
 ///
 /// macOS の標準インストール先 2 箇所を順にチェックする。
@@ -31,7 +16,7 @@ fn pick_existing_path(candidates: &[&str]) -> Option<String> {
 /// # Returns
 /// Terminal.app が見つかった場合はそのパスの `Some(String)`、なければ `None`
 fn resolve_terminal_path_uncached() -> Option<String> {
-    pick_existing_path(TERMINAL_CANDIDATES)
+    super::pick_existing_path(TERMINAL_CANDIDATES)
 }
 
 /// キャッシュ経由で Terminal.app のパスを取得する。
@@ -85,27 +70,4 @@ pub fn open_in_terminal(path: String) -> Result<(), String> {
 #[tauri::command]
 pub fn check_terminal_app() -> bool {
     resolved_terminal_path().is_some()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_pick_existing_path_returns_first_existing() {
-        let candidates = ["/nonexistent/foo/bar", "/bin/sh", "/usr/bin/env"];
-        assert_eq!(pick_existing_path(&candidates), Some("/bin/sh".to_string()));
-    }
-
-    #[test]
-    fn test_pick_existing_path_returns_none_when_all_missing() {
-        let candidates = ["/nonexistent/foo", "/nonexistent/bar"];
-        assert_eq!(pick_existing_path(&candidates), None);
-    }
-
-    #[test]
-    fn test_pick_existing_path_empty_list() {
-        let candidates: [&str; 0] = [];
-        assert_eq!(pick_existing_path(&candidates), None);
-    }
 }
