@@ -2,6 +2,7 @@ pub mod editor;
 pub mod label;
 pub mod order;
 pub mod repository;
+pub mod terminal;
 pub mod theme;
 pub mod worktree;
 
