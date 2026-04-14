@@ -93,8 +93,12 @@ pub fn detect_installed_terminals() -> Vec<TerminalApp> {
 /// 指定されたターミナルアプリを `open -a` で spawn する
 #[tauri::command]
 pub fn open_in_terminal(path: String, terminal_id: String) -> Result<(), String> {
-    let (name, app_path) = resolve_terminal(&terminal_id)
-        .ok_or_else(|| format!("ターミナルアプリが見つかりませんでした（ID: {}）", terminal_id))?;
+    let (name, app_path) = resolve_terminal(&terminal_id).ok_or_else(|| {
+        format!(
+            "ターミナルアプリが見つかりませんでした（ID: {}）",
+            terminal_id
+        )
+    })?;
     Command::new("open")
         .args(["-a", &app_path, &path])
         .spawn()

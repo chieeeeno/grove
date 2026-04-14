@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useAppStore } from "./appStore";
+import { useAppStore, selectEffectiveTerminalId } from "./appStore";
 
 describe("appStore", () => {
   beforeEach(() => {
@@ -237,6 +237,23 @@ describe("appStore", () => {
     it("setSelectedTerminal で選択を変更できる", () => {
       useAppStore.getState().setSelectedTerminal("ghostty");
       expect(useAppStore.getState().selectedTerminal).toBe("ghostty");
+    });
+
+    describe("selectEffectiveTerminalId", () => {
+      it("selectedTerminal が空のとき installedTerminals の先頭を返す", () => {
+        useAppStore.setState({ installedTerminals: mockTerminals, selectedTerminal: "" });
+        expect(selectEffectiveTerminalId(useAppStore.getState())).toBe("terminal");
+      });
+
+      it("selectedTerminal が設定済みならそれを返す", () => {
+        useAppStore.setState({ installedTerminals: mockTerminals, selectedTerminal: "ghostty" });
+        expect(selectEffectiveTerminalId(useAppStore.getState())).toBe("ghostty");
+      });
+
+      it("installedTerminals が空で selectedTerminal も空なら空文字を返す", () => {
+        useAppStore.setState({ installedTerminals: [], selectedTerminal: "" });
+        expect(selectEffectiveTerminalId(useAppStore.getState())).toBe("");
+      });
     });
   });
 

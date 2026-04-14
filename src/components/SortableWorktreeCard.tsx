@@ -17,7 +17,7 @@ interface SortableWorktreeCardProps {
   label: string;
   /** `code` コマンドが利用可能か */
   codeAvailable: boolean;
-  /** Terminal.app が利用可能か */
+  /** ターミナルアプリが利用可能か */
   terminalAvailable: boolean;
   /** 「VS Code で開く」コールバック */
   onOpenInEditor: (worktreePath: string) => void;

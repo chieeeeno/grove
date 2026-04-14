@@ -290,6 +290,9 @@ mod tests {
         let config: AppConfig = serde_json::from_value(json).expect("デシリアライズに失敗");
         assert_eq!(config.theme, "light");
         assert_eq!(config.refresh_interval, 3000);
-        assert!(config.terminal.is_empty(), "terminal は空文字にフォールバックすべき");
+        assert!(
+            config.terminal.is_empty(),
+            "terminal は空文字にフォールバックすべき"
+        );
     }
 }

@@ -29,7 +29,7 @@ interface WorktreeCardProps {
    */
   codeAvailable: boolean;
   /**
-   * Terminal.app が利用可能か（ADR-0012 preflight）。
+   * ターミナルアプリが利用可能か（ADR-0012 preflight）。
    * false のとき Terminal ボタンを無効化し、ツールチップで理由を表示する
    */
   terminalAvailable: boolean;
