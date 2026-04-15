@@ -49,6 +49,13 @@ pub struct AppConfig {
     /// 空文字にフォールバックし、他フィールドのデシリアライズに影響しない。
     #[serde(default)]
     pub terminal: String,
+    /// 前回終了時に選択していたリポジトリ ID。未設定・未保存の場合は `None`。
+    ///
+    /// 起動時に `repositories` リストに存在しない ID だった場合は先頭リポジトリを
+    /// フォールバックとして使用する。既存ユーザーの store にキーが無い場合でも
+    /// `#[serde(default)]` により `None` にフォールバックする。
+    #[serde(default, rename = "selectedRepositoryId")]
+    pub selected_repository_id: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -60,6 +67,7 @@ impl Default for AppConfig {
             theme: "system".to_string(),
             refresh_interval: 5000,
             terminal: String::new(),
+            selected_repository_id: None,
         }
     }
 }
@@ -222,6 +230,10 @@ mod tests {
         assert_eq!(config.refresh_interval, 5000);
         assert!(config.terminal.is_empty());
         assert!(config.repositories.is_empty());
+        assert!(
+            config.selected_repository_id.is_none(),
+            "selected_repository_id のデフォルトは None であるべき"
+        );
     }
 
     #[test]
@@ -239,6 +251,10 @@ mod tests {
         assert_eq!(config.refresh_interval, 5000);
         assert!(config.terminal.is_empty());
         assert!(config.repositories.is_empty());
+        assert!(
+            config.selected_repository_id.is_none(),
+            "load_config の初期状態で selected_repository_id は None であるべき"
+        );
     }
 
     #[test]
@@ -258,6 +274,7 @@ mod tests {
             theme: "dark".to_string(),
             refresh_interval: 10000,
             terminal: "ghostty".to_string(),
+            selected_repository_id: Some("repo-1".to_string()),
         };
 
         // 保存
@@ -275,6 +292,11 @@ mod tests {
         assert_eq!(loaded.terminal, "ghostty");
         assert_eq!(loaded.repositories.len(), 1);
         assert_eq!(loaded.repositories[0].name, "test-repo");
+        assert_eq!(
+            loaded.selected_repository_id,
+            Some("repo-1".to_string()),
+            "selected_repository_id が保存・復元されるべき"
+        );
     }
 
     #[test]
@@ -293,6 +315,25 @@ mod tests {
         assert!(
             config.terminal.is_empty(),
             "terminal は空文字にフォールバックすべき"
+        );
+    }
+
+    #[test]
+    fn test_load_config_missing_selected_repository_id_field() {
+        // selectedRepositoryId フィールドが無い JSON でも他フィールドが正常にデシリアライズされることを検証
+        // （既存ユーザーの store に selectedRepositoryId が無いケースの後方互換テスト）
+        let json = serde_json::json!({
+            "repositories": [],
+            "editor": "vscode",
+            "theme": "system",
+            "refreshInterval": 5000,
+            "terminal": ""
+        });
+        let config: AppConfig = serde_json::from_value(json).expect("デシリアライズに失敗");
+        assert_eq!(config.theme, "system");
+        assert!(
+            config.selected_repository_id.is_none(),
+            "selectedRepositoryId が無い場合は None にフォールバックすべき"
         );
     }
 }

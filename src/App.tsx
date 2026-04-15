@@ -83,7 +83,16 @@ function buildConfigFromStore(): AppConfig {
     theme: state.theme,
     refreshInterval: state.refreshInterval,
     terminal: state.selectedTerminal,
+    selectedRepositoryId: state.selectedRepositoryId,
   };
+}
+
+/**
+ * store 更新後の設定を非同期で永続化する。失敗はコンソールのみに記録（UI 通知なし）。
+ * `useAppStore.set` は同期的なため、直前の store 更新はこの呼び出し時点で反映済みになる。
+ */
+function saveConfigSilently(): void {
+  saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
 }
 
 function App() {
@@ -186,13 +195,23 @@ function App() {
         if (config.terminal) {
           setSelectedTerminal(config.terminal);
         }
-        const firstId = config.repositories.length > 0 ? config.repositories[0].id : null;
-        if (firstId) {
-          selectRepository(firstId);
+        // 保存済み ID を優先し、リポジトリが削除済みの場合は先頭にフォールバック
+        const savedId = config.selectedRepositoryId;
+        const initialId =
+          savedId && config.repositories.some((r) => r.id === savedId)
+            ? savedId
+            : (config.repositories[0]?.id ?? null);
+        if (initialId) {
+          selectRepository(initialId);
+        }
+
+        // 保存済み ID が stale（削除済み等）だった場合、解決後の選択を永続化して自己修復
+        if (initialId !== savedId) {
+          saveConfigSilently();
         }
 
         // 選択中以外のリポジトリを裏で pre-fetch（選択中は useAutoRefresh が担当）
-        prefetchAll(config.repositories, firstId);
+        prefetchAll(config.repositories, initialId);
       })
       .catch((e) => {
         console.error("設定読み込みに失敗:", e);
@@ -245,13 +264,31 @@ function App() {
 
       addRepository(newRepo);
       selectRepository(newRepo.id);
-      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      saveConfigSilently();
       toast.success("リポジトリを追加しました");
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
       toastError("リポジトリの追加に失敗しました");
     }
   }, [addRepository, selectRepository]);
+
+  // ===== リポジトリ選択 =====
+
+  /**
+   * サイドバーでリポジトリを選択したときに呼ばれる。
+   * store を更新し、選択状態を非同期に永続化する。
+   * 同じ ID が渡された場合は no-op（store 更新も永続化も行わない）。
+   *
+   * @param id 選択するリポジトリ ID
+   */
+  const handleSelectRepository = useCallback(
+    (id: string) => {
+      if (id === selectedRepositoryId) return;
+      selectRepository(id);
+      saveConfigSilently();
+    },
+    [selectRepository, selectedRepositoryId]
+  );
 
   // ===== リポジトリ削除 =====
 
@@ -271,7 +308,8 @@ function App() {
         selectRepository(remaining.length > 0 ? remaining[0].id : null);
       }
 
-      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      saveConfigSilently();
+      // in-memory の worktreeOrder は removeRepository() が除去済み。IPC はディスク永続化のみ。
       deleteOrder(id).catch((err) => console.error("並び順削除に失敗:", err));
       toast.success("リポジトリを解除しました");
     },
@@ -426,7 +464,7 @@ function App() {
         <Sidebar
           repositories={sidebarRepos}
           selectedId={selectedRepositoryId}
-          onSelectRepository={selectRepository}
+          onSelectRepository={handleSelectRepository}
           onAddRepository={handleAddRepository}
           onRemoveRepository={handleRemoveRepository}
           onOpenSettings={() => setIsSettingsOpen(true)}
