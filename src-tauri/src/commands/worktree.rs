@@ -1,4 +1,4 @@
-use git2::{Repository, StatusOptions};
+use git2::{Oid, Repository, StatusOptions};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -28,6 +28,11 @@ pub struct WorktreeInfo {
     /// 変更ファイル数の合計（ADR-0011: modified/added/deleted/untracked を種別で分けない）。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
+    /// メインブランチ（main/master）にマージ済みかどうか。
+    /// メイン worktree 自身は常に `false`（UI 側でバッジを非表示にする）。
+    /// メインブランチが見つからない場合や detached HEAD の場合も `false`。
+    #[serde(rename = "isMerged")]
+    pub is_merged: bool,
 }
 
 /// `get_worktree_status` の戻り値。ポーリング用の軽量ステータス。
@@ -76,6 +81,44 @@ fn count_modified_files(repo: &Repository) -> u32 {
     repo.statuses(Some(&mut opts))
         .map(|statuses| statuses.len() as u32)
         .unwrap_or(0)
+}
+
+/// メインブランチ（main → master の優先順位）の HEAD コミット OID を返す。
+///
+/// # Arguments
+/// * `repo` - 検索対象のリポジトリ
+///
+/// # Returns
+/// メインブランチが見つかれば `Some(Oid)`、どちらも存在しなければ `None`
+fn find_main_branch_head(repo: &Repository) -> Option<Oid> {
+    ["main", "master"].iter().find_map(|name| {
+        repo.find_branch(name, git2::BranchType::Local)
+            .ok()
+            .and_then(|b| b.get().peel_to_commit().ok())
+            .map(|c| c.id())
+    })
+}
+
+/// ブランチがメインブランチにマージ済みかを判定する。
+///
+/// `merge_base(main_head, branch_head) == branch_head` かつ `main_head != branch_head`
+/// なら、branch_head は main_head の祖先にあたるため「マージ済み」と判定する。
+/// 同一コミット（分岐直後で独自コミットなし）は「未マージ」扱いとする。
+///
+/// # Arguments
+/// * `repo` - merge_base を検索するリポジトリ
+/// * `main_head` - メインブランチの HEAD コミット OID
+/// * `branch_head` - 判定対象ブランチの HEAD コミット OID
+///
+/// # Returns
+/// マージ済みなら `true`。同一コミット・merge_base の計算失敗時は `false`
+fn check_is_merged(repo: &Repository, main_head: Oid, branch_head: Oid) -> bool {
+    if main_head == branch_head {
+        return false;
+    }
+    repo.merge_base(main_head, branch_head)
+        .map(|base| base == branch_head)
+        .unwrap_or(false)
 }
 
 /// リポジトリ配下の全 worktree を列挙する（メイン worktree + サブ worktree）。
@@ -144,6 +187,9 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
         })
         .collect();
 
+    // マージ判定用: メインブランチの HEAD OID を取得（Oid は Copy + Send）
+    let main_branch_head = find_main_branch_head(&main_repo);
+
     // main_repo は !Sync なのでスレッドに &main_repo を渡せない。
     // main もパスから Repository::open し直して並列実行する。
     // open のコストは数μs で、status walk（数十〜数百ms）に比べて無視できる。
@@ -171,6 +217,15 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                     let wt_repo = Repository::open(&wt_path).ok()?;
                     let (hash, msg, time) = get_last_commit(&wt_repo);
                     let modified = count_modified_files(&wt_repo);
+                    let is_merged = main_branch_head
+                        .and_then(|main_oid| {
+                            wt_repo
+                                .head()
+                                .ok()
+                                .and_then(|h| h.peel_to_commit().ok())
+                                .map(|c| check_is_merged(&wt_repo, main_oid, c.id()))
+                        })
+                        .unwrap_or(false);
                     Some(WorktreeInfo {
                         path: wt_path,
                         branch: get_branch_name(&wt_repo),
@@ -179,6 +234,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                         last_commit_message: msg,
                         last_commit_time: time,
                         modified_count: modified,
+                        is_merged,
                     })
                 })
             })
@@ -194,6 +250,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
             last_commit_message: main_msg,
             last_commit_time: main_time,
             modified_count: main_modified,
+            is_merged: false,
         }];
 
         // サブの結果を追加
@@ -607,6 +664,258 @@ mod tests {
 
         assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
+    }
+
+    #[test]
+    fn test_find_main_branch_head_returns_oid() {
+        let (dir, _repo) = create_test_repo();
+        let repo = Repository::open(dir.path()).unwrap();
+        let result = find_main_branch_head(&repo);
+        // git init のデフォルトブランチ名が main or master のいずれかであれば Some
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_main_branch_head_returns_none_when_no_main_or_master() {
+        let dir = TempDir::new().unwrap();
+        let repo = Repository::init(dir.path()).unwrap();
+
+        // "develop" ブランチだけの初期コミットを作成
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        repo.commit(Some("refs/heads/develop"), &sig, &sig, "init", &tree, &[])
+            .unwrap();
+
+        // HEAD を develop に向ける
+        repo.set_head("refs/heads/develop").unwrap();
+
+        assert!(find_main_branch_head(&repo).is_none());
+    }
+
+    #[test]
+    fn test_check_is_merged_same_commit_returns_false() {
+        // 同一コミット（分岐直後で独自コミットなし）はマージ済みとみなさない
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+        assert!(!check_is_merged(&repo, head_oid, head_oid));
+    }
+
+    #[test]
+    fn test_check_is_merged_branch_ahead() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+
+        let main_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // ブランチを作成して追加コミット
+        let head_commit = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("feature", &head_commit, false).unwrap();
+        repo.set_head("refs/heads/feature").unwrap();
+
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        let parent = repo.head().unwrap().peel_to_commit().unwrap();
+        let feature_oid = repo
+            .commit(
+                Some("HEAD"),
+                &sig,
+                &sig,
+                "feature commit",
+                &tree,
+                &[&parent],
+            )
+            .unwrap();
+
+        // feature は main より先 → マージされていない
+        assert!(!check_is_merged(&repo, main_oid, feature_oid));
+    }
+
+    #[test]
+    fn test_check_is_merged_branch_behind_main() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+
+        let initial_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // main に追加コミット
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        let parent = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "main advance", &tree, &[&parent])
+            .unwrap();
+
+        let main_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // initial_oid は main_oid の祖先 → マージ済み
+        assert!(check_is_merged(&repo, main_oid, initial_oid));
+    }
+
+    #[test]
+    fn test_list_worktrees_main_is_merged_always_false() {
+        let (dir, _repo) = create_test_repo();
+        let path = dir.path().to_str().unwrap().to_string();
+        let result = list_worktrees_inner(&path).unwrap();
+        assert!(!result[0].is_merged);
+    }
+
+    #[test]
+    fn test_list_worktrees_sub_worktree_same_commit_not_merged() {
+        // 同一コミット（分岐直後で独自コミットなし）はマージ済みとみなさない
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("feature-new", &head, false).unwrap();
+
+        let wt_path = dir.path().join("wt-new");
+        repo.worktree(
+            "wt-new",
+            wt_path.as_path(),
+            Some(
+                git2::WorktreeAddOptions::new().reference(Some(
+                    &repo
+                        .find_branch("feature-new", git2::BranchType::Local)
+                        .unwrap()
+                        .into_reference(),
+                )),
+            ),
+        )
+        .unwrap();
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        let sub = result.iter().find(|w| w.branch == "feature-new").unwrap();
+        assert!(!sub.is_merged);
+    }
+
+    #[test]
+    fn test_list_worktrees_sub_worktree_merged_into_main() {
+        // ブランチに独自コミット後、main を fast-forward → マージ済み
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("feature-merged", &head, false).unwrap();
+
+        let wt_path = dir.path().join("wt-merged");
+        repo.worktree(
+            "wt-merged",
+            wt_path.as_path(),
+            Some(
+                git2::WorktreeAddOptions::new().reference(Some(
+                    &repo
+                        .find_branch("feature-merged", git2::BranchType::Local)
+                        .unwrap()
+                        .into_reference(),
+                )),
+            ),
+        )
+        .unwrap();
+
+        // サブ worktree に独自コミットを追加
+        let wt_repo = Repository::open(&wt_path).unwrap();
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = wt_repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = wt_repo.find_tree(tree_id).unwrap();
+        let parent = wt_repo.head().unwrap().peel_to_commit().unwrap();
+        let feature_oid = wt_repo
+            .commit(Some("HEAD"), &sig, &sig, "feature work", &tree, &[&parent])
+            .unwrap();
+
+        // main を fast-forward してブランチのコミットを取り込み、さらに1コミット進める。
+        // FF 直後は main == feature で同一コミットのため is_merged=false になるが、
+        // main がさらに進むと feature は main の祖先 → is_merged=true になる。
+        let main_repo = Repository::open(&main_path).unwrap();
+        let main_branch_name = get_branch_name(&main_repo);
+        main_repo
+            .reference(
+                &format!("refs/heads/{}", main_branch_name),
+                feature_oid,
+                true,
+                "fast-forward merge",
+            )
+            .unwrap();
+        // main にもう1コミット追加して feature より先に進める
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = main_repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = main_repo.find_tree(tree_id).unwrap();
+        let parent = main_repo.find_commit(feature_oid).unwrap();
+        main_repo
+            .commit(
+                Some(&format!("refs/heads/{}", main_branch_name)),
+                &sig,
+                &sig,
+                "main advances after merge",
+                &tree,
+                &[&parent],
+            )
+            .unwrap();
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        let sub = result
+            .iter()
+            .find(|w| w.branch == "feature-merged")
+            .unwrap();
+        assert!(sub.is_merged);
+    }
+
+    #[test]
+    fn test_list_worktrees_sub_worktree_with_extra_commit_not_merged() {
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("feature-ahead", &head, false).unwrap();
+
+        let wt_path = dir.path().join("wt-ahead");
+        repo.worktree(
+            "wt-ahead",
+            wt_path.as_path(),
+            Some(
+                git2::WorktreeAddOptions::new().reference(Some(
+                    &repo
+                        .find_branch("feature-ahead", git2::BranchType::Local)
+                        .unwrap()
+                        .into_reference(),
+                )),
+            ),
+        )
+        .unwrap();
+
+        // サブ worktree に追加コミット
+        let wt_repo = Repository::open(&wt_path).unwrap();
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = wt_repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = wt_repo.find_tree(tree_id).unwrap();
+        let parent = wt_repo.head().unwrap().peel_to_commit().unwrap();
+        wt_repo
+            .commit(Some("HEAD"), &sig, &sig, "ahead commit", &tree, &[&parent])
+            .unwrap();
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        let sub = result.iter().find(|w| w.branch == "feature-ahead").unwrap();
+        assert!(!sub.is_merged);
     }
 
     #[test]
