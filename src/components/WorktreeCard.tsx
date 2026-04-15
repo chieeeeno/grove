@@ -131,7 +131,7 @@ function WorktreeCard({
           title={codeAvailable ? undefined : "code コマンドが必要です"}
         >
           <Code size={14} />
-          VS Code
+          VS Code で開く
         </button>
         <button
           onClick={terminalAvailable ? handleOpenInTerminal : undefined}
@@ -141,7 +141,7 @@ function WorktreeCard({
           title={terminalAvailable ? undefined : "ターミナルアプリが見つかりません"}
         >
           <SquareTerminal size={14} />
-          {terminalName}
+          {terminalName} で開く
         </button>
         {!worktree.isMain && (
           <button
