@@ -332,3 +332,19 @@ export const useAppStore = create<AppStore>((set) => ({
 export function selectEffectiveTerminalId(state: AppStore): string {
   return state.selectedTerminal || (state.installedTerminals[0]?.id ?? "");
 }
+
+/**
+ * 実効ターミナルの表示名を導出するセレクタ。
+ *
+ * `selectEffectiveTerminalId` で得た ID に対応する `TerminalApp.name` を返す。
+ * 該当するターミナルが見つからない場合は `"Terminal"` をフォールバックとして返す。
+ *
+ * @param state AppStore の状態
+ * @returns 実効ターミナルの表示名。未検出時は `"Terminal"`
+ */
+export function selectEffectiveTerminalName(state: AppStore): string {
+  const id = selectEffectiveTerminalId(state);
+  if (!id) return "Terminal";
+  const found = state.installedTerminals.find((t) => t.id === id);
+  return found?.name ?? "Terminal";
+}

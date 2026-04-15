@@ -2,6 +2,7 @@ import { memo, useCallback, useState } from "react";
 import { GitCommitHorizontal, FilePen, Code, SquareTerminal, Trash2 } from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
+import { useAppStore, selectEffectiveTerminalName } from "../stores/appStore";
 import EditableLabel from "./EditableLabel";
 import BranchStatusBadge from "./BranchStatusBadge";
 
@@ -67,6 +68,7 @@ function WorktreeCard({
   onRemove,
   onSaveLabel,
 }: WorktreeCardProps) {
+  const terminalName = useAppStore(selectEffectiveTerminalName);
   const path = worktree.path;
   const handleOpenInEditor = useCallback(() => onOpenInEditor(path), [onOpenInEditor, path]);
   const handleOpenInTerminal = useCallback(() => onOpenInTerminal(path), [onOpenInTerminal, path]);
@@ -129,7 +131,7 @@ function WorktreeCard({
           title={codeAvailable ? undefined : "code コマンドが必要です"}
         >
           <Code size={14} />
-          VS Code
+          VS Code で開く
         </button>
         <button
           onClick={terminalAvailable ? handleOpenInTerminal : undefined}
@@ -139,7 +141,7 @@ function WorktreeCard({
           title={terminalAvailable ? undefined : "ターミナルアプリが見つかりません"}
         >
           <SquareTerminal size={14} />
-          Terminal
+          {terminalName} で開く
         </button>
         {!worktree.isMain && (
           <button

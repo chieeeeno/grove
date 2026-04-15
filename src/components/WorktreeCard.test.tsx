@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import WorktreeCard from "./WorktreeCard";
 import { mockWorktree, mockSubWorktree } from "../test/fixtures";
+import { useAppStore } from "../stores/appStore";
 
 const noop = vi.fn();
 
@@ -17,6 +18,15 @@ const defaultProps = {
 };
 
 describe("WorktreeCard", () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      installedTerminals: [
+        { id: "terminal", name: "Terminal", path: "/System/Applications/Utilities/Terminal.app" },
+      ],
+      selectedTerminal: "",
+    });
+  });
+
   describe("Terminal ボタン", () => {
     it("terminalAvailable=true のとき Terminal ボタンが有効", () => {
       render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} terminalAvailable={true} />);
@@ -55,6 +65,19 @@ describe("WorktreeCard", () => {
       const btn = screen.getByRole("button", { name: /Terminal/ });
       await userEvent.click(btn);
       expect(onOpenInTerminal).not.toHaveBeenCalled();
+    });
+
+    it("設定中のターミナルアプリ名がボタンラベルに表示される", () => {
+      useAppStore.setState({
+        installedTerminals: [
+          { id: "terminal", name: "Terminal", path: "/System/Applications/Utilities/Terminal.app" },
+          { id: "ghostty", name: "Ghostty", path: "/Applications/Ghostty.app" },
+        ],
+        selectedTerminal: "ghostty",
+      });
+      render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} />);
+      const btn = screen.getByRole("button", { name: /Ghostty/ });
+      expect(btn).toBeInTheDocument();
     });
   });
 
