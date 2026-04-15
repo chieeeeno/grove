@@ -34,6 +34,7 @@ interface WorktreeGridProps {
   repositoryId: string;
   codeAvailable: boolean;
   terminalAvailable: boolean;
+  terminalName: string;
   onOpenInEditor: (worktreePath: string) => void;
   onOpenInTerminal: (worktreePath: string) => void;
   onRemove: (worktreePath: string) => void;
@@ -63,6 +64,7 @@ export default function WorktreeGrid({
   repositoryId,
   codeAvailable,
   terminalAvailable,
+  terminalName,
   onOpenInEditor,
   onOpenInTerminal,
   onRemove,
@@ -120,6 +122,7 @@ export default function WorktreeGrid({
           label={labels[wt.path] ?? dirName(wt.path)}
           codeAvailable={codeAvailable}
           terminalAvailable={terminalAvailable}
+          terminalName={terminalName}
           onOpenInEditor={onOpenInEditor}
           onOpenInTerminal={onOpenInTerminal}
           onRemove={onRemove}
@@ -144,6 +147,7 @@ export default function WorktreeGrid({
               label={labels[wt.path] ?? dirName(wt.path)}
               codeAvailable={codeAvailable}
               terminalAvailable={terminalAvailable}
+              terminalName={terminalName}
               onOpenInEditor={onOpenInEditor}
               onOpenInTerminal={onOpenInTerminal}
               onRemove={onRemove}
@@ -160,6 +164,7 @@ export default function WorktreeGrid({
                 label={labels[activeWorktree.path] ?? dirName(activeWorktree.path)}
                 codeAvailable={codeAvailable}
                 terminalAvailable={terminalAvailable}
+                terminalName={terminalName}
                 onOpenInEditor={onOpenInEditor}
                 onOpenInTerminal={onOpenInTerminal}
                 onRemove={onRemove}

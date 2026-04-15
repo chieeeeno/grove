@@ -12,7 +12,11 @@ import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useTheme } from "./hooks/useTheme";
-import { useAppStore, selectEffectiveTerminalId } from "./stores/appStore";
+import {
+  useAppStore,
+  selectEffectiveTerminalId,
+  selectEffectiveTerminalName,
+} from "./stores/appStore";
 import { dirName } from "./lib/path";
 import {
   validateRepository,
@@ -96,6 +100,7 @@ function App() {
   const labels = useAppStore((s) => s.labels);
   const codeAvailable = useAppStore((s) => s.codeAvailable);
   const terminalAvailable = useAppStore((s) => s.terminalAvailable);
+  const terminalName = useAppStore(selectEffectiveTerminalName);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
 
   // actions は参照安定なので個別取得でよい
@@ -448,6 +453,7 @@ function App() {
                 repositoryId={selectedRepositoryId!}
                 codeAvailable={codeAvailable}
                 terminalAvailable={terminalAvailable}
+                terminalName={terminalName}
                 onOpenInEditor={handleOpenInEditor}
                 onOpenInTerminal={handleOpenInTerminal}
                 onRemove={handleRemoveWorktree}

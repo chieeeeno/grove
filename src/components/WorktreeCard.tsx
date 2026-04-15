@@ -34,6 +34,11 @@ interface WorktreeCardProps {
    */
   terminalAvailable: boolean;
   /**
+   * ターミナルボタンに表示するアプリ名。
+   * 設定で選択中のターミナルアプリ名が渡される（例: "Ghostty", "iTerm2"）
+   */
+  terminalName: string;
+  /**
    * 「VS Code で開く」ボタンを押したときに呼ばれる。
    * @param worktreePath 対象 worktree の絶対パス
    */
@@ -68,6 +73,7 @@ function WorktreeCard({
   label,
   codeAvailable,
   terminalAvailable,
+  terminalName,
   onOpenInEditor,
   onOpenInTerminal,
   onRemove,
@@ -153,7 +159,7 @@ function WorktreeCard({
           title={terminalAvailable ? undefined : "ターミナルアプリが見つかりません"}
         >
           <SquareTerminal size={14} />
-          Terminal
+          {terminalName}
         </button>
         {!worktree.isMain && (
           <button

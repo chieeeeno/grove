@@ -11,6 +11,7 @@ const defaultProps = {
   repositoryId: "repo-1",
   codeAvailable: true,
   terminalAvailable: true,
+  terminalName: "Terminal",
   onOpenInEditor: noop,
   onOpenInTerminal: noop,
   onRemove: noop,

@@ -10,6 +10,7 @@ const defaultProps = {
   label: "test-label",
   codeAvailable: true,
   terminalAvailable: true,
+  terminalName: "Terminal",
   onOpenInEditor: noop,
   onOpenInTerminal: noop,
   onRemove: noop,
@@ -55,6 +56,12 @@ describe("WorktreeCard", () => {
       const btn = screen.getByRole("button", { name: /Terminal/ });
       await userEvent.click(btn);
       expect(onOpenInTerminal).not.toHaveBeenCalled();
+    });
+
+    it("terminalName に指定したアプリ名がボタンラベルに表示される", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} terminalName="Ghostty" />);
+      const btn = screen.getByRole("button", { name: /Ghostty/ });
+      expect(btn).toBeInTheDocument();
     });
   });
 
