@@ -87,7 +87,10 @@ function buildConfigFromStore(): AppConfig {
   };
 }
 
-/** store 更新後の設定を非同期で永続化する。失敗はコンソールのみに記録（UI 通知なし）。 */
+/**
+ * store 更新後の設定を非同期で永続化する。失敗はコンソールのみに記録（UI 通知なし）。
+ * `useAppStore.set` は同期的なため、直前の store 更新はこの呼び出し時点で反映済みになる。
+ */
 function saveConfigSilently(): void {
   saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
 }
@@ -200,6 +203,11 @@ function App() {
             : (config.repositories[0]?.id ?? null);
         if (initialId) {
           selectRepository(initialId);
+        }
+
+        // 保存済み ID が stale（削除済み等）だった場合、解決後の選択を永続化して自己修復
+        if (initialId !== savedId) {
+          saveConfigSilently();
         }
 
         // 選択中以外のリポジトリを裏で pre-fetch（選択中は useAutoRefresh が担当）
