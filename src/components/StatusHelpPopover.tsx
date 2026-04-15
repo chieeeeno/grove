@@ -38,7 +38,7 @@ export default function StatusHelpPopover() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-[#2E3348] shadow-lg z-50 p-4">
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-popover shadow-lg z-50 p-4">
           <p className="text-[12px] font-semibold text-fg mb-3">ステータスの説明</p>
           <ul className="flex flex-col gap-2.5">
             <li className="flex items-center gap-2">
