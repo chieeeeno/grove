@@ -8,6 +8,7 @@
   --color-card-hover: var(--bg-card-hover);
   --color-sidebar: var(--bg-sidebar);
   --color-dialog: var(--bg-dialog);
+  --color-popover: var(--bg-popover);
   --color-input: var(--bg-input);
 
   /* Borders */
@@ -49,6 +50,7 @@
   --bg-card-hover: #242838;
   --bg-sidebar: #161822;
   --bg-dialog: #1E2130;
+  --bg-popover: #363C54;
   --bg-input: #232636;
 
   /* Borders */
@@ -85,6 +87,7 @@
   --bg-card-hover: #F3F4F6;
   --bg-sidebar: #FFFFFF;
   --bg-dialog: #FFFFFF;
+  --bg-popover: #F5F6F8;
   --bg-input: #F3F4F6;
 
   --border-default: #E5E7EB;

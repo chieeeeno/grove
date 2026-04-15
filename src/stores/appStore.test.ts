@@ -48,6 +48,7 @@ describe("appStore", () => {
           lastCommitMessage: "init",
           lastCommitTime: 0,
           modifiedCount: 0,
+          branchStatus: "idle",
         },
       ]);
       expect(useAppStore.getState().worktrees["repo-1"]).toHaveLength(1);
@@ -78,6 +79,7 @@ describe("appStore", () => {
         lastCommitMessage: "init",
         lastCommitTime: 0,
         modifiedCount: 0,
+        isMerged: false,
       },
       {
         path: "/path/feature",
@@ -87,6 +89,7 @@ describe("appStore", () => {
         lastCommitMessage: "feat",
         lastCommitTime: 0,
         modifiedCount: 2,
+        isMerged: false,
       },
     ];
 
@@ -125,6 +128,21 @@ describe("appStore", () => {
 
       expect(after).not.toBe(before);
       expect(after[1].modifiedCount).toBe(5);
+    });
+
+    it("setWorktrees: branchStatus が変わった場合は新しい参照に入れ替わる", () => {
+      useAppStore.getState().setWorktrees("repo-1", mockWorktrees);
+      const before = useAppStore.getState().worktrees["repo-1"];
+
+      const changed = [
+        { ...mockWorktrees[0] },
+        { ...mockWorktrees[1], branchStatus: "merged" as const },
+      ];
+      useAppStore.getState().setWorktrees("repo-1", changed);
+      const after = useAppStore.getState().worktrees["repo-1"];
+
+      expect(after).not.toBe(before);
+      expect(after[1].branchStatus).toBe("merged");
     });
   });
 

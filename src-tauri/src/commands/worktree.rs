@@ -1,4 +1,4 @@
-use git2::{Repository, StatusOptions};
+use git2::{Oid, Repository, StatusOptions};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -28,6 +28,24 @@ pub struct WorktreeInfo {
     /// 変更ファイル数の合計（ADR-0011: modified/added/deleted/untracked を種別で分けない）。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
+    /// メインブランチとの関係を示すステータス。
+    /// メイン worktree 自身は常に `Idle`（UI 側でバッジを非表示にする）。
+    /// メインブランチが見つからない場合や detached HEAD の場合も `Idle`。
+    #[serde(rename = "branchStatus")]
+    pub branch_status: BranchStatus,
+}
+
+/// メインブランチとの関係を示すブランチステータス。
+///
+/// - `Idle` — メインと同じコミット（分岐直後、独自コミットなし）
+/// - `Active` — メインから分岐して独自コミットあり（作業中）
+/// - `Merged` — メインにマージ済み（削除候補）
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BranchStatus {
+    Idle,
+    Active,
+    Merged,
 }
 
 /// `get_worktree_status` の戻り値。ポーリング用の軽量ステータス。
@@ -76,6 +94,45 @@ fn count_modified_files(repo: &Repository) -> u32 {
     repo.statuses(Some(&mut opts))
         .map(|statuses| statuses.len() as u32)
         .unwrap_or(0)
+}
+
+/// メインブランチ（main → master の優先順位）の HEAD コミット OID を返す。
+///
+/// # Arguments
+/// * `repo` - 検索対象のリポジトリ
+///
+/// # Returns
+/// メインブランチが見つかれば `Some(Oid)`、どちらも存在しなければ `None`
+fn find_main_branch_head(repo: &Repository) -> Option<Oid> {
+    ["main", "master"].iter().find_map(|name| {
+        repo.find_branch(name, git2::BranchType::Local)
+            .ok()
+            .and_then(|b| b.get().peel_to_commit().ok())
+            .map(|c| c.id())
+    })
+}
+
+/// メインブランチとの関係からブランチステータスを判定する。
+///
+/// - 同一コミット → `Idle`（分岐直後、独自コミットなし）
+/// - `merge_base == branch_head` → `Merged`（ブランチが main の祖先 = マージ済み）
+/// - それ以外 → `Active`（独自コミットあり、先行 or 分岐）
+///
+/// # Arguments
+/// * `repo` - merge_base を検索するリポジトリ
+/// * `main_head` - メインブランチの HEAD コミット OID
+/// * `branch_head` - 判定対象ブランチの HEAD コミット OID
+///
+/// # Returns
+/// merge_base の計算に失敗した場合は `Active`（安全側に倒す）
+fn determine_branch_status(repo: &Repository, main_head: Oid, branch_head: Oid) -> BranchStatus {
+    if main_head == branch_head {
+        return BranchStatus::Idle;
+    }
+    match repo.merge_base(main_head, branch_head) {
+        Ok(base) if base == branch_head => BranchStatus::Merged,
+        _ => BranchStatus::Active,
+    }
 }
 
 /// リポジトリ配下の全 worktree を列挙する（メイン worktree + サブ worktree）。
@@ -144,6 +201,9 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
         })
         .collect();
 
+    // マージ判定用: メインブランチの HEAD OID を取得（Oid は Copy + Send）
+    let main_branch_head = find_main_branch_head(&main_repo);
+
     // main_repo は !Sync なのでスレッドに &main_repo を渡せない。
     // main もパスから Repository::open し直して並列実行する。
     // open のコストは数μs で、status walk（数十〜数百ms）に比べて無視できる。
@@ -171,6 +231,15 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                     let wt_repo = Repository::open(&wt_path).ok()?;
                     let (hash, msg, time) = get_last_commit(&wt_repo);
                     let modified = count_modified_files(&wt_repo);
+                    let branch_status = main_branch_head
+                        .and_then(|main_oid| {
+                            wt_repo
+                                .head()
+                                .ok()
+                                .and_then(|h| h.peel_to_commit().ok())
+                                .map(|c| determine_branch_status(&wt_repo, main_oid, c.id()))
+                        })
+                        .unwrap_or(BranchStatus::Idle);
                     Some(WorktreeInfo {
                         path: wt_path,
                         branch: get_branch_name(&wt_repo),
@@ -179,6 +248,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                         last_commit_message: msg,
                         last_commit_time: time,
                         modified_count: modified,
+                        branch_status,
                     })
                 })
             })
@@ -194,6 +264,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
             last_commit_message: main_msg,
             last_commit_time: main_time,
             modified_count: main_modified,
+            branch_status: BranchStatus::Idle,
         }];
 
         // サブの結果を追加
@@ -410,6 +481,67 @@ mod tests {
         (dir, repo)
     }
 
+    /// テスト用: 現在の HEAD を親にして空コミットを追加し OID を返す。
+    ///
+    /// HEAD が対象ブランチを指している前提で呼ぶこと。
+    /// `ref_name` は `Some("HEAD")` や `Some("refs/heads/main")` 等。
+    ///
+    /// # Arguments
+    /// * `repo` - コミット先のリポジトリ
+    /// * `ref_name` - 更新する参照名（`repo.commit` の第1引数）
+    /// * `message` - コミットメッセージ
+    ///
+    /// # Returns
+    /// 作成したコミットの OID
+    fn add_empty_commit(repo: &Repository, ref_name: &str, message: &str) -> Oid {
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        let parent = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.commit(Some(ref_name), &sig, &sig, message, &tree, &[&parent])
+            .unwrap()
+    }
+
+    /// テスト用: 指定ブランチ名でサブ worktree を追加し worktree パスを返す。
+    ///
+    /// 現在の HEAD コミットからブランチを作成し、worktree として登録する。
+    ///
+    /// # Arguments
+    /// * `repo` - メインリポジトリ
+    /// * `base_dir` - worktree ディレクトリの親パス（通常 `TempDir::path()`）
+    /// * `branch_name` - 作成するブランチ名
+    /// * `wt_name` - worktree の名前（ディレクトリ名にも使われる）
+    ///
+    /// # Returns
+    /// 作成した worktree の絶対パス
+    fn add_sub_worktree(
+        repo: &Repository,
+        base_dir: &Path,
+        branch_name: &str,
+        wt_name: &str,
+    ) -> std::path::PathBuf {
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch(branch_name, &head, false).unwrap();
+        let wt_path = base_dir.join(wt_name);
+        repo.worktree(
+            wt_name,
+            wt_path.as_path(),
+            Some(
+                git2::WorktreeAddOptions::new().reference(Some(
+                    &repo
+                        .find_branch(branch_name, git2::BranchType::Local)
+                        .unwrap()
+                        .into_reference(),
+                )),
+            ),
+        )
+        .unwrap();
+        wt_path
+    }
+
     #[test]
     fn test_list_worktrees_returns_main() {
         let (dir, _repo) = create_test_repo();
@@ -429,25 +561,7 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
-        // サブ worktree 用のブランチを作成
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.branch("feature-test", &head, false).unwrap();
-
-        // サブ worktree を追加
-        let wt_path = dir.path().join("wt-feature");
-        repo.worktree(
-            "wt-feature",
-            wt_path.as_path(),
-            Some(
-                git2::WorktreeAddOptions::new().reference(Some(
-                    &repo
-                        .find_branch("feature-test", git2::BranchType::Local)
-                        .unwrap()
-                        .into_reference(),
-                )),
-            ),
-        )
-        .unwrap();
+        add_sub_worktree(&repo, dir.path(), "feature-test", "wt-feature");
 
         let result = list_worktrees_inner(&main_path).unwrap();
 
@@ -463,23 +577,8 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
         for name in ["wt-a", "wt-b", "wt-c"] {
-            repo.branch(name, &head, false).unwrap();
-            let wt_path = dir.path().join(name);
-            repo.worktree(
-                name,
-                wt_path.as_path(),
-                Some(
-                    git2::WorktreeAddOptions::new().reference(Some(
-                        &repo
-                            .find_branch(name, git2::BranchType::Local)
-                            .unwrap()
-                            .into_reference(),
-                    )),
-                ),
-            )
-            .unwrap();
+            add_sub_worktree(&repo, dir.path(), name, name);
         }
 
         let result = list_worktrees_inner(&main_path).unwrap();
@@ -529,27 +628,8 @@ mod tests {
     /// テスト用: サブ worktree を作成して (メインdir, worktreeパス) を返す
     fn create_test_repo_with_worktree() -> (TempDir, String) {
         let (dir, repo) = create_test_repo();
-
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.branch("wt-branch", &head, false).unwrap();
-
-        let wt_path = dir.path().join("wt-sub");
-        repo.worktree(
-            "wt-sub",
-            wt_path.as_path(),
-            Some(
-                git2::WorktreeAddOptions::new().reference(Some(
-                    &repo
-                        .find_branch("wt-branch", git2::BranchType::Local)
-                        .unwrap()
-                        .into_reference(),
-                )),
-            ),
-        )
-        .unwrap();
-
+        let wt_path = add_sub_worktree(&repo, dir.path(), "wt-branch", "wt-sub");
         let wt_path_str = wt_path.to_str().unwrap().to_string();
-        // main_path が drop されないよう dir を返す
         (dir, wt_path_str)
     }
 
@@ -607,6 +687,165 @@ mod tests {
 
         assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
+    }
+
+    #[test]
+    fn test_find_main_branch_head_returns_oid() {
+        let (dir, _repo) = create_test_repo();
+        let repo = Repository::open(dir.path()).unwrap();
+        let result = find_main_branch_head(&repo);
+        // git init のデフォルトブランチ名が main or master のいずれかであれば Some
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_main_branch_head_returns_none_when_no_main_or_master() {
+        let dir = TempDir::new().unwrap();
+        let repo = Repository::init(dir.path()).unwrap();
+
+        // "develop" ブランチだけの初期コミットを作成
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        repo.commit(Some("refs/heads/develop"), &sig, &sig, "init", &tree, &[])
+            .unwrap();
+
+        // HEAD を develop に向ける
+        repo.set_head("refs/heads/develop").unwrap();
+
+        assert!(find_main_branch_head(&repo).is_none());
+    }
+
+    #[test]
+    fn test_determine_branch_status_same_commit_returns_idle() {
+        // 同一コミット（分岐直後で独自コミットなし）→ idle
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+        assert_eq!(
+            determine_branch_status(&repo, head_oid, head_oid),
+            BranchStatus::Idle
+        );
+    }
+
+    #[test]
+    fn test_determine_branch_status_branch_ahead_returns_active() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+
+        let main_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // ブランチを作成して追加コミット
+        let head_commit = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("feature", &head_commit, false).unwrap();
+        repo.set_head("refs/heads/feature").unwrap();
+
+        let feature_oid = add_empty_commit(&repo, "HEAD", "feature commit");
+
+        // feature は main より先 → active
+        assert_eq!(
+            determine_branch_status(&repo, main_oid, feature_oid),
+            BranchStatus::Active
+        );
+    }
+
+    #[test]
+    fn test_determine_branch_status_branch_behind_main_returns_merged() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+
+        let initial_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // main に追加コミット
+        add_empty_commit(&repo, "HEAD", "main advance");
+
+        let main_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // initial_oid は main_oid の祖先 → merged
+        assert_eq!(
+            determine_branch_status(&repo, main_oid, initial_oid),
+            BranchStatus::Merged
+        );
+    }
+
+    #[test]
+    fn test_list_worktrees_main_branch_status_is_idle() {
+        let (dir, _repo) = create_test_repo();
+        let path = dir.path().to_str().unwrap().to_string();
+        let result = list_worktrees_inner(&path).unwrap();
+        assert_eq!(result[0].branch_status, BranchStatus::Idle);
+    }
+
+    #[test]
+    fn test_list_worktrees_sub_worktree_same_commit_is_idle() {
+        // 同一コミット（分岐直後で独自コミットなし）→ idle
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        add_sub_worktree(&repo, dir.path(), "feature-new", "wt-new");
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        let sub = result.iter().find(|w| w.branch == "feature-new").unwrap();
+        assert_eq!(sub.branch_status, BranchStatus::Idle);
+    }
+
+    #[test]
+    fn test_list_worktrees_sub_worktree_merged_into_main() {
+        // ブランチに独自コミット後、main を fast-forward → マージ済み
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let wt_path = add_sub_worktree(&repo, dir.path(), "feature-merged", "wt-merged");
+
+        // サブ worktree に独自コミットを追加
+        let wt_repo = Repository::open(&wt_path).unwrap();
+        let feature_oid = add_empty_commit(&wt_repo, "HEAD", "feature work");
+
+        // main を fast-forward してブランチのコミットを取り込み、さらに1コミット進める。
+        // FF 直後は main == feature で同一コミットのため idle になるが、
+        // main がさらに進むと feature は main の祖先 → merged になる。
+        let main_repo = Repository::open(&main_path).unwrap();
+        let main_branch_name = get_branch_name(&main_repo);
+        main_repo
+            .reference(
+                &format!("refs/heads/{}", main_branch_name),
+                feature_oid,
+                true,
+                "fast-forward merge",
+            )
+            .unwrap();
+        // main にもう1コミット追加して feature より先に進める
+        add_empty_commit(
+            &main_repo,
+            &format!("refs/heads/{}", main_branch_name),
+            "main advances after merge",
+        );
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        let sub = result
+            .iter()
+            .find(|w| w.branch == "feature-merged")
+            .unwrap();
+        assert_eq!(sub.branch_status, BranchStatus::Merged);
+    }
+
+    #[test]
+    fn test_list_worktrees_sub_worktree_with_extra_commit_is_active() {
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let wt_path = add_sub_worktree(&repo, dir.path(), "feature-ahead", "wt-ahead");
+
+        // サブ worktree に追加コミット
+        let wt_repo = Repository::open(&wt_path).unwrap();
+        add_empty_commit(&wt_repo, "HEAD", "ahead commit");
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        let sub = result.iter().find(|w| w.branch == "feature-ahead").unwrap();
+        assert_eq!(sub.branch_status, BranchStatus::Active);
     }
 
     #[test]
