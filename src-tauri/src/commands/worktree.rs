@@ -28,11 +28,15 @@ pub struct WorktreeInfo {
     /// 変更ファイル数の合計（ADR-0011: modified/added/deleted/untracked を種別で分けない）。
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
-    /// メインブランチ（main/master）にマージ済みかどうか。
-    /// メイン worktree 自身は常に `false`（UI 側でバッジを非表示にする）。
-    /// メインブランチが見つからない場合や detached HEAD の場合も `false`。
-    #[serde(rename = "isMerged")]
-    pub is_merged: bool,
+    /// メインブランチとの関係を示すステータス。
+    /// - `"idle"` — メインと同じコミット（分岐直後、独自コミットなし）
+    /// - `"active"` — メインから分岐して独自コミットあり（作業中）
+    /// - `"merged"` — メインにマージ済み（削除候補）
+    ///
+    /// メイン worktree 自身は常に `"idle"`（UI 側でバッジを非表示にする）。
+    /// メインブランチが見つからない場合や detached HEAD の場合も `"idle"`。
+    #[serde(rename = "branchStatus")]
+    pub branch_status: String,
 }
 
 /// `get_worktree_status` の戻り値。ポーリング用の軽量ステータス。
@@ -99,11 +103,11 @@ fn find_main_branch_head(repo: &Repository) -> Option<Oid> {
     })
 }
 
-/// ブランチがメインブランチにマージ済みかを判定する。
+/// メインブランチとの関係からブランチステータスを判定する。
 ///
-/// `merge_base(main_head, branch_head) == branch_head` かつ `main_head != branch_head`
-/// なら、branch_head は main_head の祖先にあたるため「マージ済み」と判定する。
-/// 同一コミット（分岐直後で独自コミットなし）は「未マージ」扱いとする。
+/// - 同一コミット → `"idle"`（分岐直後、独自コミットなし）
+/// - `merge_base == branch_head` → `"merged"`（ブランチが main の祖先 = マージ済み）
+/// - それ以外 → `"active"`（独自コミットあり、先行 or 分岐）
 ///
 /// # Arguments
 /// * `repo` - merge_base を検索するリポジトリ
@@ -111,14 +115,16 @@ fn find_main_branch_head(repo: &Repository) -> Option<Oid> {
 /// * `branch_head` - 判定対象ブランチの HEAD コミット OID
 ///
 /// # Returns
-/// マージ済みなら `true`。同一コミット・merge_base の計算失敗時は `false`
-fn check_is_merged(repo: &Repository, main_head: Oid, branch_head: Oid) -> bool {
+/// `"idle"` / `"active"` / `"merged"` のいずれか。
+/// merge_base の計算に失敗した場合は `"active"`（安全側に倒す）
+fn determine_branch_status(repo: &Repository, main_head: Oid, branch_head: Oid) -> &'static str {
     if main_head == branch_head {
-        return false;
+        return "idle";
     }
-    repo.merge_base(main_head, branch_head)
-        .map(|base| base == branch_head)
-        .unwrap_or(false)
+    match repo.merge_base(main_head, branch_head) {
+        Ok(base) if base == branch_head => "merged",
+        _ => "active",
+    }
 }
 
 /// リポジトリ配下の全 worktree を列挙する（メイン worktree + サブ worktree）。
@@ -217,15 +223,15 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                     let wt_repo = Repository::open(&wt_path).ok()?;
                     let (hash, msg, time) = get_last_commit(&wt_repo);
                     let modified = count_modified_files(&wt_repo);
-                    let is_merged = main_branch_head
+                    let branch_status = main_branch_head
                         .and_then(|main_oid| {
                             wt_repo
                                 .head()
                                 .ok()
                                 .and_then(|h| h.peel_to_commit().ok())
-                                .map(|c| check_is_merged(&wt_repo, main_oid, c.id()))
+                                .map(|c| determine_branch_status(&wt_repo, main_oid, c.id()))
                         })
-                        .unwrap_or(false);
+                        .unwrap_or("idle");
                     Some(WorktreeInfo {
                         path: wt_path,
                         branch: get_branch_name(&wt_repo),
@@ -234,7 +240,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                         last_commit_message: msg,
                         last_commit_time: time,
                         modified_count: modified,
-                        is_merged,
+                        branch_status: branch_status.to_string(),
                     })
                 })
             })
@@ -250,7 +256,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
             last_commit_message: main_msg,
             last_commit_time: main_time,
             modified_count: main_modified,
-            is_merged: false,
+            branch_status: "idle".to_string(),
         }];
 
         // サブの結果を追加
@@ -697,16 +703,16 @@ mod tests {
     }
 
     #[test]
-    fn test_check_is_merged_same_commit_returns_false() {
-        // 同一コミット（分岐直後で独自コミットなし）はマージ済みとみなさない
+    fn test_determine_branch_status_same_commit_returns_idle() {
+        // 同一コミット（分岐直後で独自コミットなし）→ idle
         let (dir, repo) = create_test_repo();
         let _ = dir;
         let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
-        assert!(!check_is_merged(&repo, head_oid, head_oid));
+        assert_eq!(determine_branch_status(&repo, head_oid, head_oid), "idle");
     }
 
     #[test]
-    fn test_check_is_merged_branch_ahead() {
+    fn test_determine_branch_status_branch_ahead_returns_active() {
         let (dir, repo) = create_test_repo();
         let _ = dir;
 
@@ -735,12 +741,15 @@ mod tests {
             )
             .unwrap();
 
-        // feature は main より先 → マージされていない
-        assert!(!check_is_merged(&repo, main_oid, feature_oid));
+        // feature は main より先 → active
+        assert_eq!(
+            determine_branch_status(&repo, main_oid, feature_oid),
+            "active"
+        );
     }
 
     #[test]
-    fn test_check_is_merged_branch_behind_main() {
+    fn test_determine_branch_status_branch_behind_main_returns_merged() {
         let (dir, repo) = create_test_repo();
         let _ = dir;
 
@@ -759,21 +768,24 @@ mod tests {
 
         let main_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
 
-        // initial_oid は main_oid の祖先 → マージ済み
-        assert!(check_is_merged(&repo, main_oid, initial_oid));
+        // initial_oid は main_oid の祖先 → merged
+        assert_eq!(
+            determine_branch_status(&repo, main_oid, initial_oid),
+            "merged"
+        );
     }
 
     #[test]
-    fn test_list_worktrees_main_is_merged_always_false() {
+    fn test_list_worktrees_main_branch_status_is_idle() {
         let (dir, _repo) = create_test_repo();
         let path = dir.path().to_str().unwrap().to_string();
         let result = list_worktrees_inner(&path).unwrap();
-        assert!(!result[0].is_merged);
+        assert_eq!(result[0].branch_status, "idle");
     }
 
     #[test]
-    fn test_list_worktrees_sub_worktree_same_commit_not_merged() {
-        // 同一コミット（分岐直後で独自コミットなし）はマージ済みとみなさない
+    fn test_list_worktrees_sub_worktree_same_commit_is_idle() {
+        // 同一コミット（分岐直後で独自コミットなし）→ idle
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
@@ -797,7 +809,7 @@ mod tests {
 
         let result = list_worktrees_inner(&main_path).unwrap();
         let sub = result.iter().find(|w| w.branch == "feature-new").unwrap();
-        assert!(!sub.is_merged);
+        assert_eq!(sub.branch_status, "idle");
     }
 
     #[test]
@@ -838,8 +850,8 @@ mod tests {
             .unwrap();
 
         // main を fast-forward してブランチのコミットを取り込み、さらに1コミット進める。
-        // FF 直後は main == feature で同一コミットのため is_merged=false になるが、
-        // main がさらに進むと feature は main の祖先 → is_merged=true になる。
+        // FF 直後は main == feature で同一コミットのため idle になるが、
+        // main がさらに進むと feature は main の祖先 → merged になる。
         let main_repo = Repository::open(&main_path).unwrap();
         let main_branch_name = get_branch_name(&main_repo);
         main_repo
@@ -874,11 +886,11 @@ mod tests {
             .iter()
             .find(|w| w.branch == "feature-merged")
             .unwrap();
-        assert!(sub.is_merged);
+        assert_eq!(sub.branch_status, "merged");
     }
 
     #[test]
-    fn test_list_worktrees_sub_worktree_with_extra_commit_not_merged() {
+    fn test_list_worktrees_sub_worktree_with_extra_commit_is_active() {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
@@ -915,7 +927,7 @@ mod tests {
 
         let result = list_worktrees_inner(&main_path).unwrap();
         let sub = result.iter().find(|w| w.branch == "feature-ahead").unwrap();
-        assert!(!sub.is_merged);
+        assert_eq!(sub.branch_status, "active");
     }
 
     #[test]

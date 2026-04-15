@@ -2,6 +2,7 @@ import { memo, useCallback, useState } from "react";
 import {
   ShieldCheck,
   GitCommitHorizontal,
+  GitBranch,
   GitMerge,
   FilePen,
   Code,
@@ -102,16 +103,17 @@ function WorktreeCard({
               <ShieldCheck size={12} />
               primary
             </span>
-          ) : worktree.isMerged ? (
+          ) : worktree.branchStatus === "active" ? (
+            <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#3B82F633] text-blue-400">
+              <GitBranch size={12} />
+              active
+            </span>
+          ) : worktree.branchStatus === "merged" ? (
             <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#8B5CF633] text-purple-400">
               <GitMerge size={12} />
               merged
             </span>
-          ) : (
-            <span className="flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#6B728033] text-accent-gray">
-              idle
-            </span>
-          ))}
+          ) : null)}
       </div>
 
       {/* 区切り線 */}

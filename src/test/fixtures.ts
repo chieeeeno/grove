@@ -22,7 +22,7 @@ export const mockWorktree = (overrides: Partial<WorktreeInfo> = {}): WorktreeInf
   lastCommitMessage: "initial commit",
   lastCommitTime: 0,
   modifiedCount: 0,
-  isMerged: false,
+  branchStatus: "idle",
   ...overrides,
 });
 

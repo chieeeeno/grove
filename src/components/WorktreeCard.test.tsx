@@ -72,23 +72,37 @@ describe("WorktreeCard", () => {
     });
   });
 
-  describe("マージ状態バッジ", () => {
+  describe("ブランチステータスバッジ", () => {
     it("メイン worktree は常に primary バッジを表示する", () => {
       render(<WorktreeCard {...defaultProps} worktree={mockWorktree({ isMain: true })} />);
       expect(screen.getByText("primary")).toBeInTheDocument();
       expect(screen.queryByText("merged")).toBeNull();
+      expect(screen.queryByText("active")).toBeNull();
     });
 
-    it("isMerged=true の非メイン worktree は merged バッジを表示する", () => {
-      render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree({ isMerged: true })} />);
-      expect(screen.getByText("merged")).toBeInTheDocument();
-      expect(screen.queryByText("idle")).toBeNull();
-    });
-
-    it("isMerged=false の非メイン worktree は idle バッジを表示する", () => {
-      render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree({ isMerged: false })} />);
-      expect(screen.getByText("idle")).toBeInTheDocument();
+    it("branchStatus=active の非メイン worktree は active バッジを表示する", () => {
+      render(
+        <WorktreeCard {...defaultProps} worktree={mockSubWorktree({ branchStatus: "active" })} />
+      );
+      expect(screen.getByText("active")).toBeInTheDocument();
       expect(screen.queryByText("merged")).toBeNull();
+    });
+
+    it("branchStatus=merged の非メイン worktree は merged バッジを表示する", () => {
+      render(
+        <WorktreeCard {...defaultProps} worktree={mockSubWorktree({ branchStatus: "merged" })} />
+      );
+      expect(screen.getByText("merged")).toBeInTheDocument();
+      expect(screen.queryByText("active")).toBeNull();
+    });
+
+    it("branchStatus=idle の非メイン worktree はバッジを表示しない", () => {
+      render(
+        <WorktreeCard {...defaultProps} worktree={mockSubWorktree({ branchStatus: "idle" })} />
+      );
+      expect(screen.queryByText("active")).toBeNull();
+      expect(screen.queryByText("merged")).toBeNull();
+      expect(screen.queryByText("idle")).toBeNull();
     });
   });
 
