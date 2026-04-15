@@ -44,10 +44,10 @@ export interface AppConfig {
   terminal: string;
   /**
    * 前回終了時に選択していたリポジトリ ID。
-   * `undefined` / `null` は未設定を表し、起動時は `repositories[0]` にフォールバックする。
-   * 既存ユーザーの store にキーが無い場合は `undefined` になる。
+   * `null` は未設定を表し、起動時は `repositories[0]` にフォールバックする。
+   * Rust 側 `Option<String>` の `None` は `null` としてシリアライズされる。
    */
-  selectedRepositoryId?: string | null;
+  selectedRepositoryId: string | null;
 }
 
 /**
