@@ -87,6 +87,11 @@ function buildConfigFromStore(): AppConfig {
   };
 }
 
+/** store 更新後の設定を非同期で永続化する。失敗はコンソールのみに記録（UI 通知なし）。 */
+function saveConfigSilently(): void {
+  saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+}
+
 function App() {
   // 個別セレクタで購読する（引数なしの useAppStore() だと全 state 購読になり、
   // 関係ない変更でも App 全体が再レンダーする）
@@ -188,13 +193,11 @@ function App() {
           setSelectedTerminal(config.terminal);
         }
         // 保存済み ID を優先し、リポジトリが削除済みの場合は先頭にフォールバック
-        const savedId = config.selectedRepositoryId ?? null;
+        const savedId = config.selectedRepositoryId;
         const initialId =
           savedId && config.repositories.some((r) => r.id === savedId)
             ? savedId
-            : config.repositories.length > 0
-              ? config.repositories[0].id
-              : null;
+            : (config.repositories[0]?.id ?? null);
         if (initialId) {
           selectRepository(initialId);
         }
@@ -253,7 +256,7 @@ function App() {
 
       addRepository(newRepo);
       selectRepository(newRepo.id);
-      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      saveConfigSilently();
       toast.success("リポジトリを追加しました");
     } catch (e) {
       console.error("リポジトリの追加に失敗しました:", e);
@@ -271,10 +274,11 @@ function App() {
    */
   const handleSelectRepository = useCallback(
     (id: string) => {
+      if (id === selectedRepositoryId) return;
       selectRepository(id);
-      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      saveConfigSilently();
     },
-    [selectRepository]
+    [selectRepository, selectedRepositoryId]
   );
 
   // ===== リポジトリ削除 =====
@@ -295,7 +299,7 @@ function App() {
         selectRepository(remaining.length > 0 ? remaining[0].id : null);
       }
 
-      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+      saveConfigSilently();
       deleteOrder(id).catch((err) => console.error("並び順削除に失敗:", err));
       toast.success("リポジトリを解除しました");
     },
