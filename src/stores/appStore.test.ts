@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useAppStore, selectEffectiveTerminalId } from "./appStore";
+import { useAppStore, selectEffectiveTerminalId, selectEffectiveTerminalName } from "./appStore";
 
 describe("appStore", () => {
   beforeEach(() => {
@@ -253,6 +253,31 @@ describe("appStore", () => {
       it("installedTerminals が空で selectedTerminal も空なら空文字を返す", () => {
         useAppStore.setState({ installedTerminals: [], selectedTerminal: "" });
         expect(selectEffectiveTerminalId(useAppStore.getState())).toBe("");
+      });
+    });
+
+    describe("selectEffectiveTerminalName", () => {
+      it("selectedTerminal が空のとき installedTerminals 先頭の name を返す", () => {
+        useAppStore.setState({ installedTerminals: mockTerminals, selectedTerminal: "" });
+        expect(selectEffectiveTerminalName(useAppStore.getState())).toBe("Terminal.app");
+      });
+
+      it("selectedTerminal が設定済みなら該当ターミナルの name を返す", () => {
+        useAppStore.setState({ installedTerminals: mockTerminals, selectedTerminal: "ghostty" });
+        expect(selectEffectiveTerminalName(useAppStore.getState())).toBe("Ghostty");
+      });
+
+      it("installedTerminals が空で selectedTerminal も空ならフォールバック 'Terminal' を返す", () => {
+        useAppStore.setState({ installedTerminals: [], selectedTerminal: "" });
+        expect(selectEffectiveTerminalName(useAppStore.getState())).toBe("Terminal");
+      });
+
+      it("selectedTerminal の ID が installedTerminals に存在しない場合フォールバック 'Terminal' を返す", () => {
+        useAppStore.setState({
+          installedTerminals: mockTerminals,
+          selectedTerminal: "nonexistent",
+        });
+        expect(selectEffectiveTerminalName(useAppStore.getState())).toBe("Terminal");
       });
     });
   });
