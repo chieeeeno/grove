@@ -481,6 +481,67 @@ mod tests {
         (dir, repo)
     }
 
+    /// テスト用: 現在の HEAD を親にして空コミットを追加し OID を返す。
+    ///
+    /// HEAD が対象ブランチを指している前提で呼ぶこと。
+    /// `ref_name` は `Some("HEAD")` や `Some("refs/heads/main")` 等。
+    ///
+    /// # Arguments
+    /// * `repo` - コミット先のリポジトリ
+    /// * `ref_name` - 更新する参照名（`repo.commit` の第1引数）
+    /// * `message` - コミットメッセージ
+    ///
+    /// # Returns
+    /// 作成したコミットの OID
+    fn add_empty_commit(repo: &Repository, ref_name: &str, message: &str) -> Oid {
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        let parent = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.commit(Some(ref_name), &sig, &sig, message, &tree, &[&parent])
+            .unwrap()
+    }
+
+    /// テスト用: 指定ブランチ名でサブ worktree を追加し worktree パスを返す。
+    ///
+    /// 現在の HEAD コミットからブランチを作成し、worktree として登録する。
+    ///
+    /// # Arguments
+    /// * `repo` - メインリポジトリ
+    /// * `base_dir` - worktree ディレクトリの親パス（通常 `TempDir::path()`）
+    /// * `branch_name` - 作成するブランチ名
+    /// * `wt_name` - worktree の名前（ディレクトリ名にも使われる）
+    ///
+    /// # Returns
+    /// 作成した worktree の絶対パス
+    fn add_sub_worktree(
+        repo: &Repository,
+        base_dir: &Path,
+        branch_name: &str,
+        wt_name: &str,
+    ) -> std::path::PathBuf {
+        let head = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch(branch_name, &head, false).unwrap();
+        let wt_path = base_dir.join(wt_name);
+        repo.worktree(
+            wt_name,
+            wt_path.as_path(),
+            Some(
+                git2::WorktreeAddOptions::new().reference(Some(
+                    &repo
+                        .find_branch(branch_name, git2::BranchType::Local)
+                        .unwrap()
+                        .into_reference(),
+                )),
+            ),
+        )
+        .unwrap();
+        wt_path
+    }
+
     #[test]
     fn test_list_worktrees_returns_main() {
         let (dir, _repo) = create_test_repo();
@@ -500,25 +561,7 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
-        // サブ worktree 用のブランチを作成
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.branch("feature-test", &head, false).unwrap();
-
-        // サブ worktree を追加
-        let wt_path = dir.path().join("wt-feature");
-        repo.worktree(
-            "wt-feature",
-            wt_path.as_path(),
-            Some(
-                git2::WorktreeAddOptions::new().reference(Some(
-                    &repo
-                        .find_branch("feature-test", git2::BranchType::Local)
-                        .unwrap()
-                        .into_reference(),
-                )),
-            ),
-        )
-        .unwrap();
+        add_sub_worktree(&repo, dir.path(), "feature-test", "wt-feature");
 
         let result = list_worktrees_inner(&main_path).unwrap();
 
@@ -534,23 +577,8 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
         for name in ["wt-a", "wt-b", "wt-c"] {
-            repo.branch(name, &head, false).unwrap();
-            let wt_path = dir.path().join(name);
-            repo.worktree(
-                name,
-                wt_path.as_path(),
-                Some(
-                    git2::WorktreeAddOptions::new().reference(Some(
-                        &repo
-                            .find_branch(name, git2::BranchType::Local)
-                            .unwrap()
-                            .into_reference(),
-                    )),
-                ),
-            )
-            .unwrap();
+            add_sub_worktree(&repo, dir.path(), name, name);
         }
 
         let result = list_worktrees_inner(&main_path).unwrap();
@@ -600,27 +628,8 @@ mod tests {
     /// テスト用: サブ worktree を作成して (メインdir, worktreeパス) を返す
     fn create_test_repo_with_worktree() -> (TempDir, String) {
         let (dir, repo) = create_test_repo();
-
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.branch("wt-branch", &head, false).unwrap();
-
-        let wt_path = dir.path().join("wt-sub");
-        repo.worktree(
-            "wt-sub",
-            wt_path.as_path(),
-            Some(
-                git2::WorktreeAddOptions::new().reference(Some(
-                    &repo
-                        .find_branch("wt-branch", git2::BranchType::Local)
-                        .unwrap()
-                        .into_reference(),
-                )),
-            ),
-        )
-        .unwrap();
-
+        let wt_path = add_sub_worktree(&repo, dir.path(), "wt-branch", "wt-sub");
         let wt_path_str = wt_path.to_str().unwrap().to_string();
-        // main_path が drop されないよう dir を返す
         (dir, wt_path_str)
     }
 
@@ -734,23 +743,7 @@ mod tests {
         repo.branch("feature", &head_commit, false).unwrap();
         repo.set_head("refs/heads/feature").unwrap();
 
-        let sig = Signature::now("Test", "test@example.com").unwrap();
-        let tree_id = {
-            let mut index = repo.index().unwrap();
-            index.write_tree().unwrap()
-        };
-        let tree = repo.find_tree(tree_id).unwrap();
-        let parent = repo.head().unwrap().peel_to_commit().unwrap();
-        let feature_oid = repo
-            .commit(
-                Some("HEAD"),
-                &sig,
-                &sig,
-                "feature commit",
-                &tree,
-                &[&parent],
-            )
-            .unwrap();
+        let feature_oid = add_empty_commit(&repo, "HEAD", "feature commit");
 
         // feature は main より先 → active
         assert_eq!(
@@ -767,15 +760,7 @@ mod tests {
         let initial_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
 
         // main に追加コミット
-        let sig = Signature::now("Test", "test@example.com").unwrap();
-        let tree_id = {
-            let mut index = repo.index().unwrap();
-            index.write_tree().unwrap()
-        };
-        let tree = repo.find_tree(tree_id).unwrap();
-        let parent = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "main advance", &tree, &[&parent])
-            .unwrap();
+        add_empty_commit(&repo, "HEAD", "main advance");
 
         let main_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
 
@@ -800,23 +785,7 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.branch("feature-new", &head, false).unwrap();
-
-        let wt_path = dir.path().join("wt-new");
-        repo.worktree(
-            "wt-new",
-            wt_path.as_path(),
-            Some(
-                git2::WorktreeAddOptions::new().reference(Some(
-                    &repo
-                        .find_branch("feature-new", git2::BranchType::Local)
-                        .unwrap()
-                        .into_reference(),
-                )),
-            ),
-        )
-        .unwrap();
+        add_sub_worktree(&repo, dir.path(), "feature-new", "wt-new");
 
         let result = list_worktrees_inner(&main_path).unwrap();
         let sub = result.iter().find(|w| w.branch == "feature-new").unwrap();
@@ -829,36 +798,11 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.branch("feature-merged", &head, false).unwrap();
-
-        let wt_path = dir.path().join("wt-merged");
-        repo.worktree(
-            "wt-merged",
-            wt_path.as_path(),
-            Some(
-                git2::WorktreeAddOptions::new().reference(Some(
-                    &repo
-                        .find_branch("feature-merged", git2::BranchType::Local)
-                        .unwrap()
-                        .into_reference(),
-                )),
-            ),
-        )
-        .unwrap();
+        let wt_path = add_sub_worktree(&repo, dir.path(), "feature-merged", "wt-merged");
 
         // サブ worktree に独自コミットを追加
         let wt_repo = Repository::open(&wt_path).unwrap();
-        let sig = Signature::now("Test", "test@example.com").unwrap();
-        let tree_id = {
-            let mut index = wt_repo.index().unwrap();
-            index.write_tree().unwrap()
-        };
-        let tree = wt_repo.find_tree(tree_id).unwrap();
-        let parent = wt_repo.head().unwrap().peel_to_commit().unwrap();
-        let feature_oid = wt_repo
-            .commit(Some("HEAD"), &sig, &sig, "feature work", &tree, &[&parent])
-            .unwrap();
+        let feature_oid = add_empty_commit(&wt_repo, "HEAD", "feature work");
 
         // main を fast-forward してブランチのコミットを取り込み、さらに1コミット進める。
         // FF 直後は main == feature で同一コミットのため idle になるが、
@@ -874,23 +818,11 @@ mod tests {
             )
             .unwrap();
         // main にもう1コミット追加して feature より先に進める
-        let sig = Signature::now("Test", "test@example.com").unwrap();
-        let tree_id = {
-            let mut index = main_repo.index().unwrap();
-            index.write_tree().unwrap()
-        };
-        let tree = main_repo.find_tree(tree_id).unwrap();
-        let parent = main_repo.find_commit(feature_oid).unwrap();
-        main_repo
-            .commit(
-                Some(&format!("refs/heads/{}", main_branch_name)),
-                &sig,
-                &sig,
-                "main advances after merge",
-                &tree,
-                &[&parent],
-            )
-            .unwrap();
+        add_empty_commit(
+            &main_repo,
+            &format!("refs/heads/{}", main_branch_name),
+            "main advances after merge",
+        );
 
         let result = list_worktrees_inner(&main_path).unwrap();
         let sub = result
@@ -905,36 +837,11 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let main_path = dir.path().to_str().unwrap().to_string();
 
-        let head = repo.head().unwrap().peel_to_commit().unwrap();
-        repo.branch("feature-ahead", &head, false).unwrap();
-
-        let wt_path = dir.path().join("wt-ahead");
-        repo.worktree(
-            "wt-ahead",
-            wt_path.as_path(),
-            Some(
-                git2::WorktreeAddOptions::new().reference(Some(
-                    &repo
-                        .find_branch("feature-ahead", git2::BranchType::Local)
-                        .unwrap()
-                        .into_reference(),
-                )),
-            ),
-        )
-        .unwrap();
+        let wt_path = add_sub_worktree(&repo, dir.path(), "feature-ahead", "wt-ahead");
 
         // サブ worktree に追加コミット
         let wt_repo = Repository::open(&wt_path).unwrap();
-        let sig = Signature::now("Test", "test@example.com").unwrap();
-        let tree_id = {
-            let mut index = wt_repo.index().unwrap();
-            index.write_tree().unwrap()
-        };
-        let tree = wt_repo.find_tree(tree_id).unwrap();
-        let parent = wt_repo.head().unwrap().peel_to_commit().unwrap();
-        wt_repo
-            .commit(Some("HEAD"), &sig, &sig, "ahead commit", &tree, &[&parent])
-            .unwrap();
+        add_empty_commit(&wt_repo, "HEAD", "ahead commit");
 
         let result = list_worktrees_inner(&main_path).unwrap();
         let sub = result.iter().find(|w| w.branch == "feature-ahead").unwrap();

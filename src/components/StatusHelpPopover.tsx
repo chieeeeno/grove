@@ -57,9 +57,7 @@ export default function StatusHelpPopover() {
               <span className="text-[12px] text-fg-secondary">メインブランチにマージ済み</span>
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-[10px] text-fg-muted w-20 text-center shrink-0">
-                バッジなし
-              </span>
+              <BranchStatusBadge status="idle" fixedWidth />
               <span className="text-[12px] text-fg-secondary">分岐直後でまだコミットなし</span>
             </li>
           </ul>

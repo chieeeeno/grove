@@ -41,7 +41,12 @@ const badgeConfig = {
 } as const;
 
 export default function BranchStatusBadge({ status, fixedWidth }: BranchStatusBadgeProps) {
-  if (status === "idle") return null;
+  if (status === "idle") {
+    // fixedWidth 時はレイアウト揃え用のプレースホルダーを返す（ポップオーバー凡例用）
+    return fixedWidth ? (
+      <span className="text-[10px] text-fg-muted w-20 text-center shrink-0">バッジなし</span>
+    ) : null;
+  }
 
   const config = badgeConfig[status];
   const Icon = config.icon;
