@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HelpCircle, ShieldCheck, GitBranch, GitMerge } from "lucide-react";
+import { HelpCircle } from "lucide-react";
+import BranchStatusBadge from "./BranchStatusBadge";
 
 /**
  * ステータスバッジの意味を説明するポップオーバー。
@@ -42,26 +43,17 @@ export default function StatusHelpPopover() {
           <p className="text-[12px] font-semibold text-fg mb-3">ステータスの説明</p>
           <ul className="flex flex-col gap-2.5">
             <li className="flex items-center gap-2">
-              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold w-20 justify-center shrink-0 bg-[#34D39933] text-accent-green">
-                <ShieldCheck size={12} />
-                primary
-              </span>
+              <BranchStatusBadge status="primary" fixedWidth />
               <span className="text-[12px] text-fg-secondary">
                 メインの worktree（リポジトリ本体）
               </span>
             </li>
             <li className="flex items-center gap-2">
-              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold w-20 justify-center shrink-0 bg-[#3B82F633] text-blue-400">
-                <GitBranch size={12} />
-                active
-              </span>
+              <BranchStatusBadge status="active" fixedWidth />
               <span className="text-[12px] text-fg-secondary">独自のコミットがあるブランチ</span>
             </li>
             <li className="flex items-center gap-2">
-              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold w-20 justify-center shrink-0 bg-[#8B5CF633] text-purple-400">
-                <GitMerge size={12} />
-                merged
-              </span>
+              <BranchStatusBadge status="merged" fixedWidth />
               <span className="text-[12px] text-fg-secondary">メインブランチにマージ済み</span>
             </li>
             <li className="flex items-center gap-2">

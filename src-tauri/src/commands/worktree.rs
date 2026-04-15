@@ -29,14 +29,23 @@ pub struct WorktreeInfo {
     #[serde(rename = "modifiedCount")]
     pub modified_count: u32,
     /// メインブランチとの関係を示すステータス。
-    /// - `"idle"` — メインと同じコミット（分岐直後、独自コミットなし）
-    /// - `"active"` — メインから分岐して独自コミットあり（作業中）
-    /// - `"merged"` — メインにマージ済み（削除候補）
-    ///
-    /// メイン worktree 自身は常に `"idle"`（UI 側でバッジを非表示にする）。
-    /// メインブランチが見つからない場合や detached HEAD の場合も `"idle"`。
+    /// メイン worktree 自身は常に `Idle`（UI 側でバッジを非表示にする）。
+    /// メインブランチが見つからない場合や detached HEAD の場合も `Idle`。
     #[serde(rename = "branchStatus")]
-    pub branch_status: String,
+    pub branch_status: BranchStatus,
+}
+
+/// メインブランチとの関係を示すブランチステータス。
+///
+/// - `Idle` — メインと同じコミット（分岐直後、独自コミットなし）
+/// - `Active` — メインから分岐して独自コミットあり（作業中）
+/// - `Merged` — メインにマージ済み（削除候補）
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BranchStatus {
+    Idle,
+    Active,
+    Merged,
 }
 
 /// `get_worktree_status` の戻り値。ポーリング用の軽量ステータス。
@@ -105,9 +114,9 @@ fn find_main_branch_head(repo: &Repository) -> Option<Oid> {
 
 /// メインブランチとの関係からブランチステータスを判定する。
 ///
-/// - 同一コミット → `"idle"`（分岐直後、独自コミットなし）
-/// - `merge_base == branch_head` → `"merged"`（ブランチが main の祖先 = マージ済み）
-/// - それ以外 → `"active"`（独自コミットあり、先行 or 分岐）
+/// - 同一コミット → `Idle`（分岐直後、独自コミットなし）
+/// - `merge_base == branch_head` → `Merged`（ブランチが main の祖先 = マージ済み）
+/// - それ以外 → `Active`（独自コミットあり、先行 or 分岐）
 ///
 /// # Arguments
 /// * `repo` - merge_base を検索するリポジトリ
@@ -115,15 +124,14 @@ fn find_main_branch_head(repo: &Repository) -> Option<Oid> {
 /// * `branch_head` - 判定対象ブランチの HEAD コミット OID
 ///
 /// # Returns
-/// `"idle"` / `"active"` / `"merged"` のいずれか。
-/// merge_base の計算に失敗した場合は `"active"`（安全側に倒す）
-fn determine_branch_status(repo: &Repository, main_head: Oid, branch_head: Oid) -> &'static str {
+/// merge_base の計算に失敗した場合は `Active`（安全側に倒す）
+fn determine_branch_status(repo: &Repository, main_head: Oid, branch_head: Oid) -> BranchStatus {
     if main_head == branch_head {
-        return "idle";
+        return BranchStatus::Idle;
     }
     match repo.merge_base(main_head, branch_head) {
-        Ok(base) if base == branch_head => "merged",
-        _ => "active",
+        Ok(base) if base == branch_head => BranchStatus::Merged,
+        _ => BranchStatus::Active,
     }
 }
 
@@ -231,7 +239,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                                 .and_then(|h| h.peel_to_commit().ok())
                                 .map(|c| determine_branch_status(&wt_repo, main_oid, c.id()))
                         })
-                        .unwrap_or("idle");
+                        .unwrap_or(BranchStatus::Idle);
                     Some(WorktreeInfo {
                         path: wt_path,
                         branch: get_branch_name(&wt_repo),
@@ -240,7 +248,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                         last_commit_message: msg,
                         last_commit_time: time,
                         modified_count: modified,
-                        branch_status: branch_status.to_string(),
+                        branch_status,
                     })
                 })
             })
@@ -256,7 +264,7 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
             last_commit_message: main_msg,
             last_commit_time: main_time,
             modified_count: main_modified,
-            branch_status: "idle".to_string(),
+            branch_status: BranchStatus::Idle,
         }];
 
         // サブの結果を追加
@@ -708,7 +716,10 @@ mod tests {
         let (dir, repo) = create_test_repo();
         let _ = dir;
         let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
-        assert_eq!(determine_branch_status(&repo, head_oid, head_oid), "idle");
+        assert_eq!(
+            determine_branch_status(&repo, head_oid, head_oid),
+            BranchStatus::Idle
+        );
     }
 
     #[test]
@@ -744,7 +755,7 @@ mod tests {
         // feature は main より先 → active
         assert_eq!(
             determine_branch_status(&repo, main_oid, feature_oid),
-            "active"
+            BranchStatus::Active
         );
     }
 
@@ -771,7 +782,7 @@ mod tests {
         // initial_oid は main_oid の祖先 → merged
         assert_eq!(
             determine_branch_status(&repo, main_oid, initial_oid),
-            "merged"
+            BranchStatus::Merged
         );
     }
 
@@ -780,7 +791,7 @@ mod tests {
         let (dir, _repo) = create_test_repo();
         let path = dir.path().to_str().unwrap().to_string();
         let result = list_worktrees_inner(&path).unwrap();
-        assert_eq!(result[0].branch_status, "idle");
+        assert_eq!(result[0].branch_status, BranchStatus::Idle);
     }
 
     #[test]
@@ -809,7 +820,7 @@ mod tests {
 
         let result = list_worktrees_inner(&main_path).unwrap();
         let sub = result.iter().find(|w| w.branch == "feature-new").unwrap();
-        assert_eq!(sub.branch_status, "idle");
+        assert_eq!(sub.branch_status, BranchStatus::Idle);
     }
 
     #[test]
@@ -886,7 +897,7 @@ mod tests {
             .iter()
             .find(|w| w.branch == "feature-merged")
             .unwrap();
-        assert_eq!(sub.branch_status, "merged");
+        assert_eq!(sub.branch_status, BranchStatus::Merged);
     }
 
     #[test]
@@ -927,7 +938,7 @@ mod tests {
 
         let result = list_worktrees_inner(&main_path).unwrap();
         let sub = result.iter().find(|w| w.branch == "feature-ahead").unwrap();
-        assert_eq!(sub.branch_status, "active");
+        assert_eq!(sub.branch_status, BranchStatus::Active);
     }
 
     #[test]

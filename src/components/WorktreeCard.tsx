@@ -1,17 +1,9 @@
 import { memo, useCallback, useState } from "react";
-import {
-  ShieldCheck,
-  GitCommitHorizontal,
-  GitBranch,
-  GitMerge,
-  FilePen,
-  Code,
-  SquareTerminal,
-  Trash2,
-} from "lucide-react";
+import { GitCommitHorizontal, FilePen, Code, SquareTerminal, Trash2 } from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
 import EditableLabel from "./EditableLabel";
+import BranchStatusBadge from "./BranchStatusBadge";
 
 /**
  * `WorktreeCard` の props。
@@ -97,23 +89,9 @@ function WorktreeCard({
           onSave={handleSaveLabel}
           onEditingChange={setIsLabelEditing}
         />
-        {!isLabelEditing &&
-          (worktree.isMain ? (
-            <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#34D39933] text-accent-green">
-              <ShieldCheck size={12} />
-              primary
-            </span>
-          ) : worktree.branchStatus === "active" ? (
-            <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#3B82F633] text-blue-400">
-              <GitBranch size={12} />
-              active
-            </span>
-          ) : worktree.branchStatus === "merged" ? (
-            <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 bg-[#8B5CF633] text-purple-400">
-              <GitMerge size={12} />
-              merged
-            </span>
-          ) : null)}
+        {!isLabelEditing && (
+          <BranchStatusBadge status={worktree.isMain ? "primary" : worktree.branchStatus} />
+        )}
       </div>
 
       {/* 区切り線 */}
