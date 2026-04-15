@@ -1,4 +1,5 @@
 import { FolderGit2, RefreshCw } from "lucide-react";
+import StatusHelpPopover from "./StatusHelpPopover";
 
 // ===== サブコンポーネント =====
 
@@ -51,18 +52,22 @@ export default function MainArea({
               )}
             </div>
 
-            {/* リフレッシュボタン */}
-            <button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="flex items-center justify-center rounded-md p-2 border-0 outline-none cursor-pointer shrink-0 bg-card hover:bg-card-hover active:bg-accent transition-colors duration-150"
-              title="リフレッシュ (Cmd+R)"
-            >
-              <RefreshCw
-                size={16}
-                className={`text-fg-secondary ${isRefreshing ? "animate-spin" : ""}`}
-              />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <StatusHelpPopover />
+
+              {/* リフレッシュボタン */}
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="flex items-center justify-center rounded-md p-2 border-0 outline-none cursor-pointer shrink-0 bg-card hover:bg-card-hover active:bg-accent transition-colors duration-150"
+                title="リフレッシュ (Cmd+R)"
+              >
+                <RefreshCw
+                  size={16}
+                  className={`text-fg-secondary ${isRefreshing ? "animate-spin" : ""}`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Worktree グリッド or 空状態 */}
