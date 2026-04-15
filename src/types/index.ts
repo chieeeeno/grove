@@ -42,6 +42,12 @@ export interface AppConfig {
    * 空文字は未設定を表し、検出リストの先頭をフォールバックとして使用する。
    */
   terminal: string;
+  /**
+   * 前回終了時に選択していたリポジトリ ID。
+   * `undefined` / `null` は未設定を表し、起動時は `repositories[0]` にフォールバックする。
+   * 既存ユーザーの store にキーが無い場合は `undefined` になる。
+   */
+  selectedRepositoryId?: string | null;
 }
 
 /**

@@ -83,6 +83,7 @@ function buildConfigFromStore(): AppConfig {
     theme: state.theme,
     refreshInterval: state.refreshInterval,
     terminal: state.selectedTerminal,
+    selectedRepositoryId: state.selectedRepositoryId,
   };
 }
 
@@ -186,13 +187,20 @@ function App() {
         if (config.terminal) {
           setSelectedTerminal(config.terminal);
         }
-        const firstId = config.repositories.length > 0 ? config.repositories[0].id : null;
-        if (firstId) {
-          selectRepository(firstId);
+        // 保存済み ID を優先し、リポジトリが削除済みの場合は先頭にフォールバック
+        const savedId = config.selectedRepositoryId ?? null;
+        const initialId =
+          savedId && config.repositories.some((r) => r.id === savedId)
+            ? savedId
+            : config.repositories.length > 0
+              ? config.repositories[0].id
+              : null;
+        if (initialId) {
+          selectRepository(initialId);
         }
 
         // 選択中以外のリポジトリを裏で pre-fetch（選択中は useAutoRefresh が担当）
-        prefetchAll(config.repositories, firstId);
+        prefetchAll(config.repositories, initialId);
       })
       .catch((e) => {
         console.error("設定読み込みに失敗:", e);
@@ -252,6 +260,22 @@ function App() {
       toastError("リポジトリの追加に失敗しました");
     }
   }, [addRepository, selectRepository]);
+
+  // ===== リポジトリ選択 =====
+
+  /**
+   * サイドバーでリポジトリを選択したときに呼ばれる。
+   * store を更新し、選択状態を非同期に永続化する。
+   *
+   * @param id 選択するリポジトリ ID
+   */
+  const handleSelectRepository = useCallback(
+    (id: string) => {
+      selectRepository(id);
+      saveConfig(buildConfigFromStore()).catch((err) => console.error("設定保存に失敗:", err));
+    },
+    [selectRepository]
+  );
 
   // ===== リポジトリ削除 =====
 
@@ -426,7 +450,7 @@ function App() {
         <Sidebar
           repositories={sidebarRepos}
           selectedId={selectedRepositoryId}
-          onSelectRepository={selectRepository}
+          onSelectRepository={handleSelectRepository}
           onAddRepository={handleAddRepository}
           onRemoveRepository={handleRemoveRepository}
           onOpenSettings={() => setIsSettingsOpen(true)}
