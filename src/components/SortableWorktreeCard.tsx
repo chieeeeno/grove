@@ -19,8 +19,6 @@ interface SortableWorktreeCardProps {
   codeAvailable: boolean;
   /** ターミナルアプリが利用可能か */
   terminalAvailable: boolean;
-  /** ターミナルボタンに表示するアプリ名 */
-  terminalName: string;
   /** 「VS Code で開く」コールバック */
   onOpenInEditor: (worktreePath: string) => void;
   /** 「Terminal で開く」コールバック */
@@ -46,7 +44,6 @@ export default function SortableWorktreeCard({
   label,
   codeAvailable,
   terminalAvailable,
-  terminalName,
   onOpenInEditor,
   onOpenInTerminal,
   onRemove,
@@ -70,7 +67,6 @@ export default function SortableWorktreeCard({
         label={label}
         codeAvailable={codeAvailable}
         terminalAvailable={terminalAvailable}
-        terminalName={terminalName}
         onOpenInEditor={onOpenInEditor}
         onOpenInTerminal={onOpenInTerminal}
         onRemove={onRemove}

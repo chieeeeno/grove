@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
+import { useAppStore, selectEffectiveTerminalName } from "../stores/appStore";
 import EditableLabel from "./EditableLabel";
 
 /**
@@ -33,11 +34,6 @@ interface WorktreeCardProps {
    * false のとき Terminal ボタンを無効化し、ツールチップで理由を表示する
    */
   terminalAvailable: boolean;
-  /**
-   * ターミナルボタンに表示するアプリ名。
-   * 設定で選択中のターミナルアプリ名が渡される（例: "Ghostty", "iTerm2"）
-   */
-  terminalName: string;
   /**
    * 「VS Code で開く」ボタンを押したときに呼ばれる。
    * @param worktreePath 対象 worktree の絶対パス
@@ -73,12 +69,12 @@ function WorktreeCard({
   label,
   codeAvailable,
   terminalAvailable,
-  terminalName,
   onOpenInEditor,
   onOpenInTerminal,
   onRemove,
   onSaveLabel,
 }: WorktreeCardProps) {
+  const terminalName = useAppStore(selectEffectiveTerminalName);
   const path = worktree.path;
   const handleOpenInEditor = useCallback(() => onOpenInEditor(path), [onOpenInEditor, path]);
   const handleOpenInTerminal = useCallback(() => onOpenInTerminal(path), [onOpenInTerminal, path]);
