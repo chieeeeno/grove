@@ -309,6 +309,7 @@ function App() {
       }
 
       saveConfigSilently();
+      // in-memory の worktreeOrder は removeRepository() が除去済み。IPC はディスク永続化のみ。
       deleteOrder(id).catch((err) => console.error("並び順削除に失敗:", err));
       toast.success("リポジトリを解除しました");
     },

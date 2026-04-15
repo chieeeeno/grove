@@ -251,6 +251,10 @@ mod tests {
         assert_eq!(config.refresh_interval, 5000);
         assert!(config.terminal.is_empty());
         assert!(config.repositories.is_empty());
+        assert!(
+            config.selected_repository_id.is_none(),
+            "load_config の初期状態で selected_repository_id は None であるべき"
+        );
     }
 
     #[test]
