@@ -96,6 +96,11 @@ export interface WorktreeInfo {
   lastCommitTime: number;
   /** 変更ファイル数の合計（ADR-0011: modified/added/deleted/untracked を種別で分けない） */
   modifiedCount: number;
+  /**
+   * メインブランチ（main/master）にマージ済みかどうか。
+   * メイン worktree 自身は常に `false`（UI 側でバッジを非表示にする）。
+   */
+  isMerged: boolean;
 }
 
 /**

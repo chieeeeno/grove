@@ -72,6 +72,26 @@ describe("WorktreeCard", () => {
     });
   });
 
+  describe("マージ状態バッジ", () => {
+    it("メイン worktree は常に primary バッジを表示する", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockWorktree({ isMain: true })} />);
+      expect(screen.getByText("primary")).toBeInTheDocument();
+      expect(screen.queryByText("merged")).toBeNull();
+    });
+
+    it("isMerged=true の非メイン worktree は merged バッジを表示する", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree({ isMerged: true })} />);
+      expect(screen.getByText("merged")).toBeInTheDocument();
+      expect(screen.queryByText("idle")).toBeNull();
+    });
+
+    it("isMerged=false の非メイン worktree は idle バッジを表示する", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree({ isMerged: false })} />);
+      expect(screen.getByText("idle")).toBeInTheDocument();
+      expect(screen.queryByText("merged")).toBeNull();
+    });
+  });
+
   describe("Remove ボタン", () => {
     it("main worktree では Remove ボタンが表示されない", () => {
       render(<WorktreeCard {...defaultProps} worktree={mockWorktree({ isMain: true })} />);

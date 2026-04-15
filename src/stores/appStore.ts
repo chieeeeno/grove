@@ -23,7 +23,8 @@ function worktreesEqual(a: WorktreeInfo[], b: WorktreeInfo[]): boolean {
       x.head !== y.head ||
       x.lastCommitTime !== y.lastCommitTime ||
       x.lastCommitMessage !== y.lastCommitMessage ||
-      x.modifiedCount !== y.modifiedCount
+      x.modifiedCount !== y.modifiedCount ||
+      x.isMerged !== y.isMerged
     ) {
       return false;
     }
