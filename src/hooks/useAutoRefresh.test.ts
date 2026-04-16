@@ -18,6 +18,9 @@ describe("useAutoRefresh", () => {
       if (cmd === "list_worktrees") {
         return [mockWorktree()];
       }
+      if (cmd === "fetch_repository") {
+        return { fetchedAt: 123, remoteCount: 0, failures: [] };
+      }
       return null;
     });
     mockIPC(invokeSpy as (cmd: string, args: unknown) => unknown);
@@ -30,6 +33,9 @@ describe("useAutoRefresh", () => {
       worktrees: {},
       isRefreshing: false,
       refreshError: null,
+      lastFetchedAt: {},
+      isFetching: false,
+      fetchError: null,
     });
   });
 
@@ -162,12 +168,21 @@ describe("useAutoRefresh", () => {
           // 意図的に resolve しない（inFlightRef が解除されない）
         });
       }
+      if (cmd === "fetch_repository") {
+        return { fetchedAt: 123, remoteCount: 0, failures: [] };
+      }
       return null;
     });
 
     renderHook(() => useAutoRefresh());
 
-    // マウント直後の即時 fetch で 1 回呼ばれ、その promise は pending のまま
+    // fetch_repository の解決を完了させてから listWorktrees 呼び出しに到達させる
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // マウント直後の即時 fetch で list_worktrees が 1 回呼ばれ、その promise は pending のまま
     expect(listWorktreeCalls()).toHaveLength(1);
 
     // pending 中にポーリングが走っても skip される
@@ -189,6 +204,9 @@ describe("useAutoRefresh", () => {
         if (cmd === "list_worktrees") {
           return Promise.reject(new Error("接続エラー"));
         }
+        if (cmd === "fetch_repository") {
+          return { fetchedAt: 123, remoteCount: 0, failures: [] };
+        }
         return null;
       });
 
@@ -206,6 +224,9 @@ describe("useAutoRefresh", () => {
       invokeSpy.mockImplementation((cmd: string) => {
         if (cmd === "list_worktrees") {
           return Promise.reject(new Error("接続エラー"));
+        }
+        if (cmd === "fetch_repository") {
+          return { fetchedAt: 123, remoteCount: 0, failures: [] };
         }
         return null;
       });
@@ -241,6 +262,142 @@ describe("useAutoRefresh", () => {
       });
 
       expect(useAppStore.getState().refreshError).toBeNull();
+    });
+  });
+
+  describe("fetch 統合（Issue #8）", () => {
+    const fetchCalls = () => invokeSpy.mock.calls.filter(([cmd]) => cmd === "fetch_repository");
+
+    it("初回選択時に fetch_repository が呼ばれ、lastFetchedAt が記録される", async () => {
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(fetchCalls()).toHaveLength(1);
+      expect(fetchCalls()[0][1]).toEqual({ repositoryPath: "/mock/repo" });
+      expect(useAppStore.getState().lastFetchedAt["repo-1"]).toBe(123);
+    });
+
+    it("ポーリングでは fetch_repository は呼ばれない", async () => {
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      const beforePollCount = fetchCalls().length;
+
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(fetchCalls().length).toBe(beforePollCount);
+    });
+
+    it("既に lastFetchedAt が登録されていればマウント時の fetch は skip される", async () => {
+      useAppStore.setState({ lastFetchedAt: { "repo-1": 100 } });
+
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(fetchCalls()).toHaveLength(0);
+      // list_worktrees は呼ばれる
+      expect(listWorktreeCalls()).toHaveLength(1);
+    });
+
+    it("手動リフレッシュでは lastFetchedAt の有無によらず必ず fetch される", async () => {
+      useAppStore.setState({ lastFetchedAt: { "repo-1": 100 } });
+
+      const { result } = renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(fetchCalls()).toHaveLength(0);
+
+      act(() => {
+        result.current.refresh();
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(fetchCalls()).toHaveLength(1);
+    });
+
+    it("fetch 部分失敗（failures あり）でトースト通知と fetchError セット", async () => {
+      invokeSpy.mockImplementation((cmd: string) => {
+        if (cmd === "list_worktrees") return [mockWorktree()];
+        if (cmd === "fetch_repository") {
+          return { fetchedAt: 123, remoteCount: 1, failures: ["origin: timeout"] };
+        }
+        return null;
+      });
+
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(toastModule.toastError).toHaveBeenCalledWith(
+        expect.stringContaining("origin: timeout")
+      );
+      expect(useAppStore.getState().fetchError).toContain("origin: timeout");
+    });
+
+    it("fetch 全失敗（reject）でトースト通知と fetchError セット、listWorktrees は続行", async () => {
+      invokeSpy.mockImplementation((cmd: string) => {
+        if (cmd === "list_worktrees") return [mockWorktree()];
+        if (cmd === "fetch_repository") {
+          return Promise.reject(new Error("すべての fetch に失敗しました: origin: boom"));
+        }
+        return null;
+      });
+
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(toastModule.toastError).toHaveBeenCalledWith(
+        expect.stringContaining("fetch に失敗しました")
+      );
+      expect(useAppStore.getState().fetchError).toContain("すべての fetch に失敗しました");
+      // fetch が失敗しても listWorktrees は呼ばれる
+      expect(listWorktreeCalls()).toHaveLength(1);
+    });
+
+    it("fetch 成功（failures 空）で fetchError がクリアされる", async () => {
+      useAppStore.setState({ fetchError: "前回の失敗" });
+
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(useAppStore.getState().fetchError).toBeNull();
+    });
+
+    it("fetch 実行中は isFetching が true になる", async () => {
+      invokeSpy.mockImplementation((cmd: string) => {
+        if (cmd === "list_worktrees") return [mockWorktree()];
+        if (cmd === "fetch_repository") {
+          return new Promise(() => {
+            // 意図的に resolve しない
+          });
+        }
+        return null;
+      });
+
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(useAppStore.getState().isFetching).toBe(true);
     });
   });
 });
