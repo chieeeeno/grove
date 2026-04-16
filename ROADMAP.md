@@ -106,6 +106,12 @@
   - 起動時に最後に選択していたリポジトリを復元
 
 #### 優先度: 中（M1 リリース前に必須）
+- [x] **自動コードレビュースキル `review-pr-loop` の整備**（Issue #55、ADR-0014、2026-04-16 完了）
+  - PR URL を入力に、レビュー → 自動修正 → 再レビューを最大 5 ループで回す Claude Code スキル
+  - `/simplify` + Grove 独自観点（Rust デスクトップアプリ特有の panic / メモリリーク / リソース解放、CLAUDE.md テスト必須・Doc コメント必須）
+  - critical/major = 0 で終了、minor は全レビュー終了後に一括ユーザー確認
+  - commit のみ自動、push は人間（lefthook で最終防衛）
+  - 関連: `.claude/skills/review-pr-loop/`、`docs/design/review-pr-loop-flow.md`、`docs/adr/0014-auto-review-skill.md`、`docs/review-loop-dogfooding.md`
 - [ ] **worktree 新規作成機能**
   - 設計書では Phase 1 に含まれていたが、開発者本人が外部スキルで作成する運用のため M0 から外していた
   - 配布先のユーザーは Claude Code スキルを持っていないため M1 では必須
