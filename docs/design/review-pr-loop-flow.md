@@ -14,7 +14,7 @@
 | 終了条件 | critical + major = 0、または最大 5 ループ到達 |
 | ループ上限 | 5 回 |
 | コメント形式 | critical/major は行コメント、総評は PR 全体コメント |
-| minor 見送り時 | ループ中は一旦まとめて保留。全レビュー終了後に一括でユーザーに提示し、対応要否を判断してもらう |
+| minor 見送り時 | ループ中は一旦まとめて保留。全レビュー終了後、個別 PR コメント化はせず、最終 LGTM（または総評）コメント内の「🤔 見送った minor 指摘」セクションに全件の要約リストとして記載する |
 | 見送り記録 | 見送り内容 + 理由 + ループ回数を PR コメントに残す |
 | 見送り再評価 | 次ループで前回見送りコメントを読み込み、見送り判断自体を再レビュー |
 | ループ番号可視化 | 全コメントに `[Round N/5]` を明記 |
@@ -72,21 +72,11 @@ flowchart TD
     PostRoundSummaryFinal --> PostReview([post-review へ])
 
     PostReview --> AggregateMinor[蓄積された minor 見送り候補を集約<br/>重複除去・要約]
-    AggregateMinor --> HasMinor{minor 見送り候補あり?}
-    HasMinor -- No --> PostFinal[総評 + 残件行コメント投稿]
-    HasMinor -- Yes --> AskUserMinor[AskUserQuestion<br/>minor 一覧を提示し対応要否を確認<br/>全対応 / 個別選択 / 全見送]
-    AskUserMinor --> HasFixTargets{対応する minor あり?}
-    HasFixTargets -- Yes --> FixMinor[選ばれた minor を自動修正]
-    FixMinor --> MinorBranchGuard{現ブランチが<br/>main/master/detached HEAD?}
-    MinorBranchGuard -- Yes --> AbortBranch
-    MinorBranchGuard -- No --> CommitMinor[git commit<br/>push はしない]
-    CommitMinor --> PostMinorSkipped[残った minor を<br/>見送りコメントとして投稿]
-    HasFixTargets -- No --> PostMinorSkipped
-    PostMinorSkipped --> PostFinal
+    AggregateMinor --> PostFinal[総評 + 残件行コメント投稿<br/>minor 個別コメントは投稿しない]
     PostFinal --> CheckLGTM{critical/major=0 かつ<br/>最大ループ未到達?}
-    CheckLGTM -- Yes --> PostLGTM[LGTM コメントを投稿]
+    CheckLGTM -- Yes --> PostLGTM[LGTM コメントを投稿<br/>本文に minor 見送りサマリー（全件要約）を記載]
     PostLGTM --> EndDone([完了])
-    CheckLGTM -- No --> EndForced([完了<br/>強制停止・未完了をユーザーに通知])
+    CheckLGTM -- No --> EndForced([完了<br/>強制停止・未完了をユーザーに通知<br/>総評に minor 見送りサマリーも記載])
 ```
 
 ## シーケンス図（1 ラウンド分の詳細）
@@ -134,24 +124,13 @@ sequenceDiagram
         end
         Skill->>GH: ラウンドサマリーコメント投稿（kind=round-summary）
         Note over Skill: post-review フェーズへ
-        Skill->>Skill: 全ラウンドで蓄積した minor 見送り候補を集約
-        opt minor 見送り候補あり
-            Skill->>User: AskUserQuestion<br/>minor 一覧を提示し対応要否を確認<br/>（全対応 / 個別選択 / 全見送）
-            User-->>Skill: 判断
-            opt 対応する minor あり
-                Skill->>Git: 現ブランチが main/master/detached HEAD でないことを確認
-                Skill->>Skill: 選ばれた minor を自動修正
-                Skill->>Git: git add + git commit（push はしない）
-                Git-->>Skill: lefthook pre-commit 通過
-            end
-            Skill->>GH: 残った minor を見送りコメントとして投稿（Round N + 理由）
-        end
+        Skill->>Skill: 全ラウンドで蓄積した minor 見送り候補を集約（重複除去・要約）
         Skill->>GH: 行コメント（critical/major 残件）+ PR 全体総評を投稿
         alt critical+major=0 かつ round < max_loop
-            Skill->>GH: LGTM コメント投稿（kind=lgtm）
+            Skill->>GH: LGTM コメント投稿（kind=lgtm、本文に minor 見送りサマリーを全件記載）
             Skill-->>User: ✅ 完了レポート
         else 最大ループ到達
-            Note over Skill,User: 総評に「⚠️ 強制停止・レビュー未完了」を明記<br/>LGTM は投稿しない
+            Note over Skill,User: 総評に「⚠️ 強制停止・レビュー未完了」+ minor 見送りサマリーを明記<br/>LGTM は投稿しない
             Skill-->>User: ⚠️ 完了レポート（人間にハンドオフ）
         end
     else 継続
@@ -207,7 +186,7 @@ sequenceDiagram
 アイキャッチとして各セクションに絵文字を付与し、PR 一覧から視認しやすくする。
 
 ```
-<!-- review-pr-loop:round=N;kind=summary -->
+<!-- review-pr-loop:round=N;kind=summary;id=<uuid>;session=<SESSION_TS> -->
 # 🤖 review-pr-loop レビュー総評
 
 **🏁 終了ステータス**: ✅ critical/major クリア で正常終了 / ⚠️ 最大ループ到達で強制終了
@@ -278,6 +257,10 @@ sequenceDiagram
 - `critical + major == 0`
 - 最大ループに到達していない（正常終了）
 
+本文には **minor 見送りサマリー（全件の要約リスト）** を必ず含める。個別の
+`kind=skipped` 行コメントは投稿しないため、この LGTM コメント内のリストが
+「どんな指摘が出て、なぜ見送ったか」の唯一の履歴記録となる。
+
 ```
 <!-- review-pr-loop:round=N;kind=lgtm;id=<uuid>;session=<SESSION_TS> -->
 # ✅ LGTM
@@ -289,12 +272,24 @@ sequenceDiagram
 - **実ラウンド数**: N / 5
 - **関連コメント**: 総評（kind=summary）に全体サマリー記載
 
+## 🤔 見送った minor 指摘（全 K 件）
+
+### 1. <指摘タイトル>
+- **対象**: `path/to/file.md:行番号`（該当する場合）
+- **指摘内容**: <1〜3 行で要約>
+- **見送り理由**: <なぜ今回対応しないか、簡潔に>
+
+（全件繰り返す）
+
+---
+
 > 🙋 最終的なマージ判断は人間レビュワーでお願いします。
 ```
 
 最大ループに到達して強制停止した場合は LGTM を投稿せず、総評コメント
 （kind=summary）本文に「⚠️ 最大ループ到達で強制停止、レビュー未完了。
-人間レビュワーによる引き取りをお願いします」を明記する。
+人間レビュワーによる引き取りをお願いします」を明記する。その際、minor
+見送りサマリーも総評内に同じ形式で記載する。
 
 絵文字の用途ガイド:
 
