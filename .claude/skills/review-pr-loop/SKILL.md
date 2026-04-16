@@ -66,7 +66,7 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
    - `gh api repos/:owner/:repo/issues/:n/comments`（PR 全体コメント）
    - `gh api repos/:owner/:repo/pulls/:n/comments`（行コメント）
    - 本文中のマーカー `<!-- review-pr-loop:round=N;kind=... -->` を含むコメントだけフィルタ
-   - `kind` で分類: `skipped`（見送り理由） / `remaining`（残件） / `round-summary`（各ラウンド終了時の要約） / `summary`（最終総評） / `lgtm`（品質クリア宣言）
+   - `kind` で分類: `skipped`（見送り理由、critical/major のみ） / `remaining`（残件） / `round-summary`（各ラウンド終了時の要約） / `summary`（最終総評） / `lgtm`（品質クリア宣言）
    - 注: `gh api` の `:owner` / `:repo` は cwd の git リモート設定から自動解決される。明示指定したい場合は `gh api repos/chieeeeno/grove/...` のようにフルパスで書く
 3. `gh pr diff <url>` で最新差分を取得
 
