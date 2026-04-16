@@ -1,4 +1,5 @@
 import { Trees, GitBranch, Plus, Settings, X } from "lucide-react";
+import { REPOSITORY_SHORTCUT_COUNT } from "../hooks/useKeyboardShortcuts";
 
 // ===== 型 =====
 
@@ -6,10 +7,11 @@ interface RepoItemProps {
   name: string;
   worktreeCount: number;
   isActive: boolean;
-  /** 1-origin のショートカット番号（Cmd+1〜Cmd+9）。10 個目以降は `null` を渡す */
+  /**
+   * 表示すべきショートカット番号（1-origin）。`null` なら通常の worktreeCount バッジを出す。
+   * 呼び出し側で「Cmd 押下中」かつ「先頭 9 個以内」の条件を評価して渡す。
+   */
   shortcutNumber: number | null;
-  /** Cmd キー押下中なら worktreeCount バッジを ⌘1 等の番号バッジに差し替える */
-  showShortcut: boolean;
   onClick: () => void;
   onRemove: () => void;
 }
@@ -21,13 +23,9 @@ function RepoItem({
   worktreeCount,
   isActive,
   shortcutNumber,
-  showShortcut,
   onClick,
   onRemove,
 }: RepoItemProps) {
-  // Cmd キー押下中かつ 9 番目以内のリポジトリのみ番号バッジに差し替える
-  const showNumberBadge = showShortcut && shortcutNumber !== null;
-
   return (
     <div
       className={`group w-full flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer transition-colors duration-150
@@ -40,7 +38,7 @@ function RepoItem({
       >
         {name}
       </span>
-      {/* hover 時に X ボタン、通常時は worktreeCount バッジ（ただし Cmd 押下中は番号バッジに差し替え） */}
+      {/* hover 時に X ボタン、通常時は worktreeCount バッジ（Cmd 押下中は番号バッジに差し替え） */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -51,7 +49,7 @@ function RepoItem({
       >
         <X size={12} />
       </button>
-      {showNumberBadge ? (
+      {shortcutNumber !== null ? (
         <span
           aria-label={`ショートカット: Cmd+${shortcutNumber}`}
           className={`group-hover:hidden flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums
@@ -72,9 +70,6 @@ function RepoItem({
 }
 
 // ===== メインコンポーネント =====
-
-/** Cmd+1〜Cmd+9 で切り替え可能な最大リポジトリ数（10 個目以降は番号なし）。 */
-const SHORTCUT_ASSIGNABLE_REPOSITORY_COUNT = 9;
 
 interface SidebarProps {
   repositories: Array<{ id: string; name: string; worktreeCount: number }>;
@@ -122,8 +117,7 @@ export default function Sidebar({
               name={repo.name}
               worktreeCount={repo.worktreeCount}
               isActive={repo.id === selectedId}
-              shortcutNumber={index < SHORTCUT_ASSIGNABLE_REPOSITORY_COUNT ? index + 1 : null}
-              showShortcut={isMetaDown}
+              shortcutNumber={isMetaDown && index < REPOSITORY_SHORTCUT_COUNT ? index + 1 : null}
               onClick={() => onSelectRepository(repo.id)}
               onRemove={() => onRemoveRepository(repo.id)}
             />

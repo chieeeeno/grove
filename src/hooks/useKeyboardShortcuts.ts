@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
 /**
- * Cmd+1〜Cmd+9 で発動可能なリポジトリ最大数。
+ * Cmd+1〜Cmd+9 で切り替え可能なリポジトリ最大数（先頭 9 個）。
  * 10 個目以降はショートカットでは切り替えられない。
  */
-export const KEYBOARD_SHORTCUT_MAX_REPOSITORY_INDEX = 9;
+export const REPOSITORY_SHORTCUT_COUNT = 9;
 
 interface UseKeyboardShortcutsOptions {
   /**
@@ -37,24 +37,21 @@ interface UseKeyboardShortcutsResult {
  * @returns `isMetaDown` を含む観測可能な状態
  *
  * @remarks
- * リスナーは `window` レベルで登録する。`onSelectRepository` の参照が変わると
- * リスナーが再登録されるため、親コンポーネント側で `useCallback` により
- * 参照を安定化させて渡すこと。
+ * リスナーは `window` レベルで登録する（`blur` イベントが `window` 発火のため、
+ * 同一ターゲットに揃えて管理を単純化している）。
  */
 export function useKeyboardShortcuts({
   onSelectRepository,
 }: UseKeyboardShortcutsOptions): UseKeyboardShortcutsResult {
   const [isMetaDown, setIsMetaDown] = useState(false);
 
+  // Cmd+1〜Cmd+9 のハンドリング。`onSelectRepository` に依存するので deps に含める。
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd キー押下状態の追跡（keydown は押しっぱなしで連続発火するが、同じ値への
-      // setState は React が no-op 扱いするため連続発火してもコスト無し）
       if (e.metaKey) setIsMetaDown(true);
 
-      // Cmd+1〜Cmd+9: リポジトリ切り替え
-      // - IME 変換中は数字キーが候補選択に使われる可能性があるため除外
-      // - 修飾キーは Cmd（metaKey）のみ許可（Cmd+Shift+1 などは別用途のため反応しない）
+      // IME 変換中は数字キーが候補選択に使われる可能性があるため除外。
+      // 余分な修飾キー（Shift/Ctrl/Alt）を伴う場合は別用途のため反応しない。
       if (
         e.metaKey &&
         !e.shiftKey &&
@@ -68,25 +65,29 @@ export function useKeyboardShortcuts({
       }
     };
 
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onSelectRepository]);
+
+  // isMetaDown のリセットは onSelectRepository と無関係。独立した effect にして、
+  // 親からのコールバック参照変更で keyup/blur リスナーが再登録されないようにする。
+  useEffect(() => {
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Cmd キーが離された瞬間、e.metaKey は false になる（他のキーを離した時も同様）
+      // Cmd キーが離された瞬間 e.metaKey は false になる（他のキーを離した時も同様）
       if (!e.metaKey) setIsMetaDown(false);
     };
-
-    // Cmd+Tab などでウィンドウからフォーカスが外れた場合、keyup を受け取れないため
-    // 押しっぱなし状態が残る。blur で明示的にリセットする。
+    // Cmd+Tab などでウィンドウのフォーカスが外れると keyup を受け取れないため、
+    // blur で明示的にリセットして押しっぱなし状態が残らないようにする。
     const handleBlur = () => setIsMetaDown(false);
 
-    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("blur", handleBlur);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleBlur);
     };
-  }, [onSelectRepository]);
+  }, []);
 
   return { isMetaDown };
 }

@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SettingsDialog from "./SettingsDialog";
 import { useAppStore } from "../stores/appStore";
+import { createKeyboardEvent } from "../test/keyboardEvent";
 
 describe("SettingsDialog", () => {
   const defaultProps = {
@@ -88,10 +89,7 @@ describe("SettingsDialog", () => {
       const onClose = vi.fn();
       render(<SettingsDialog {...defaultProps} onClose={onClose} />);
 
-      // userEvent では isComposing を設定できないため、KeyboardEvent を直接 dispatch
-      const event = new KeyboardEvent("keydown", { key: "Escape" });
-      Object.defineProperty(event, "isComposing", { value: true });
-      document.dispatchEvent(event);
+      document.dispatchEvent(createKeyboardEvent("keydown", { key: "Escape", isComposing: true }));
 
       expect(onClose).not.toHaveBeenCalled();
     });
@@ -102,8 +100,7 @@ describe("SettingsDialog", () => {
 
       unmount();
 
-      const event = new KeyboardEvent("keydown", { key: "Escape" });
-      document.dispatchEvent(event);
+      document.dispatchEvent(createKeyboardEvent("keydown", { key: "Escape" }));
 
       expect(onClose).not.toHaveBeenCalled();
     });

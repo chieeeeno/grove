@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DeleteDialog from "./DeleteDialog";
+import { createKeyboardEvent } from "../test/keyboardEvent";
 
 describe("DeleteDialog", () => {
   const defaultProps = {
@@ -51,10 +52,7 @@ describe("DeleteDialog", () => {
       const onCancel = vi.fn();
       render(<DeleteDialog {...defaultProps} onCancel={onCancel} />);
 
-      // userEvent では isComposing を設定できないため、KeyboardEvent を直接 dispatch
-      const event = new KeyboardEvent("keydown", { key: "Escape" });
-      Object.defineProperty(event, "isComposing", { value: true });
-      document.dispatchEvent(event);
+      document.dispatchEvent(createKeyboardEvent("keydown", { key: "Escape", isComposing: true }));
 
       expect(onCancel).not.toHaveBeenCalled();
     });
@@ -65,8 +63,7 @@ describe("DeleteDialog", () => {
 
       unmount();
 
-      const event = new KeyboardEvent("keydown", { key: "Escape" });
-      document.dispatchEvent(event);
+      document.dispatchEvent(createKeyboardEvent("keydown", { key: "Escape" }));
 
       expect(onCancel).not.toHaveBeenCalled();
     });
