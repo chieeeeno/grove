@@ -79,7 +79,17 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 8. 前ラウンドの `kind=skipped` / `remaining` コメントのうち、今回の差分で解消されているものを検出
 9. 解消済みコメントを GitHub GraphQL `minimizeComment(classifier: RESOLVED)` で非表示化
    - **マーカー付きのスキル由来コメントのみが対象**（他者コメントは絶対に触らない）
-   - 実行コマンド: `gh api graphql -f query='mutation { minimizeComment(input: {subjectId: "<node-id>", classifier: RESOLVED}) { minimizedComment { isMinimized } } }'`
+   - **`subjectId` の取得方法**: REST API (`gh api repos/:owner/:repo/issues/:n/comments` / `pulls/:n/comments`) のレスポンスに含まれる `node_id` フィールドが GraphQL の `subjectId` に対応する。マーカー付きコメントをフィルタした後、その `node_id` を GraphQL mutation に渡す
+   - 実行コマンド（`-F` で変数渡しにしてエスケープ事故を防ぐ）:
+     ```
+     gh api graphql \
+       -F nodeId='<node_id>' \
+       -f query='mutation($nodeId: ID!) {
+         minimizeComment(input: {subjectId: $nodeId, classifier: RESOLVED}) {
+           minimizedComment { isMinimized }
+         }
+       }'
+     ```
 
 #### 終了判定
 
@@ -155,14 +165,67 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 
 ### 残件コメント（`kind=remaining`）
 
-行コメントで投稿:
+PR の行コメントとして投稿。`gh api pulls/:n/comments` で単発投稿するか、
+複数指摘をまとめて `gh api pulls/:n/reviews` で 1 レビューにする。
+
+**必須パラメータ** (`gh api pulls/:n/comments`):
+
+| パラメータ | 値 | 備考 |
+| --- | --- | --- |
+| `commit_id` | `gh pr view <url> --json headRefOid --jq .headRefOid` で取得する HEAD SHA | ラウンド開始時に取得しておく |
+| `path` | 対象ファイルの PR 内パス | `gh pr diff` の `+++ b/<path>` から抽出 |
+| `line` | 対象行番号（右側 = 新ファイル側） | 差分の新行番号 |
+| `side` | `RIGHT`（新側）/ `LEFT`（旧側） | 既定は `RIGHT` |
+| `body` | コメント本文（マーカー込み） | 下のテンプレート |
+
+**投稿コマンド例**（単発行コメント）:
+
+```
+gh api repos/:owner/:repo/pulls/<pr-number>/comments -X POST \
+  -f commit_id='<HEAD SHA>' \
+  -f path='path/to/file.ts' \
+  -F line=42 \
+  -f side='RIGHT' \
+  -f body="$(cat <<'BODY'
+<!-- review-pr-loop:round=N;kind=remaining;id=<uuid> -->
+🔴 **[Round N/5] 残存する指摘（重大度: critical）**
+
+<内容>
+BODY
+)"
+```
+
+**複数指摘をまとめて 1 レビューにする場合**:
+
+```
+gh api repos/:owner/:repo/pulls/<pr-number>/reviews -X POST \
+  --input - <<'JSON'
+{
+  "commit_id": "<HEAD SHA>",
+  "event": "COMMENT",
+  "body": "<!-- review-pr-loop:round=N;kind=summary_header -->\nRound N のレビュー残件です。",
+  "comments": [
+    {"path": "src/foo.ts", "line": 42, "side": "RIGHT", "body": "<!-- ... -->\n🟠 指摘内容..."},
+    {"path": "src/bar.rs", "line": 100, "side": "RIGHT", "body": "<!-- ... -->\n🟡 指摘内容..."}
+  ]
+}
+JSON
+```
+
+**本文テンプレート**（重大度に応じて絵文字を 🔴 / 🟠 / 🟡 から選択）:
 
 ```
 <!-- review-pr-loop:round=N;kind=remaining;id=<uuid> -->
-🔴 / 🟠 / 🟡 **[Round N/5] 残存する指摘（重大度: critical/major/minor）**
+🔴 **[Round N/5] 残存する指摘（重大度: critical）**
 
 <内容>
 ```
+
+### 見送り・残件コメントを「行コメントで付けられない」場合のフォールバック
+
+削除されたファイルへの指摘や、PR 差分外の観点など、行コメントが付けられない
+指摘は PR 全体コメント（`gh pr comment <url> --body "..."`）で投稿する。
+マーカー・重大度絵文字・Round 表記は同じ体裁。
 
 ### 総評コメント（`kind=summary`）
 
