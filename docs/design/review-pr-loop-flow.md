@@ -1,0 +1,234 @@
+# review-pr-loop スキル フロー設計
+
+自動コードレビュースキルの制御フローとシーケンスを図で示す設計書。
+
+## 前提
+
+| 項目 | 決定 |
+| --- | --- |
+| 起動入力 | PR URL（任意）。省略時は現在のブランチから自動検出 |
+| PR 未検出時 | `gh pr create` を案内してスキル終了（レビューしない） |
+| push の扱い | commit のみ自動、push は人間（lefthook で最終防衛） |
+| レビュー実装 | simplify スキル + Grove 独自観点の上乗せ |
+| レビュー観点 | コード品質 / テスト有無 / Doc コメント / セキュリティ / パフォーマンス / Rust デスクトップアプリ特有（panic, メモリリーク, unsafe, リソース解放） |
+| 終了条件 | critical + major = 0、または最大 5 ループ到達 |
+| ループ上限 | 5 回 |
+| コメント形式 | critical/major は行コメント、総評は PR 全体コメント |
+| minor 見送り時 | ループ中は一旦まとめて保留。全レビュー終了後に一括でユーザーに提示し、対応要否を判断してもらう |
+| 見送り記録 | 見送り内容 + 理由 + ループ回数を PR コメントに残す |
+| 見送り再評価 | 次ループで前回見送りコメントを読み込み、見送り判断自体を再レビュー |
+| ループ番号可視化 | 全コメントに `[Round N/5]` を明記 |
+| 対応完了コメント | GitHub GraphQL `minimizeComment(RESOLVED)` で非表示化 |
+| 誤爆防止 | マーカー `<!-- review-pr-loop:round=N;kind=... -->` 付きコメントのみを操作対象にする |
+
+## フローチャート（全体制御）
+
+```mermaid
+flowchart TD
+    Start([スキル起動]) --> HasUrl{PR URL 引数あり?}
+    HasUrl -- Yes --> FetchMeta[gh pr view でメタ取得]
+    HasUrl -- No --> DetectBranch[現在のブランチを取得]
+    DetectBranch --> FindPR[gh pr list --head で PR 検索]
+    FindPR --> PrExists{PR あり?}
+    PrExists -- No --> PromptCreate[gh pr create を案内して終了]
+    PromptCreate --> EndNoPR([終了])
+    PrExists -- Yes --> FetchMeta
+    FetchMeta --> InitRound[round = 1]
+
+    InitRound --> LoadPrevComments[前ループのスキル由来コメント取得<br/>マーカー review-pr-loop でフィルタ]
+    LoadPrevComments --> FetchDiff[gh pr diff で最新差分取得]
+    FetchDiff --> RunSimplify[simplify スキル相当のレビュー]
+    RunSimplify --> RunCustom[review-checklist の独自観点チェック]
+    RunCustom --> ReevalSkipped[前回見送り理由の妥当性を再評価]
+    ReevalSkipped --> Classify[critical / major / minor に分類]
+    Classify --> MinimizeResolved[修正済み指摘コメントを minimize]
+
+    MinimizeResolved --> CheckDone{critical + major == 0<br/>または round >= 5?}
+    CheckDone -- Yes --> PostReview([ループ終了<br/>post-review へ])
+    CheckDone -- No --> SplitFix[critical/major の修正 / 見送り仕分け<br/>minor は pending バッファに蓄積]
+    SplitFix --> PostSkipped[critical/major の見送り項目を<br/>PR コメント投稿 Round N]
+    PostSkipped --> BranchGuard{現ブランチが<br/>main/master?}
+    BranchGuard -- Yes --> AbortBranch[main への commit 禁止で停止]
+    AbortBranch --> EndAbort([終了])
+    BranchGuard -- No --> ApplyFix[critical/major の自動修正を実装]
+    ApplyFix --> LoopGuard{同一ファイル同一行を<br/>2 回書き換え?}
+    LoopGuard -- Yes --> AbortLoop[無限ループ検出で停止]
+    AbortLoop --> EndAbort
+    LoopGuard -- No --> Commit[git commit<br/>push はしない]
+    Commit --> Increment[round += 1]
+    Increment --> LoadPrevComments
+
+    PostReview --> AggregateMinor[蓄積された minor 見送り候補を集約<br/>重複除去・要約]
+    AggregateMinor --> HasMinor{minor 見送り候補あり?}
+    HasMinor -- No --> PostFinal[総評 + 残件行コメント投稿]
+    HasMinor -- Yes --> AskUserMinor[AskUserQuestion<br/>minor 一覧を提示し対応要否を確認<br/>全対応 / 個別選択 / 全見送]
+    AskUserMinor --> HasFixTargets{対応する minor あり?}
+    HasFixTargets -- Yes --> FixMinor[選ばれた minor を自動修正]
+    FixMinor --> MinorBranchGuard{現ブランチが<br/>main/master?}
+    MinorBranchGuard -- Yes --> AbortBranch
+    MinorBranchGuard -- No --> CommitMinor[git commit<br/>push はしない]
+    CommitMinor --> PostMinorSkipped[残った minor を<br/>見送りコメントとして投稿]
+    HasFixTargets -- No --> PostMinorSkipped
+    PostMinorSkipped --> PostFinal
+    PostFinal --> EndDone([完了])
+```
+
+## シーケンス図（1 ラウンド分の詳細）
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as ユーザー
+    participant Skill as review-pr-loop スキル
+    participant GH as GitHub (gh CLI / GraphQL)
+    participant Simplify as simplify スキル
+    participant Git as ローカル Git
+
+    User->>Skill: スキル起動（PR URL 任意）
+    alt PR URL 未指定
+        Skill->>Git: git rev-parse --abbrev-ref HEAD
+        Git-->>Skill: 現ブランチ名
+        Skill->>GH: gh pr list --head <branch>
+        GH-->>Skill: PR 一覧
+        alt PR なし
+            Skill-->>User: gh pr create を案内して終了
+        end
+    end
+
+    Skill->>GH: gh pr view / pr diff / issue comments / pulls comments
+    GH-->>Skill: PR メタ + 差分 + 既存コメント（マーカー付き）
+
+    Skill->>Skill: 見送りコメント・指摘コメントを分類
+    Skill->>Simplify: simplify 実行依頼（差分を入力）
+    Simplify-->>Skill: 品質指摘一覧
+    Skill->>Skill: review-checklist で独自観点チェック<br/>（Rust panic/リーク / Doc / Test / ADR 整合）
+    Skill->>Skill: 前回見送り理由の妥当性を再評価
+    Skill->>Skill: critical / major / minor に分類
+
+    Skill->>GH: 解消済み指摘コメントを minimizeComment(RESOLVED)
+    GH-->>Skill: 非表示化完了
+
+    alt 終了条件（critical+major=0 or round>=5）
+        Note over Skill: post-review フェーズへ
+        Skill->>Skill: 全ラウンドで蓄積した minor 見送り候補を集約
+        opt minor 見送り候補あり
+            Skill->>User: AskUserQuestion<br/>minor 一覧を提示し対応要否を確認<br/>（全対応 / 個別選択 / 全見送）
+            User-->>Skill: 判断
+            opt 対応する minor あり
+                Skill->>Git: 現ブランチが main/master でないことを確認
+                Skill->>Skill: 選ばれた minor を自動修正
+                Skill->>Git: git add + git commit（push はしない）
+                Git-->>Skill: lefthook pre-commit 通過
+            end
+            Skill->>GH: 残った minor を見送りコメントとして投稿（Round N + 理由）
+        end
+        Skill->>GH: 行コメント（critical/major 残件）+ PR 全体総評を投稿
+        Skill-->>User: 完了レポート
+    else 継続
+        Skill->>Skill: critical/major の修正 / 見送り仕分け<br/>minor は pending バッファに蓄積（この時点では判断しない）
+        Skill->>GH: critical/major の見送り項目コメント投稿（Round N + 理由）
+        Skill->>Git: 現ブランチが main/master でないことを確認
+        Skill->>Skill: 同一箇所を 2 回書き換えていないか確認
+        Skill->>Skill: critical/major の自動修正を実装
+        Skill->>Git: git add + git commit（push はしない）
+        Git-->>Skill: lefthook pre-commit 通過
+        Skill->>Skill: round += 1
+        Note over Skill: 次ラウンドの冒頭に戻る
+    end
+```
+
+## コメント本文テンプレート
+
+### A. 見送り理由コメント（ループ途中）
+
+```
+<!-- review-pr-loop:round=N;kind=skipped;id=<uuid> -->
+**[Round N/5] 自動修正を見送った指摘**
+
+**指摘内容**: <要約>
+**対象**: `path/to/file.rs:42-48`
+**重大度**: critical / major / minor
+**見送り理由**: <理由 — 例: 設計判断が必要 / 既存パターンと矛盾 / 修正範囲が大きい / post-review でユーザーが見送り選択>
+**確認経路**:
+  - critical/major: 機械的修正が困難と判断（ループ内で自動決定）
+  - minor: 全レビュー終了後の post-review フェーズでユーザーが「見送る」を選択
+
+次のループでこの見送り判断自体を再評価します。
+```
+
+### B. 残件の行コメント（終了時）
+
+```
+<!-- review-pr-loop:round=N;kind=remaining;id=<uuid> -->
+**[Round N/5] 残存する指摘（重大度: critical/major/minor）**
+
+<内容>
+```
+
+### C. 総評コメント（終了時）
+
+アイキャッチとして各セクションに絵文字を付与し、PR 一覧から視認しやすくする。
+
+```
+<!-- review-pr-loop:round=N;kind=summary -->
+# 🤖 review-pr-loop レビュー総評
+
+**🏁 終了ステータス**: ✅ critical/major クリア で正常終了 / ⚠️ 最大ループ到達で強制終了
+**🔁 ラウンド**: Round N / 5
+
+---
+
+## ✨ 評価ポイント
+- ...
+
+## 🛠️ 自動修正で対応済み
+- ...
+
+## 🤔 見送り項目（理由付き）
+- ...
+
+## 📝 残存する改善提案
+- ...
+
+## 📊 メトリクス
+| 項目 | 値 |
+| --- | --- |
+| 🔁 実ループ回数 | N / 5 |
+| 🔴 critical | X 件 |
+| 🟠 major | Y 件 |
+| 🟡 minor | Z 件 |
+| ⏱️ 所要時間 | MM:SS |
+
+---
+
+> 🙋 このコメントは自動生成です。人間のレビュー・マージ判断は引き続きお願いします。
+```
+
+絵文字の用途ガイド:
+
+| 用途 | 絵文字 |
+| --- | --- |
+| タイトル / ボット識別 | 🤖 |
+| 終了ステータス（成功） | ✅ |
+| 終了ステータス（警告） | ⚠️ |
+| ラウンド / 繰り返し | 🔁 |
+| 評価ポイント | ✨ |
+| 自動修正済み | 🛠️ |
+| 見送り | 🤔 |
+| 残存改善提案 | 📝 |
+| メトリクス | 📊 |
+| critical 重大度 | 🔴 |
+| major 重大度 | 🟠 |
+| minor 重大度 | 🟡 |
+| 所要時間 | ⏱️ |
+| 人間への呼びかけ | 🙋 |
+
+## 安全装置まとめ
+
+- `main` / `master` への直接 commit は git rev-parse でブロック
+- force push は実行しない（push 自体しない設計）
+- 同一ファイル × 同一行範囲を 2 ループ連続で書き換えた場合は無限ループとして停止
+- 同じ指摘を 2 ループ連続で「見送り」と判断した場合、3 ループ目以降は再評価をスキップ（総評には明記）
+- minimize 対象は `<!-- review-pr-loop:... -->` マーカー付きコメントのみ（他者コメント誤爆防止）
+- minor 指摘はループ中は自動判断せず pending バッファに蓄積し、全レビュー終了後の post-review フェーズでまとめてユーザーに提示 → AskUserQuestion で「全対応 / 個別選択 / 全見送」を確認する
+- post-review での minor 修正も main/master ブランチでは実行しない（同じ branch guard を通す）
