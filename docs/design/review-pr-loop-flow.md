@@ -324,5 +324,5 @@ sequenceDiagram
 - 同一ファイル × 同一行範囲を 2 ループ連続で書き換えた場合は無限ループとして停止
 - 同じ指摘を 2 ループ連続で「見送り」と判断した場合、3 ループ目以降は再評価をスキップ（総評には明記）
 - minimize 対象は `<!-- review-pr-loop:... -->` マーカー付きコメントのみ（他者コメント誤爆防止）
-- minor 指摘はループ中は自動判断せず pending バッファに蓄積し、全レビュー終了後の post-review フェーズでまとめてユーザーに提示 → AskUserQuestion で「全対応 / 個別選択 / 全見送」を確認する
-- post-review での minor 修正も main/master/detached HEAD では実行しない（同じ branch guard を通す）
+- minor 指摘はループ中は自動判断せず pending バッファに蓄積し、全レビュー終了後の post-review フェーズで個別コメント化せず集約して最終 LGTM（または強制停止時は総評）コメント内に要約リストとして記載する（ADR-0014 minor-D）
+- post-review では minor の自動修正を行わない（ADR-0014 minor-D 改訂以降、minor は見送りサマリー記載のみ）
