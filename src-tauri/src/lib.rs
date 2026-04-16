@@ -25,7 +25,13 @@ pub fn run() {
                 menu::MENU_ID_SETTINGS => {
                     let _ = app_handle.emit(menu::EVENT_MENU_SETTINGS, ());
                 }
-                _ => {}
+                other => {
+                    // リポジトリ切り替え (Cmd+1〜Cmd+9)。項目 ID がプレフィックスに
+                    // マッチした場合のみ、payload に 0-origin インデックスを載せて emit する。
+                    if let Some(index) = menu::parse_repo_select_id(other) {
+                        let _ = app_handle.emit(menu::EVENT_MENU_SELECT_REPOSITORY, index);
+                    }
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
