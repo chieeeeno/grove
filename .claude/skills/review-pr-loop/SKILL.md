@@ -349,7 +349,7 @@ JSON
 PR 全体コメントとして `gh pr comment <url> --body "..."` で投稿:
 
 ```
-<!-- review-pr-loop:round=N;kind=summary -->
+<!-- review-pr-loop:round=N;kind=summary;id=<uuid>;session=<SESSION_TS> -->
 # 🤖 review-pr-loop レビュー総評
 
 **🏁 終了ステータス**: ✅ critical/major クリアで正常終了 / ⚠️ 最大ループ到達で強制終了

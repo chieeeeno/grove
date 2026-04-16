@@ -207,7 +207,7 @@ sequenceDiagram
 アイキャッチとして各セクションに絵文字を付与し、PR 一覧から視認しやすくする。
 
 ```
-<!-- review-pr-loop:round=N;kind=summary -->
+<!-- review-pr-loop:round=N;kind=summary;id=<uuid>;session=<SESSION_TS> -->
 # 🤖 review-pr-loop レビュー総評
 
 **🏁 終了ステータス**: ✅ critical/major クリア で正常終了 / ⚠️ 最大ループ到達で強制終了
