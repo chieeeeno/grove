@@ -375,7 +375,7 @@ PR 全体コメントとして `gh pr comment <url> --body "..."` で投稿:
 
 ```
 <!-- review-pr-loop:round=N;kind=summary;id=<uuid>;session=<SESSION_TS> -->
-# 🤖 review-pr-loop レビュー総評
+# 🤖 review-pr-loop レビュー詳細レポート
 
 **🏁 終了ステータス**: ✅ critical/major クリアで正常終了 / ⚠️ 最大ループ到達で強制終了
 **🔁 ラウンド**: Round N / 5
