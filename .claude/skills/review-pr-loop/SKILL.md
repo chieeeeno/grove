@@ -1,6 +1,7 @@
 ---
 name: review-pr-loop
 description: PR URL（または現在のブランチ）を入力として、レビュー → 自動修正 → 再レビューのループを回す自動コードレビュースキル。各ラウンド終了時に PR にサマリーコメントを投稿（前ラウンド分は minimize）し、詳細は docs/review-result/ にテンポラリ保存する。critical/major がゼロで終了した場合は LGTM コメントを、最大 5 ループ到達時は「強制停止・レビュー未完了」を明記したコメントを残す。minor 指摘は個別に PR コメント化せず、最終 LGTM（または総評）コメント内に要約リストとしてまとめて記載する。
+model: claude-opus-4-7
 ---
 
 # review-pr-loop
@@ -65,7 +66,7 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
    - `gh api repos/:owner/:repo/issues/:n/comments`（PR 全体コメント）
    - `gh api repos/:owner/:repo/pulls/:n/comments`（行コメント）
    - 本文中のマーカー `<!-- review-pr-loop:round=N;kind=... -->` を含むコメントだけフィルタ
-   - `kind` で分類: `skipped`（見送り理由） / `remaining`（残件） / `round-summary`（各ラウンド終了時の要約） / `summary`（最終総評） / `lgtm`（品質クリア宣言）
+   - `kind` で分類: `skipped`（見送り理由、critical/major のみ） / `remaining`（残件） / `round-summary`（各ラウンド終了時の要約） / `summary`（最終総評） / `lgtm`（品質クリア宣言）
    - 注: `gh api` の `:owner` / `:repo` は cwd の git リモート設定から自動解決される。明示指定したい場合は `gh api repos/chieeeeno/grove/...` のようにフルパスで書く
 3. `gh pr diff <url>` で最新差分を取得
 
@@ -143,6 +144,7 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
     - round >= 2 のときのみ実施（round=1 は対象なし）
     - 前ラウンドの round-summary は「履歴として内容を参照できるが閉じた状態」にする（GitHub のトグル展開で閲覧可能）
     - 使う GraphQL は `minimizeComment(classifier: OUTDATED)` — OUTDATED を使うことで「古くなった」と文脈がわかる
+    - **タイミングの設計意図**: このステップをラウンド終了処理に置くのは「次ラウンド開始時点で前ラウンドのサマリーが折りたたまれた状態を保ち、最新ラウンドのサマリーが目立つようにする」ためである。解消済み指摘の minimize（step 8-9）がラウンド開始直後に置かれるのは「今ラウンドの差分を見てから解消判定する」必要があるため。この対称的な位置関係は意図的な設計
 20. **ラウンドサマリーコメントを PR に投稿** (`kind=round-summary`):
     - 内容は後述「ラウンドサマリーコメント」テンプレート
     - このラウンドで検出した指摘の概要・重大度別件数・修正 or 見送りの判断内訳を簡潔に記載
@@ -200,17 +202,19 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 
 行コメントが可能なら行コメント、不可なら PR 全体コメントで投稿:
 
+`kind=skipped` コメントは **critical / major** のみを対象とする。minor の
+見送りは ADR-0014（minor-D）に従い個別コメントを投稿せず、最終 LGTM コメント内の
+サマリーセクションにまとめて記載する（「LGTM コメント」テンプレート参照）。
+
 ```
 <!-- review-pr-loop:round=N;kind=skipped;id=<uuid> -->
 🤔 **[Round N/5] 自動修正を見送った指摘**
 
 **指摘内容**: <要約>
 **対象**: `path/to/file.rs:42-48`
-**重大度**: critical / major / minor
-**見送り理由**: <理由>
-**確認経路**:
-  - critical/major: 機械的修正が困難と判断（ループ内で自動決定）
-  - minor: 全レビュー終了後の post-review フェーズでユーザーが「見送る」を選択
+**重大度**: critical / major
+**見送り理由**: <理由（例: 設計判断が必要 / 既存パターンと矛盾 / 修正範囲が大きい）>
+**確認経路**: 機械的修正が困難と判断（ループ内で自動決定）
 
 次のラウンドでこの見送り判断自体を再評価します。
 ```
@@ -255,7 +259,7 @@ gh api repos/:owner/:repo/pulls/<pr-number>/reviews -X POST \
 {
   "commit_id": "<HEAD SHA>",
   "event": "COMMENT",
-  "body": "<!-- review-pr-loop:round=N;kind=summary_header -->\nRound N のレビュー残件です。",
+  "body": "Round N のレビュー残件です。",
   "comments": [
     {"path": "src/foo.ts", "line": 42, "side": "RIGHT", "body": "<!-- ... -->\n🟠 指摘内容..."},
     {"path": "src/bar.rs", "line": 100, "side": "RIGHT", "body": "<!-- ... -->\n🟡 指摘内容..."}
@@ -263,6 +267,11 @@ gh api repos/:owner/:repo/pulls/<pr-number>/reviews -X POST \
 }
 JSON
 ```
+
+> **注**: レビュー全体の `body`（ヘッダー部分）にはマーカーを付けない。
+> ヘッダーは minimize の対象外であり、kind 一覧（skipped / remaining /
+> round-summary / summary / lgtm）にも含まれない。マーカーは
+> minimize / フィルタリングが必要な個別コメントにのみ付与する。
 
 **本文テンプレート**（重大度に応じて絵文字を 🔴 / 🟠 / 🟡 から選択）:
 
@@ -311,12 +320,15 @@ JSON
 
 ### 🛠️ このラウンドでの対応
 - 自動修正: N 件（commit SHA: `<abbr sha>`）
-- 見送り: M 件（別コメントで理由記録）
+- 見送り（critical/major）: M 件（`kind=skipped` コメントで理由記録）
 
 ### 次アクション
-- 継続: Round N+1 を開始 / または
-- 終了: critical/major = 0 により post-review フェーズへ / または
-- ⚠️ 強制停止: 最大ループ到達により人間にハンドオフ
+**このラウンドの終了種別**: <継続 | post-review フェーズへ移行 | ⚠️ 強制停止> — <理由を 1 行で補足>
+
+記入例:
+- `継続 — critical 1 件と major 2 件が残存しているため Round N+1 を開始`
+- `post-review フェーズへ移行 — critical/major = 0 のため正常終了経路`
+- `⚠️ 強制停止 — Round 5 で major 1 件が残存、最大ループ到達により人間にハンドオフ`
 ```
 
 ### LGTM コメント（`kind=lgtm`）
@@ -371,7 +383,7 @@ PR 全体コメントとして `gh pr comment <url> --body "..."` で投稿:
 
 ```
 <!-- review-pr-loop:round=N;kind=summary;id=<uuid>;session=<SESSION_TS> -->
-# 🤖 review-pr-loop レビュー総評
+# 🤖 review-pr-loop レビュー詳細レポート
 
 **🏁 終了ステータス**: ✅ critical/major クリアで正常終了 / ⚠️ 最大ループ到達で強制終了
 **🔁 ラウンド**: Round N / 5
@@ -436,7 +448,10 @@ docs/review-result/code-review-pr${PR_NUMBER}-${SESSION_TS}-round${round}.md
 #### 1. <タイトル>
 - **対象**: `path/to/file.ts:42-48`
 - **指摘内容**: <詳細>
-- **根拠**: <review-checklist のどの観点か / ADR 番号等>
+- **根拠**: <review-checklist の観点名 / ADR 番号 / CLAUDE.md の該当節 を参照で明記>
+  - 例: `review-checklist.md「CLAUDE.md Doc コメントルール」/ CLAUDE.md 違反（@returns 未記載）`
+  - 例: `review-checklist.md「Rust panic」/ unwrap() で Result を展開しており panic 経路あり`
+  - 例: `ADR-0012「Preflight UX 原則」違反（事後エラーダイアログになっている）`
 - **判断**: 自動修正 / 見送り（理由: <...>）
 - **修正 commit**: `<abbr sha>`（自動修正時のみ）
 
@@ -526,8 +541,8 @@ minor は pending バッファに蓄積するだけで各ラウンドでは処�
 ```
 ユーザー: 現在のブランチでレビューループを回して
 
-→ スキル: 現ブランチ `feature/xxx` から PR #123 を検出
-         SESSION_TS=20260417-143522 を取得
+→ スキル: SESSION_TS=20260417-143522 を取得
+         現ブランチ `feature/xxx` から PR #123 を検出
 → Round 1: critical 1, major 3 を検出（minor 4 件は pending バッファへ）
            critical 1 + major 3 を自動修正、commit
            docs/review-result/code-review-pr123-20260417-143522-round1.md を保存
@@ -542,11 +557,10 @@ minor は pending バッファに蓄積するだけで各ラウンドでは処�
            → 終了条件クリア（post-review へ）
            docs/review-result/code-review-pr123-20260417-143522-round3.md を保存
            ラウンドサマリーコメントを投稿
-→ post-review: 蓄積 minor 7 件（重複除去後）をユーザーに提示
-              AskUserQuestion → 「個別選択」→ 4 件対応、3 件見送り
-              対応分を commit、見送り分を PR に skipped コメント投稿
+→ post-review: 蓄積 minor 7 件（重複除去後）を集約
+              minor は個別 PR コメント化せず、LGTM コメント内に要約リストとして集約記載（minor-D / ADR-0014）
 → 総評コメント（summary, ✅ 正常終了）を PR に投稿
-→ LGTM コメントを PR に投稿（critical/major=0 かつ最大ループ未到達のため）
+→ LGTM コメントを PR に投稿（critical/major=0 かつ最大ループ未到達、本文に minor 7 件の見送りサマリーを含む）
 → 完了
 ```
 
@@ -562,8 +576,9 @@ post-review の集約時に重複除去する（同じファイル・同じ観�
            自動修正 or 見送り仕分け → 修正 → commit
            round5 の結果ファイル保存
            ラウンドサマリー投稿（⚠️ 強制停止予告を含む）
-→ post-review: minor を一括確認（対応する場合は commit）
-→ 総評コメント（summary, ⚠️ 最大ループ到達で強制停止、レビュー未完了）を投稿
+→ post-review: 蓄積 minor を集約（minor-D / ADR-0014 に従い個別コメント化せず）
+              minor 見送りサマリーは総評コメント本文に記載（LGTM は投稿しないため）
+→ 総評コメント（summary, ⚠️ 最大ループ到達で強制停止、レビュー未完了、minor 見送りサマリーを含む）を投稿
 → LGTM は投稿しない（強制停止のため）
 → 「人間レビュワーによる引き取りをお願いします」で完了
 ```

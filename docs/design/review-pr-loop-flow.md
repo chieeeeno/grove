@@ -155,17 +155,19 @@ sequenceDiagram
 
 ### A. 見送り理由コメント（ループ途中）
 
+`kind=skipped` は **critical / major** 専用。minor の見送りは ADR-0014
+（minor-D）に従い個別コメントを投稿せず、最終 LGTM コメント内のサマリーに
+集約する（テンプレート E 参照）。
+
 ```
 <!-- review-pr-loop:round=N;kind=skipped;id=<uuid> -->
 🤔 **[Round N/5] 自動修正を見送った指摘**
 
 **指摘内容**: <要約>
 **対象**: `path/to/file.rs:42-48`
-**重大度**: critical / major / minor
-**見送り理由**: <理由 — 例: 設計判断が必要 / 既存パターンと矛盾 / 修正範囲が大きい / post-review でユーザーが見送り選択>
-**確認経路**:
-  - critical/major: 機械的修正が困難と判断（ループ内で自動決定）
-  - minor: 全レビュー終了後の post-review フェーズでユーザーが「見送る」を選択
+**重大度**: critical / major
+**見送り理由**: <理由 — 例: 設計判断が必要 / 既存パターンと矛盾 / 修正範囲が大きい>
+**確認経路**: 機械的修正が困難と判断（ループ内で自動決定）
 
 次のループでこの見送り判断自体を再評価します。
 ```
@@ -187,7 +189,7 @@ sequenceDiagram
 
 ```
 <!-- review-pr-loop:round=N;kind=summary;id=<uuid>;session=<SESSION_TS> -->
-# 🤖 review-pr-loop レビュー総評
+# 🤖 review-pr-loop レビュー詳細レポート
 
 **🏁 終了ステータス**: ✅ critical/major クリア で正常終了 / ⚠️ 最大ループ到達で強制終了
 **🔁 ラウンド**: Round N / 5
@@ -244,10 +246,15 @@ sequenceDiagram
 
 ### 🛠️ このラウンドでの対応
 - 自動修正: N 件（commit SHA: `<abbr sha>`）
-- 見送り: M 件
+- 見送り（critical/major）: M 件（`kind=skipped` コメントで理由記録）
 
 ### 次アクション
-- 継続 / post-review へ移行 / ⚠️ 強制停止
+**このラウンドの終了種別**: <継続 | post-review フェーズへ移行 | ⚠️ 強制停止> — <理由を 1 行で補足>
+
+記入例:
+- `継続 — critical 1 件と major 2 件が残存しているため Round N+1 を開始`
+- `post-review フェーズへ移行 — critical/major = 0 のため正常終了経路`
+- `⚠️ 強制停止 — Round 5 で major 1 件が残存、最大ループ到達により人間にハンドオフ`
 ```
 
 ### E. LGTM コメント（品質クリア時の最終コメント）
@@ -317,5 +324,5 @@ sequenceDiagram
 - 同一ファイル × 同一行範囲を 2 ループ連続で書き換えた場合は無限ループとして停止
 - 同じ指摘を 2 ループ連続で「見送り」と判断した場合、3 ループ目以降は再評価をスキップ（総評には明記）
 - minimize 対象は `<!-- review-pr-loop:... -->` マーカー付きコメントのみ（他者コメント誤爆防止）
-- minor 指摘はループ中は自動判断せず pending バッファに蓄積し、全レビュー終了後の post-review フェーズでまとめてユーザーに提示 → AskUserQuestion で「全対応 / 個別選択 / 全見送」を確認する
-- post-review での minor 修正も main/master/detached HEAD では実行しない（同じ branch guard を通す）
+- minor 指摘はループ中は自動判断せず pending バッファに蓄積し、全レビュー終了後の post-review フェーズで個別コメント化せず集約して最終 LGTM（または強制停止時は総評）コメント内に要約リストとして記載する（ADR-0014 minor-D）
+- post-review では minor の自動修正を行わない（ADR-0014 minor-D 改訂以降、minor は見送りサマリー記載のみ）
