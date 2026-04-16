@@ -1,6 +1,7 @@
 ---
 name: review-pr-loop
 description: PR URL（または現在のブランチ）を入力として、レビュー → 自動修正 → 再レビューのループを回す自動コードレビュースキル。各ラウンド終了時に PR にサマリーコメントを投稿（前ラウンド分は minimize）し、詳細は docs/review-result/ にテンポラリ保存する。critical/major がゼロで終了した場合は LGTM コメントを、最大 5 ループ到達時は「強制停止・レビュー未完了」を明記したコメントを残す。minor 指摘は個別に PR コメント化せず、最終 LGTM（または総評）コメント内に要約リストとしてまとめて記載する。
+model: claude-opus-4-7
 ---
 
 # review-pr-loop
