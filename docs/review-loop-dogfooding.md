@@ -11,11 +11,15 @@
 
 本スキル整備の成果物自体:
 
-- `docs/design/review-pr-loop-flow.md`（commit `a71f4fb`）
-- `docs/adr/0014-auto-review-skill.md`（commit `56a297d`）
-- `.claude/skills/review-pr-loop/review-checklist.md`（commit `7f09e7c`）
-- `.claude/skills/review-pr-loop/SKILL.md`（commit `90ab79c`）
-- `docs/dev-workflow.md` への追記（commit `d2f2dac`）
+- `docs/design/review-pr-loop-flow.md`（初版 commit `a71f4fb`）
+- `docs/adr/0014-auto-review-skill.md`（初版 commit `56a297d`）
+- `.claude/skills/review-pr-loop/review-checklist.md`（初版 commit `7f09e7c`）
+- `.claude/skills/review-pr-loop/SKILL.md`（初版 commit `90ab79c`）
+- `docs/dev-workflow.md` への追記（初版 commit `d2f2dac`）
+
+> 注: 上記の commit SHA は feature ブランチ上の初版。PR が squash merge 等で
+> main に取り込まれると SHA が変わるため、履歴辿りには `git log --follow` や
+> PR #58 を使うこと。
 
 ### 実行形態
 
