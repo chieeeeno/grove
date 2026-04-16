@@ -25,8 +25,8 @@ Git worktree を GUI で直感的に管理する macOS デスクトップアプ�
 - worktree カードをドラッグ＆ドロップで並び替え（順序は永続化）
 - VS Code / ターミナルで worktree を 1 クリック起動（ターミナルアプリは設定で選択可）
 - worktree の削除（未コミット変更の警告 + ブランチ同時削除オプション）
-- 5 秒ごとの自動リフレッシュ + 手動リフレッシュで remote fetch（`Cmd+R`）
-- `Last fetched` 表示で最終 fetch からの経過時間を常時確認
+- 5 秒ごとの自動リフレッシュ（ローカル状態のみ）+ 手動リフレッシュで remote fetch（`Cmd+R`）
+- fetch 成功後は `Last fetched: N 前` をヘッダーに表示
 - 操作結果はトースト通知でフィードバック（成功 / エラー）
 - `code` / ターミナルアプリ未検出時は起動時に警告バナーで事前通知（[ADR-0012](./docs/adr/0012-preflight-ux-principle.md)）
 
@@ -39,14 +39,14 @@ Git worktree を GUI で直感的に管理する macOS デスクトップアプ�
   - VS Code 未インストール / `code` 未導入でも Grove 自体は動作する（該当ボタンのみ無効化）
   - `code` コマンドの導入: VS Code を起動 → Command Palette（`Cmd+Shift+P`）→ `Shell Command: Install 'code' command in PATH`
 - **ターミナルアプリ**（任意）
-  - macOS 標準の `Terminal.app` がデフォルト。設定で iTerm2 / Warp 等に切り替え可能
-  - 未検出時は「ターミナルで開く」ボタンが無効化される
+  - macOS 標準の `Terminal.app` がデフォルト。設定で Ghostty / iTerm2 / Alacritty / Warp / kitty のうち検出されたものに切り替え可能
+  - どのアプリも検出できない場合はボタンが無効化される
 
 ## インストール
 
 ### 1. `.dmg` をダウンロード
 
-[GitHub Releases](https://github.com/chieeeeno/grove/releases) から最新のプレリリース（`v0.1.0-beta.x`）の `Grove_0.1.0_aarch64.dmg` をダウンロードする。
+[GitHub Releases](https://github.com/chieeeeno/grove/releases) から最新のプレリリース（`v<version>-beta.N` タグ）の `Grove_<version>_aarch64.dmg` をダウンロードする。
 
 ### 2. Applications フォルダにドラッグ
 
@@ -69,7 +69,7 @@ Grove は現在 **コード署名をしていないβ版** のため、ダブル
 
 ### リポジトリを追加する
 
-1. サイドバーの「**+**」ボタンをクリック
+1. サイドバー下部の「**リポジトリを追加**」ボタンをクリック
 2. ディレクトリ選択ダイアログで Git リポジトリのルートを選ぶ
 3. サイドバーに追加され、worktree 数がバッジで表示される
 
@@ -104,7 +104,7 @@ Grove は現在 **コード署名をしていないβ版** のため、ダブル
 3. **チェックアイコン** または **`Cmd+Enter`** で確定
 4. **`Esc`** または **× アイコン** でキャンセル
 
-> `Enter` 単独では確定しない（誤操作防止、[ADR-0008](./docs/adr/0008-worktree-label.md)）。
+> `Enter` 単独では確定しない（誤操作防止のための UX 原則）。
 
 ### worktree を削除する
 
@@ -140,4 +140,4 @@ Grove は現在 **コード署名をしていないβ版** のため、ダブル
 
 - [grove-design.md](./grove-design.md) — 設計書本体
 - [ROADMAP.md](./ROADMAP.md) — マイルストーン（M0 / M1 / M2）
-- [docs/adr/](./docs/adr/) — 意思決定記録（ADR、13 件）
+- [docs/adr/](./docs/adr/) — 意思決定記録

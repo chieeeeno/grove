@@ -7,7 +7,7 @@ Grove のソースから開発・ビルド・テストを行うための手順�
 | ツール | バージョン | インストール例 |
 |---|---|---|
 | macOS | 12 Monterey 以降（Apple Silicon） | — |
-| Node.js | 20 LTS 以降 | [nodejs.org](https://nodejs.org/) または `mise install node@lts` |
+| Node.js | 24（CI で動作確認中。20 LTS 以降であれば概ね動作） | [nodejs.org](https://nodejs.org/) または `mise install node@24` |
 | pnpm | 9 以降 | `corepack enable && corepack prepare pnpm@latest --activate` |
 | Rust | stable（rustup 経由） | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
 | Xcode Command Line Tools | — | `xcode-select --install` |
@@ -80,7 +80,7 @@ pnpm release:beta                 # ビルド → タグ作成 → gh release �
 |---|---|
 | [CLAUDE.md](../CLAUDE.md) | AI ペアプロ向けの作業規約・Doc コメントルール等 |
 | [grove-design.md](../grove-design.md) | 設計書本体（機能要件 / データモデル / API / フロー図） |
-| [docs/adr/](./adr/) | 意思決定記録（ADR、13 件） |
+| [docs/adr/](./adr/) | 意思決定記録 |
 | [ROADMAP.md](../ROADMAP.md) | マイルストーン定義・スコープ管理（M0 / M1 / M2） |
 | [docs/testing-strategy.md](./testing-strategy.md) | 3 層テスト戦略（Rust / TS / Manual QA） |
 | [docs/dev-workflow.md](./dev-workflow.md) | プロジェクトの開発ワークフロー記録 |
@@ -88,10 +88,8 @@ pnpm release:beta                 # ビルド → タグ作成 → gh release �
 
 ## macOS コード署名について
 
-`src-tauri/tauri.conf.json` の `bundle.macOS.signingIdentity` は `"-"`（ad-hoc 署名）がデフォルト。正式版リリース時は環境変数で Developer ID 署名に上書きする:
+M1 時点では署名なしで GitHub Releases に配布している。背景と判断は [ADR-0007](./adr/0007-distribution.md) を参照。Developer ID 署名への切り替え手順は:
 
 ```bash
 APPLE_SIGNING_IDENTITY="Developer ID Application: ..." pnpm tauri build
 ```
-
-M1 時点では署名なしで GitHub Releases に配布している（[ADR-0007](./adr/0007-distribution.md)）。
