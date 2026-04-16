@@ -143,7 +143,7 @@ sequenceDiagram
 
 ```
 <!-- review-pr-loop:round=N;kind=skipped;id=<uuid> -->
-**[Round N/5] 自動修正を見送った指摘**
+🤔 **[Round N/5] 自動修正を見送った指摘**
 
 **指摘内容**: <要約>
 **対象**: `path/to/file.rs:42-48`
@@ -158,9 +158,11 @@ sequenceDiagram
 
 ### B. 残件の行コメント（終了時）
 
+重大度に応じて先頭に 🔴（critical）/ 🟠（major）/ 🟡（minor）を付与する。
+
 ```
 <!-- review-pr-loop:round=N;kind=remaining;id=<uuid> -->
-**[Round N/5] 残存する指摘（重大度: critical/major/minor）**
+🔴 / 🟠 / 🟡 **[Round N/5] 残存する指摘（重大度: critical/major/minor）**
 
 <内容>
 ```
