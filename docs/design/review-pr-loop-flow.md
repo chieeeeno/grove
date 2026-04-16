@@ -21,13 +21,18 @@
 | 対応完了コメント | GitHub GraphQL `minimizeComment(RESOLVED)` で非表示化 |
 | 誤爆防止 | マーカー `<!-- review-pr-loop:round=N;kind=... -->` 付きコメントのみを操作対象にする |
 | uuid 生成 | `uuidgen` コマンドで 1 コメントごとに新規発行（macOS/Linux 標準搭載） |
+| セッション識別 | スキル起動時に `date +%Y%m%d-%H%M%S` で `SESSION_TS` を取得し全ラウンドで共通利用 |
+| レビュー結果保存 | 各ラウンド終了時に `docs/review-result/code-review-pr<PR>-<SESSION_TS>-round<R>.md` に詳細ログを保存（`.gitignore` 対象、ローカル参照専用） |
+| ラウンドサマリー | 各ラウンド終了時に PR に `kind=round-summary` コメントを投稿。次ラウンド開始時に前ラウンド分を `minimizeComment(OUTDATED)` で非表示化（削除せずトグル展開で閲覧可能） |
+| LGTM 判定 | 正常終了（critical/major=0 かつ最大ループ未到達）なら `kind=lgtm` コメントを投稿。最大ループ到達時は LGTM 不投稿、総評に「強制停止・レビュー未完了」を明記 |
 
 ## フローチャート（全体制御）
 
 ```mermaid
 flowchart TD
-    Start([スキル起動]) --> HasUrl{PR URL 引数あり?}
-    HasUrl -- Yes --> FetchMeta[gh pr view でメタ取得]
+    Start([スキル起動]) --> InitSession[SESSION_TS を取得<br/>docs/review-result/ を用意]
+    InitSession --> HasUrl{PR URL 引数あり?}
+    HasUrl -- Yes --> FetchMeta[gh pr view でメタ取得<br/>PR_NUMBER を保持]
     HasUrl -- No --> DetectBranch[現在のブランチを取得]
     DetectBranch --> FindPR[gh pr list --head で PR 検索]
     FindPR --> PrExists{PR あり?}
@@ -36,16 +41,16 @@ flowchart TD
     PrExists -- Yes --> FetchMeta
     FetchMeta --> InitRound[round = 1]
 
-    InitRound --> LoadPrevComments[前ループのスキル由来コメント取得<br/>マーカー review-pr-loop でフィルタ]
+    InitRound --> LoadPrevComments[前ループのスキル由来コメント取得<br/>マーカー review-pr-loop でフィルタ<br/>kind: skipped/remaining/round-summary/summary/lgtm]
     LoadPrevComments --> FetchDiff[gh pr diff で最新差分取得]
     FetchDiff --> RunSimplify[simplify スキル相当のレビュー]
     RunSimplify --> RunCustom[review-checklist の独自観点チェック]
     RunCustom --> ReevalSkipped[前回見送り理由の妥当性を再評価]
     ReevalSkipped --> Classify[critical / major / minor に分類]
-    Classify --> MinimizeResolved[修正済み指摘コメントを minimize]
+    Classify --> MinimizeResolved[修正済み指摘コメントを minimize RESOLVED]
 
     MinimizeResolved --> CheckDone{critical + major == 0<br/>または round >= 5?}
-    CheckDone -- Yes --> PostReview([ループ終了<br/>post-review へ])
+    CheckDone -- Yes --> SaveResultFinal[レビュー結果を<br/>code-review-pr-ts-roundN.md に保存]
     CheckDone -- No --> SplitFix[critical/major の修正 / 見送り仕分け<br/>minor は pending バッファに蓄積]
     SplitFix --> PostSkipped[critical/major の見送り項目を<br/>PR コメント投稿 Round N]
     PostSkipped --> BranchGuard{現ブランチが<br/>main/master/detached HEAD?}
@@ -56,8 +61,15 @@ flowchart TD
     LoopGuard -- Yes --> AbortLoop[無限ループ検出で停止]
     AbortLoop --> EndAbort
     LoopGuard -- No --> Commit[git commit<br/>push はしない]
-    Commit --> Increment[round += 1]
+    Commit --> SaveResult[レビュー結果を<br/>code-review-pr-ts-roundN.md に保存]
+    SaveResult --> MinimizePrev[前ラウンドの round-summary を<br/>minimize OUTDATED]
+    MinimizePrev --> PostRoundSummary[round-summary コメントを投稿]
+    PostRoundSummary --> Increment[round += 1]
     Increment --> LoadPrevComments
+
+    SaveResultFinal --> MinimizePrevFinal[前ラウンドの round-summary を<br/>minimize OUTDATED]
+    MinimizePrevFinal --> PostRoundSummaryFinal[最終ラウンドの round-summary を投稿]
+    PostRoundSummaryFinal --> PostReview([post-review へ])
 
     PostReview --> AggregateMinor[蓄積された minor 見送り候補を集約<br/>重複除去・要約]
     AggregateMinor --> HasMinor{minor 見送り候補あり?}
@@ -71,7 +83,10 @@ flowchart TD
     CommitMinor --> PostMinorSkipped[残った minor を<br/>見送りコメントとして投稿]
     HasFixTargets -- No --> PostMinorSkipped
     PostMinorSkipped --> PostFinal
-    PostFinal --> EndDone([完了])
+    PostFinal --> CheckLGTM{critical/major=0 かつ<br/>最大ループ未到達?}
+    CheckLGTM -- Yes --> PostLGTM[LGTM コメントを投稿]
+    PostLGTM --> EndDone([完了])
+    CheckLGTM -- No --> EndForced([完了<br/>強制停止・未完了をユーザーに通知])
 ```
 
 ## シーケンス図（1 ラウンド分の詳細）
@@ -84,8 +99,11 @@ sequenceDiagram
     participant GH as GitHub (gh CLI / GraphQL)
     participant Simplify as simplify スキル
     participant Git as ローカル Git
+    participant FS as ローカルファイルシステム
 
     User->>Skill: スキル起動（PR URL 任意）
+    Skill->>Skill: SESSION_TS = date +%Y%m%d-%H%M%S
+    Skill->>FS: mkdir -p docs/review-result/
     alt PR URL 未指定
         Skill->>Git: git rev-parse --abbrev-ref HEAD
         Git-->>Skill: 現ブランチ名
@@ -99,7 +117,7 @@ sequenceDiagram
     Skill->>GH: gh pr view / pr diff / issue comments / pulls comments
     GH-->>Skill: PR メタ + 差分 + 既存コメント（マーカー付き）
 
-    Skill->>Skill: 見送りコメント・指摘コメントを分類
+    Skill->>Skill: 既存コメントを分類<br/>(skipped/remaining/round-summary/summary/lgtm)
     Skill->>Simplify: simplify 実行依頼（差分を入力）
     Simplify-->>Skill: 品質指摘一覧
     Skill->>Skill: review-checklist で独自観点チェック<br/>（Rust panic/リーク / Doc / Test / ADR 整合）
@@ -110,6 +128,11 @@ sequenceDiagram
     GH-->>Skill: 非表示化完了
 
     alt 終了条件（critical+major=0 or round>=5）
+        Skill->>FS: レビュー結果を code-review-pr<PR>-<TS>-roundN.md に保存
+        opt round >= 2
+            Skill->>GH: 前ラウンドの round-summary を minimizeComment(OUTDATED)
+        end
+        Skill->>GH: ラウンドサマリーコメント投稿（kind=round-summary）
         Note over Skill: post-review フェーズへ
         Skill->>Skill: 全ラウンドで蓄積した minor 見送り候補を集約
         opt minor 見送り候補あり
@@ -124,15 +147,26 @@ sequenceDiagram
             Skill->>GH: 残った minor を見送りコメントとして投稿（Round N + 理由）
         end
         Skill->>GH: 行コメント（critical/major 残件）+ PR 全体総評を投稿
-        Skill-->>User: 完了レポート
+        alt critical+major=0 かつ round < max_loop
+            Skill->>GH: LGTM コメント投稿（kind=lgtm）
+            Skill-->>User: ✅ 完了レポート
+        else 最大ループ到達
+            Note over Skill,User: 総評に「⚠️ 強制停止・レビュー未完了」を明記<br/>LGTM は投稿しない
+            Skill-->>User: ⚠️ 完了レポート（人間にハンドオフ）
+        end
     else 継続
-        Skill->>Skill: critical/major の修正 / 見送り仕分け<br/>minor は pending バッファに蓄積（この時点では判断しない）
+        Skill->>Skill: critical/major の修正 / 見送り仕分け<br/>minor は pending バッファに蓄積
         Skill->>GH: critical/major の見送り項目コメント投稿（Round N + 理由）
         Skill->>Git: 現ブランチが main/master/detached HEAD でないことを確認
         Skill->>Skill: 同一箇所を 2 回書き換えていないか確認
         Skill->>Skill: critical/major の自動修正を実装
         Skill->>Git: git add + git commit（push はしない）
         Git-->>Skill: lefthook pre-commit 通過
+        Skill->>FS: レビュー結果を code-review-pr<PR>-<TS>-roundN.md に保存
+        opt round >= 2
+            Skill->>GH: 前ラウンドの round-summary を minimizeComment(OUTDATED)
+        end
+        Skill->>GH: ラウンドサマリーコメント投稿（kind=round-summary）
         Skill->>Skill: round += 1
         Note over Skill: 次ラウンドの冒頭に戻る
     end
@@ -206,6 +240,61 @@ sequenceDiagram
 
 > 🙋 このコメントは自動生成です。人間のレビュー・マージ判断は引き続きお願いします。
 ```
+
+### D. ラウンドサマリーコメント（各ラウンド終了時）
+
+各ラウンドで「何を検出し、何を修正し、何を pending に回したか」を PR に
+要約として残す。次ラウンド開始時に `minimizeComment(OUTDATED)` で非表示化
+するが、削除はしないためトグルで展開すれば内容は参照可能。
+
+```
+<!-- review-pr-loop:round=N;kind=round-summary;id=<uuid>;session=<SESSION_TS> -->
+## 🔁 Round N/5 レビュー結果サマリー
+
+**セッション**: `<SESSION_TS>` / **PR**: #<PR_NUMBER>
+**詳細ログ**: `docs/review-result/code-review-pr<PR_NUMBER>-<SESSION_TS>-roundN.md`（ローカル）
+
+### 🔴 critical（X 件）
+- <要約 1 行>
+
+### 🟠 major（Y 件）
+- <要約 1 行>
+
+### 🟡 minor（Z 件・pending バッファ送り）
+- <要約 1 行>
+
+### 🛠️ このラウンドでの対応
+- 自動修正: N 件（commit SHA: `<abbr sha>`）
+- 見送り: M 件
+
+### 次アクション
+- 継続 / post-review へ移行 / ⚠️ 強制停止
+```
+
+### E. LGTM コメント（品質クリア時の最終コメント）
+
+全ラウンド終了後、以下をすべて満たす場合のみ投稿:
+
+- `critical + major == 0`
+- 最大ループに到達していない（正常終了）
+
+```
+<!-- review-pr-loop:round=N;kind=lgtm;id=<uuid>;session=<SESSION_TS> -->
+# ✅ LGTM
+
+本 PR は review-pr-loop の品質基準（critical/major = 0）をクリアしました。
+マージ可能な状態です。
+
+- **セッション**: `<SESSION_TS>`
+- **実ラウンド数**: N / 5
+- **関連コメント**: 総評（kind=summary）に全体サマリー記載
+
+> 🙋 最終的なマージ判断は人間レビュワーでお願いします。
+```
+
+最大ループに到達して強制停止した場合は LGTM を投稿せず、総評コメント
+（kind=summary）本文に「⚠️ 最大ループ到達で強制停止、レビュー未完了。
+人間レビュワーによる引き取りをお願いします」を明記する。
 
 絵文字の用途ガイド:
 
