@@ -167,14 +167,23 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 すべてのスキル由来コメントには、本文冒頭にマーカーを含める:
 
 ```
-<!-- review-pr-loop:round=N;kind=<skipped|remaining|summary>;id=<uuid> -->
+<!-- review-pr-loop:round=N;kind=<skipped|remaining|round-summary|summary|lgtm>;id=<uuid>[;session=<SESSION_TS>] -->
 ```
 
 - `round` はラウンド番号（1..5）、post-review フェーズは終了時のラウンド番号を流用
-- `kind` は種別
+- `kind` は種別（5 種すべて列挙）:
+  - `skipped`: 見送り理由コメント
+  - `remaining`: 最終残件の行コメント
+  - `round-summary`: 各ラウンド終了時のサマリーコメント
+  - `summary`: post-review 最終総評
+  - `lgtm`: 品質基準クリア宣言
 - `id` は UUID（重複投稿検出・再生成検出用）。生成は `uuidgen` コマンドで
   1 コメントごとに新規発行する（macOS/Linux で標準搭載）。
   `uuidgen | tr 'A-Z' 'a-z'` で小文字化して揃える
+- `session` は **`round-summary` と `lgtm` でのみ必須**。セッション起動時に取得した
+  `SESSION_TS` の値を入れ、ローカルのテンポラリファイル
+  (`docs/review-result/code-review-pr<N>-<SESSION_TS>-round<R>.md`) と突合するために使う。
+  他の kind（skipped / remaining / summary）では付与しなくてよい
 
 ### 見送りコメント（`kind=skipped`）
 
