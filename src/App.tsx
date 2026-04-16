@@ -11,6 +11,7 @@ import PreflightBanner from "./components/PreflightBanner";
 import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useMenuEvents } from "./hooks/useMenuEvents";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useTheme } from "./hooks/useTheme";
 import { useAppStore, selectEffectiveTerminalId } from "./stores/appStore";
 import { dirName } from "./lib/path";
@@ -173,6 +174,33 @@ function App() {
   // メニューバーイベント（Cmd+R で再読み込み、Cmd+, で設定）
   const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
   useMenuEvents({ onRefresh: refresh, onOpenSettings: handleOpenSettings });
+
+  /**
+   * Cmd+1〜Cmd+9 から呼ばれるリポジトリ切り替えハンドラ。
+   *
+   * @param index - 0-origin のリポジトリインデックス（Cmd+1 → 0）
+   *
+   * @remarks
+   * - `repositories` 配列の範囲外インデックスは no-op（登録リポジトリ数未満の
+   *   キーを押した場合に何も起きないのが正しい挙動）
+   * - 既に選択中のリポジトリを再選択した場合も no-op（`saveConfig` も呼ばない）
+   * - 選択変更時は `handleSelectRepository` と同様に `saveConfigSilently` で永続化
+   */
+  const handleSelectRepositoryByIndex = useCallback(
+    (index: number) => {
+      const state = useAppStore.getState();
+      if (index < 0 || index >= state.repositories.length) return;
+      const target = state.repositories[index];
+      if (target.id === state.selectedRepositoryId) return;
+      selectRepository(target.id);
+      saveConfigSilently();
+    },
+    [selectRepository]
+  );
+
+  const { isMetaDown } = useKeyboardShortcuts({
+    onSelectRepository: handleSelectRepositoryByIndex,
+  });
 
   // 削除ダイアログの状態
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -466,6 +494,7 @@ function App() {
         <Sidebar
           repositories={sidebarRepos}
           selectedId={selectedRepositoryId}
+          isMetaDown={isMetaDown}
           onSelectRepository={handleSelectRepository}
           onAddRepository={handleAddRepository}
           onRemoveRepository={handleRemoveRepository}

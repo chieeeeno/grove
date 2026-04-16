@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SettingsDialog from "./SettingsDialog";
 import { useAppStore } from "../stores/appStore";
+import { createKeyboardEvent } from "../test/keyboardEvent";
 
 describe("SettingsDialog", () => {
   const defaultProps = {
@@ -71,6 +72,38 @@ describe("SettingsDialog", () => {
     await user.click(overlay);
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe("Esc キーで閉じる", () => {
+    it("Esc キーで onClose が呼ばれる", async () => {
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+      render(<SettingsDialog {...defaultProps} onClose={onClose} />);
+
+      await user.keyboard("{Escape}");
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("IME 変換中の Esc では onClose が呼ばれない", () => {
+      const onClose = vi.fn();
+      render(<SettingsDialog {...defaultProps} onClose={onClose} />);
+
+      document.dispatchEvent(createKeyboardEvent("keydown", { key: "Escape", isComposing: true }));
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("アンマウント後の Esc では onClose が呼ばれない", () => {
+      const onClose = vi.fn();
+      const { unmount } = render(<SettingsDialog {...defaultProps} onClose={onClose} />);
+
+      unmount();
+
+      document.dispatchEvent(createKeyboardEvent("keydown", { key: "Escape" }));
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 
   describe("ターミナル選択", () => {

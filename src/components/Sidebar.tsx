@@ -1,4 +1,5 @@
 import { Trees, GitBranch, Plus, Settings, X } from "lucide-react";
+import { REPOSITORY_SHORTCUT_COUNT } from "../hooks/useKeyboardShortcuts";
 
 // ===== 型 =====
 
@@ -6,13 +7,25 @@ interface RepoItemProps {
   name: string;
   worktreeCount: number;
   isActive: boolean;
+  /**
+   * 表示すべきショートカット番号（1-origin）。`null` なら通常の worktreeCount バッジを出す。
+   * 呼び出し側で「Cmd 押下中」かつ「先頭 9 個以内」の条件を評価して渡す。
+   */
+  shortcutNumber: number | null;
   onClick: () => void;
   onRemove: () => void;
 }
 
 // ===== サブコンポーネント =====
 
-function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItemProps) {
+function RepoItem({
+  name,
+  worktreeCount,
+  isActive,
+  shortcutNumber,
+  onClick,
+  onRemove,
+}: RepoItemProps) {
   return (
     <div
       className={`group w-full flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer transition-colors duration-150
@@ -25,7 +38,7 @@ function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItem
       >
         {name}
       </span>
-      {/* hover 時に X ボタン、通常時はバッジ */}
+      {/* hover 時に X ボタン、通常時は worktreeCount バッジ（Cmd 押下中は番号バッジに差し替え） */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -36,12 +49,22 @@ function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItem
       >
         <X size={12} />
       </button>
-      <span
-        className={`group-hover:hidden flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none
-          ${isActive ? "bg-accent text-fg-inverse" : "bg-border text-fg-secondary"}`}
-      >
-        {worktreeCount}
-      </span>
+      {shortcutNumber !== null ? (
+        <span
+          aria-label={`ショートカット: Cmd+${shortcutNumber}`}
+          className={`group-hover:hidden flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums
+            ${isActive ? "bg-accent text-fg-inverse" : "bg-border text-fg"}`}
+        >
+          ⌘{shortcutNumber}
+        </span>
+      ) : (
+        <span
+          className={`group-hover:hidden flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none
+            ${isActive ? "bg-accent text-fg-inverse" : "bg-border text-fg-secondary"}`}
+        >
+          {worktreeCount}
+        </span>
+      )}
     </div>
   );
 }
@@ -51,6 +74,8 @@ function RepoItem({ name, worktreeCount, isActive, onClick, onRemove }: RepoItem
 interface SidebarProps {
   repositories: Array<{ id: string; name: string; worktreeCount: number }>;
   selectedId: string | null;
+  /** Cmd（macOS）/ Ctrl（他 OS）キーが押し下げ中かどうか。true の間は worktreeCount バッジを番号バッジに差し替える */
+  isMetaDown: boolean;
   onSelectRepository: (id: string) => void;
   onAddRepository: () => void;
   onRemoveRepository: (id: string) => void;
@@ -60,6 +85,7 @@ interface SidebarProps {
 export default function Sidebar({
   repositories,
   selectedId,
+  isMetaDown,
   onSelectRepository,
   onAddRepository,
   onRemoveRepository,
@@ -85,12 +111,13 @@ export default function Sidebar({
         {repositories.length === 0 ? (
           <p className="text-[12px] px-2.5 text-fg-muted">リポジトリがありません</p>
         ) : (
-          repositories.map((repo) => (
+          repositories.map((repo, index) => (
             <RepoItem
               key={repo.id}
               name={repo.name}
               worktreeCount={repo.worktreeCount}
               isActive={repo.id === selectedId}
+              shortcutNumber={isMetaDown && index < REPOSITORY_SHORTCUT_COUNT ? index + 1 : null}
               onClick={() => onSelectRepository(repo.id)}
               onRemove={() => onRemoveRepository(repo.id)}
             />

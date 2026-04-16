@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { useAppStore, selectEffectiveTerminalId } from "../stores/appStore";
 
@@ -78,6 +79,22 @@ export default function SettingsDialog({
   const refreshInterval = useAppStore((s) => s.refreshInterval);
   const installedTerminals = useAppStore((s) => s.installedTerminals);
   const effectiveTerminalId = useAppStore(selectEffectiveTerminalId);
+
+  /**
+   * Esc キーでダイアログを閉じる。
+   *
+   * `document` レベルで listen することで内部 select 等にフォーカスがあっても反応する。
+   * IME 変換中（`isComposing`）は IME 側の挙動を優先して no-op にする。
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.isComposing) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return (
     <div
