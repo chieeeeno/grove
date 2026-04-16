@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TriangleAlert, CircleAlert, FolderGit2, Trash2 } from "lucide-react";
 
 interface DeleteDialogProps {
@@ -21,6 +21,23 @@ export default function DeleteDialog({
   onCancel,
 }: DeleteDialogProps) {
   const [deleteBranch, setDeleteBranch] = useState(false);
+
+  /**
+   * Esc キーでダイアログを閉じる（キャンセル扱い）。
+   *
+   * `document` レベルで listen することで内部要素（チェックボックスや削除ボタン）に
+   * フォーカスがあっても反応する。IME 変換中（`isComposing`）は IME 側の挙動を
+   * 優先して no-op にする。
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.isComposing) {
+        onCancel();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
 
   return (
     <div

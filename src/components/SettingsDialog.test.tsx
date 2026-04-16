@@ -73,6 +73,42 @@ describe("SettingsDialog", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  describe("Esc キーで閉じる", () => {
+    it("Esc キーで onClose が呼ばれる", async () => {
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+      render(<SettingsDialog {...defaultProps} onClose={onClose} />);
+
+      await user.keyboard("{Escape}");
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("IME 変換中の Esc では onClose が呼ばれない", () => {
+      const onClose = vi.fn();
+      render(<SettingsDialog {...defaultProps} onClose={onClose} />);
+
+      // userEvent では isComposing を設定できないため、KeyboardEvent を直接 dispatch
+      const event = new KeyboardEvent("keydown", { key: "Escape" });
+      Object.defineProperty(event, "isComposing", { value: true });
+      document.dispatchEvent(event);
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("アンマウント後の Esc では onClose が呼ばれない", () => {
+      const onClose = vi.fn();
+      const { unmount } = render(<SettingsDialog {...defaultProps} onClose={onClose} />);
+
+      unmount();
+
+      const event = new KeyboardEvent("keydown", { key: "Escape" });
+      document.dispatchEvent(event);
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
+  });
+
   describe("ターミナル選択", () => {
     it("検出済みターミナルがある場合にドロップダウンが表示される", () => {
       useAppStore.setState({
