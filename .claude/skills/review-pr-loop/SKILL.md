@@ -1,6 +1,6 @@
 ---
 name: review-pr-loop
-description: PR URL（または現在のブランチ）を入力として、レビュー → 自動修正 → 再レビューのループを回す自動コードレビュースキル。critical/major がゼロになるか最大 5 ループで終了し、PR に総評コメントと行コメントを残す。minor 指摘は全レビュー終了後に一括でユーザー確認する。
+description: PR URL（または現在のブランチ）を入力として、レビュー → 自動修正 → 再レビューのループを回す自動コードレビュースキル。各ラウンド終了時に PR にサマリーコメントを投稿（前ラウンド分は minimize）し、詳細は docs/review-result/ にテンポラリ保存する。critical/major がゼロで終了した場合は LGTM コメントを、最大 5 ループ到達時は「強制停止・レビュー未完了」を明記したコメントを残す。minor 指摘は全レビュー終了後に一括でユーザー確認する。
 ---
 
 # review-pr-loop
@@ -36,16 +36,23 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 
 ## 実行フロー
 
-### フェーズ 0: PR の特定
+### フェーズ 0: PR の特定とセッション初期化
 
-1. `pr_url` が与えられていればそれを採用
-2. 与えられていない場合:
+1. **セッションタイムスタンプを取得** — `date +%Y%m%d-%H%M%S` の結果を
+   セッション共通変数 `SESSION_TS` として保持する（例: `20260417-143522`）。
+   同一スキル起動のすべてのラウンドでこの値を使い回し、レビュー結果ファイルや
+   コメント本文に含めることでセッション識別子とする
+2. **`docs/review-result/` ディレクトリを用意** — 存在しなければ `mkdir -p docs/review-result` で作成。
+   このディレクトリは `.gitignore` 対象
+3. `pr_url` が与えられていればそれを採用
+4. 与えられていない場合:
    1. `git rev-parse --abbrev-ref HEAD` で現ブランチを取得
    2. `gh pr list --head <branch> --state open --json number,url` で PR を検索
    3. ヒットすれば URL を採用
    4. ヒットしなければ以下のメッセージを表示してスキル終了（commit も push もしない）:
       > 現在のブランチ `<branch>` に紐づく PR が見つかりませんでした。
       > 先に `gh pr create` で PR を作成してから再実行してください。
+5. PR 番号を取得し、セッション変数 `PR_NUMBER` として保持
 
 ### フェーズ 1: レビュールーパー
 
@@ -58,7 +65,7 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
    - `gh api repos/:owner/:repo/issues/:n/comments`（PR 全体コメント）
    - `gh api repos/:owner/:repo/pulls/:n/comments`（行コメント）
    - 本文中のマーカー `<!-- review-pr-loop:round=N;kind=... -->` を含むコメントだけフィルタ
-   - `kind` で分類: `skipped`（見送り理由） / `remaining`（残件） / `summary`（総評）
+   - `kind` で分類: `skipped`（見送り理由） / `remaining`（残件） / `round-summary`（各ラウンド終了時の要約） / `summary`（最終総評） / `lgtm`（品質クリア宣言）
    - 注: `gh api` の `:owner` / `:repo` は cwd の git リモート設定から自動解決される。明示指定したい場合は `gh api repos/chieeeeno/grove/...` のようにフルパスで書く
 3. `gh pr diff <url>` で最新差分を取得
 
@@ -95,8 +102,8 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 #### 終了判定
 
 10. 以下のいずれかで **ラウンドを終了してフェーズ 2 へ**:
-    - `critical + major == 0`
-    - `round >= max_loop`
+    - `critical + major == 0` → 正常終了（post-review 後に LGTM コメント投稿対象）
+    - `round >= max_loop` → **最大ループ到達による強制停止**（LGTM は出さない、人間にハンドオフ）
 11. 上記以外は続行（以下の修正フェーズへ）
 
 #### 修正フェーズ（critical/major のみ処理）
@@ -113,7 +120,23 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 17. 自動修正を実装 → 対象ファイルを `git add` → `git commit`
     - コミットメッセージは日本語、1 コミット = 1 論理単位（CLAUDE.md のコミット粒度ルール）
     - **push はしない**（lefthook pre-commit が pre-commit フックで品質チェック）
-18. `round += 1` してラウンド開始処理へ戻る
+
+#### ラウンド終了処理（修正フェーズ完了後、または終了判定で post-review 移行直前）
+
+18. **レビュー結果のテンポラリファイル保存**:
+    - ファイルパス: `docs/review-result/code-review-pr${PR_NUMBER}-${SESSION_TS}-round${round}.md`
+    - 内容は後述「レビュー結果テンポラリファイルの構成」を参照
+    - このファイルは `.gitignore` 対象なので commit しない
+19. **前ラウンドの `kind=round-summary` コメントを minimize**:
+    - round >= 2 のときのみ実施（round=1 は対象なし）
+    - 前ラウンドの round-summary は「履歴として内容を参照できるが閉じた状態」にする（GitHub のトグル展開で閲覧可能）
+    - 使う GraphQL は `minimizeComment(classifier: OUTDATED)` — OUTDATED を使うことで「古くなった」と文脈がわかる
+20. **ラウンドサマリーコメントを PR に投稿** (`kind=round-summary`):
+    - 内容は後述「ラウンドサマリーコメント」テンプレート
+    - このラウンドで検出した指摘の概要・重大度別件数・修正 or 見送りの判断内訳を簡潔に記載
+21. **次ラウンド判定**:
+    - 終了判定でラウンド終了となった場合 → フェーズ 2（post-review）へ進む
+    - 継続の場合 → `round += 1` してラウンド開始処理へ戻る
 
 ### フェーズ 2: post-review（全レビュー終了後）
 
@@ -131,7 +154,13 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
    - 自動修正 → `git add` → `git commit`（push しない）
 4. 見送りになった minor 全件について PR にコメント投稿（見送りコメント）
 5. critical/major の残件について PR に行コメント投稿（残件コメント）
-6. PR 全体コメントとして絵文字つき総評を投稿
+6. PR 全体コメントとして絵文字つき総評を投稿（`kind=summary`）
+   - 終了ステータスに応じて ✅（critical/major クリア正常終了）/ ⚠️（最大ループ到達で強制停止）を表示
+   - **強制停止の場合、「レビューは未完了です。人間レビュワーによる引き取りをお願いします」** を本文に明記し、`未解決な指摘` を列挙する
+7. **LGTM 判定と投稿** (`kind=lgtm`):
+   - 条件: `critical + major == 0` **かつ** 最大ループに到達していないこと
+   - 条件を満たす場合のみ、別コメントとして LGTM を投稿（最大ループ到達時は投稿しない）
+   - 条件を満たさない場合は「現時点では LGTM は出せない」と総評にのみ記録し、LGTM コメントは投稿しない
 
 ## コメント仕様
 
@@ -230,6 +259,69 @@ JSON
 指摘は PR 全体コメント（`gh pr comment <url> --body "..."`）で投稿する。
 マーカー・重大度絵文字・Round 表記は同じ体裁。
 
+### ラウンドサマリーコメント（`kind=round-summary`）
+
+各ラウンド終了時に PR 全体コメントとして投稿し、「どんな指摘が検出され、
+何を修正し、何を pending に回したか」を記録する。次ラウンド開始時に
+`minimizeComment(classifier: OUTDATED)` で非表示化するが、削除はしないため
+トグルで展開すれば内容は参照可能。
+
+投稿コマンド: `gh pr comment <url> --body "..."`
+
+本文テンプレート:
+
+```
+<!-- review-pr-loop:round=N;kind=round-summary;id=<uuid>;session=<SESSION_TS> -->
+## 🔁 Round N/5 レビュー結果サマリー
+
+**セッション**: `<SESSION_TS>` / **PR**: #<PR_NUMBER>
+**詳細ログ**: `docs/review-result/code-review-pr<PR_NUMBER>-<SESSION_TS>-roundN.md`（ローカル）
+
+### 🔴 critical（X 件）
+- <要約 1 行>
+- ...
+
+### 🟠 major（Y 件）
+- <要約 1 行>
+- ...
+
+### 🟡 minor（Z 件・pending バッファ送り）
+- <要約 1 行>
+- ...
+
+### 🛠️ このラウンドでの対応
+- 自動修正: N 件（commit SHA: `<abbr sha>`）
+- 見送り: M 件（別コメントで理由記録）
+
+### 次アクション
+- 継続: Round N+1 を開始 / または
+- 終了: critical/major = 0 により post-review フェーズへ / または
+- ⚠️ 強制停止: 最大ループ到達により人間にハンドオフ
+```
+
+### LGTM コメント（`kind=lgtm`）
+
+全ラウンド終了後、以下の条件をすべて満たす場合のみ投稿する最終コメント。
+条件: `critical + major == 0` **かつ** 最大ループに到達していない。
+
+投稿コマンド: `gh pr comment <url> --body "..."`
+
+本文テンプレート:
+
+```
+<!-- review-pr-loop:round=N;kind=lgtm;id=<uuid>;session=<SESSION_TS> -->
+# ✅ LGTM
+
+本 PR は review-pr-loop の品質基準（critical/major = 0）をクリアしました。
+マージ可能な状態です。
+
+- **セッション**: `<SESSION_TS>`
+- **実ラウンド数**: N / 5
+- **関連コメント**: 総評（kind=summary）に全体サマリー記載
+
+> 🙋 最終的なマージ判断は人間レビュワーでお願いします。
+```
+
 ### 総評コメント（`kind=summary`）
 
 PR 全体コメントとして `gh pr comment <url> --body "..."` で投稿:
@@ -268,6 +360,69 @@ PR 全体コメントとして `gh pr comment <url> --body "..."` で投稿:
 
 > 🙋 このコメントは自動生成です。人間のレビュー・マージ判断は引き続きお願いします。
 ```
+
+## レビュー結果テンポラリファイルの構成
+
+各ラウンド終了時に以下のパスへマークダウンで保存する（`.gitignore` 対象）:
+
+```
+docs/review-result/code-review-pr${PR_NUMBER}-${SESSION_TS}-round${round}.md
+```
+
+ファイル名の要素:
+
+- `${PR_NUMBER}`: 対象 PR 番号（例: `58`）
+- `${SESSION_TS}`: スキル起動時に取得したタイムスタンプ `YYYYMMDD-HHMMSS`（例: `20260417-143522`）。同一セッションの全ラウンドで共通
+- `${round}`: ラウンド番号（`1` 〜 `max_loop`）
+
+同一 PR に対して異なる時刻に再起動した場合、`${SESSION_TS}` で一意化される。
+
+内容テンプレート:
+
+```markdown
+# Round N レビュー結果（PR #<PR_NUMBER>）
+
+- **セッション**: `<SESSION_TS>`
+- **実行日時**: <開始日時>
+- **対象 PR**: https://github.com/chieeeeno/grove/pull/<PR_NUMBER>
+- **ベース commit**: `<base SHA>` / **HEAD commit**: `<HEAD SHA>`
+
+## 検出された指摘
+
+### 🔴 critical（X 件）
+#### 1. <タイトル>
+- **対象**: `path/to/file.ts:42-48`
+- **指摘内容**: <詳細>
+- **根拠**: <review-checklist のどの観点か / ADR 番号等>
+- **判断**: 自動修正 / 見送り（理由: <...>）
+- **修正 commit**: `<abbr sha>`（自動修正時のみ）
+
+#### 2. ...
+
+### 🟠 major（Y 件）
+（同上の形式）
+
+### 🟡 minor（Z 件・pending バッファ送り）
+（同上の形式、ただし判断欄は post-review で確定）
+
+## 前ラウンド見送りの再評価結果
+- <id>: 引き続き見送り妥当 / 今ラウンドで対処すべき（→ critical/major に格上げ）
+
+## このラウンドでの対応
+- 自動修正: N 件
+- 見送り（critical/major）: M 件
+- pending（minor）: Z 件
+
+## 関連コミット
+- `<sha>`: <message>
+- ...
+
+## メモ（次ラウンドの着目点 / 気づき）
+- ...
+```
+
+このテンポラリファイルは **ローカル参照専用**。人間や他のセッションが後から
+見る必要がある情報は、GitHub のラウンドサマリーコメントに要約を残すこと。
 
 ## 絵文字ガイド（総評コメント用）
 
@@ -329,18 +484,43 @@ minor は pending バッファに蓄積するだけで各ラウンドでは処�
 ユーザー: 現在のブランチでレビューループを回して
 
 → スキル: 現ブランチ `feature/xxx` から PR #123 を検出
+         SESSION_TS=20260417-143522 を取得
 → Round 1: critical 1, major 3 を検出（minor 4 件は pending バッファへ）
            critical 1 + major 3 を自動修正、commit
+           docs/review-result/code-review-pr123-20260417-143522-round1.md を保存
+           ラウンドサマリーコメント（round-summary）を PR に投稿
 → Round 2: critical 0, major 1 を検出（minor 2 件を pending バッファへ追加）
+           Round 1 の round-summary コメントを minimize（OUTDATED）
            major 1 を自動修正、commit
+           docs/review-result/code-review-pr123-20260417-143522-round2.md を保存
+           ラウンドサマリーコメントを投稿
 → Round 3: critical 0, major 0 を検出（minor 1 件を pending バッファへ追加）
+           Round 2 の round-summary コメントを minimize
            → 終了条件クリア（post-review へ）
+           docs/review-result/code-review-pr123-20260417-143522-round3.md を保存
+           ラウンドサマリーコメントを投稿
 → post-review: 蓄積 minor 7 件（重複除去後）をユーザーに提示
               AskUserQuestion → 「個別選択」→ 4 件対応、3 件見送り
-              対応分を commit、見送り分をコメント投稿
-→ 総評コメントを PR に投稿、完了
+              対応分を commit、見送り分を PR に skipped コメント投稿
+→ 総評コメント（summary, ✅ 正常終了）を PR に投稿
+→ LGTM コメントを PR に投稿（critical/major=0 かつ最大ループ未到達のため）
+→ 完了
 ```
 
 各ラウンドの minor 件数は延べではなく「そのラウンドで新たに検出された minor」。
 post-review の集約時に重複除去する（同じファイル・同じ観点の指摘は 1 件に
 まとめる）。
+
+**最大ループ到達で強制停止するケース**:
+
+```
+→ Round 5: critical 0, major 2 を検出 → ループ上限到達
+           Round 4 の round-summary を minimize
+           自動修正 or 見送り仕分け → 修正 → commit
+           round5 の結果ファイル保存
+           ラウンドサマリー投稿（⚠️ 強制停止予告を含む）
+→ post-review: minor を一括確認（対応する場合は commit）
+→ 総評コメント（summary, ⚠️ 最大ループ到達で強制停止、レビュー未完了）を投稿
+→ LGTM は投稿しない（強制停止のため）
+→ 「人間レビュワーによる引き取りをお願いします」で完了
+```
