@@ -443,7 +443,8 @@ docs/review-result/code-review-pr${PR_NUMBER}-${SESSION_TS}-round${round}.md
 - **指摘内容**: <詳細>
 - **根拠**: <review-checklist の観点名 / ADR 番号 / CLAUDE.md の該当節 を参照で明記>
   - 例: `review-checklist.md「CLAUDE.md Doc コメントルール」/ CLAUDE.md 違反（@returns 未記載）`
-  - 例: `review-checklist.md「Rust panic」/ ADR-0012 違反（preflight でなく事後エラー）`
+  - 例: `review-checklist.md「Rust panic」/ unwrap() で Result を展開しており panic 経路あり`
+  - 例: `ADR-0012「Preflight UX 原則」違反（事後エラーダイアログになっている）`
 - **判断**: 自動修正 / 見送り（理由: <...>）
 - **修正 commit**: `<abbr sha>`（自動修正時のみ）
 
