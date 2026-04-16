@@ -3,7 +3,7 @@
 `review-pr-loop` スキルが `/simplify` の上乗せとしてチェックする Grove 固有の観点を列挙する。
 重大度分類（critical / major / minor）の判定基準は各項目末尾に記載。
 
-- **critical**: アプリがクラッシュする / データが壊れる / セキュリティ脆弱性
+- **critical**: アプリがクラッシュする / データや状態整合性が壊れる（store 直接 mutate・無限ループ等含む）/ セキュリティ脆弱性
 - **major**: 明確な品質低下 / CLAUDE.md ルール違反 / 既存 ADR との矛盾
 - **minor**: 改善提案 / スタイル / 可読性向上
 
@@ -188,9 +188,19 @@
 
 - [ ] `src-tauri/tauri.conf.json` を変更した場合、`bundle.macOS.signingIdentity` の ad-hoc 設定を意図せず破壊していないか（CLAUDE.md メモ参照）
   - 重大度: **major**
-- [ ] `Cargo.toml` / `package.json` で依存追加時、ライセンスが Grove の配布ライセンスと矛盾しないか
+- [ ] `Cargo.toml` / `package.json` で依存追加時、ライセンスが Grove の配布ライセンス（Apache-2.0）と矛盾しないか
   - 重大度: **major**
 - [ ] `tailwind.config.ts` を新設していないか（Tailwind v4 は CSS-first 設定）
+  - 重大度: **major**
+- [ ] `tsconfig.json` / `tsconfig.node.json` で `strict` / `noUncheckedIndexedAccess` 等の型厳格化フラグを意図せず緩めていないか
+  - 重大度: **major**
+- [ ] `vite.config.ts` でビルド出力構成（`build.outDir` 等）を意図せず変更していないか（Tauri 側の参照先とずれる）
+  - 重大度: **major**
+- [ ] `lefthook.yml` で pre-commit フック（oxlint / prettier / clippy / vitest）を意図せず無効化していないか
+  - 重大度: **major**
+- [ ] `.github/workflows/*.yml` で CI ジョブを意図せず削除・スキップしていないか
+  - 重大度: **major**
+- [ ] `CLAUDE.md` / `docs/adr/` を変更した場合、既存実装との整合性を再チェックしたか（ルール変更時は影響範囲を洗う）
   - 重大度: **major**
 
 ## 判断の一貫性
