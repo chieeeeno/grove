@@ -5,7 +5,7 @@ use std::path::Path;
 /// `list_worktrees` の戻り値 1 件分。
 ///
 /// フロントエンド `WorktreeInfo` 型（src/types/index.ts）と JSON で対応する。
-/// `ahead`/`behind`/`agentStatus` は M0 では返さない（ADR-0010 / Phase 2 で追加予定）。
+/// `agentStatus` は M0 では返さない（Phase 2 で追加予定）。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorktreeInfo {
     /// worktree の絶対パス（末尾スラッシュは除去済み）。
@@ -33,6 +33,13 @@ pub struct WorktreeInfo {
     /// メインブランチが見つからない場合や detached HEAD の場合も `Idle`。
     #[serde(rename = "branchStatus")]
     pub branch_status: BranchStatus,
+    /// リモート追跡ブランチ（upstream）に対して、ローカルが先行しているコミット数。
+    /// upstream 未設定 / detached HEAD / 計算失敗の場合は `None`。
+    /// `u32` の上限を超える場合は `u32::MAX` に飽和する（通常あり得ない）。
+    pub ahead: Option<u32>,
+    /// リモート追跡ブランチ（upstream）に対して、ローカルが遅れているコミット数。
+    /// upstream 未設定 / detached HEAD / 計算失敗の場合は `None`。
+    pub behind: Option<u32>,
 }
 
 /// メインブランチとの関係を示すブランチステータス。
@@ -112,6 +119,37 @@ fn find_main_branch_head(repo: &Repository) -> Option<Oid> {
     })
 }
 
+/// `usize` を `u32` に飽和変換する（`u32::MAX` を超える値は `u32::MAX` にクランプ）。
+fn saturating_u32(value: usize) -> u32 {
+    u32::try_from(value).unwrap_or(u32::MAX)
+}
+
+/// ローカルブランチの upstream（リモート追跡ブランチ）との ahead/behind を計算する。
+///
+/// 計算自体は `refs/remotes/*` に対して行うため **fetch は呼ばない**。
+/// 最新のリモート状態と比較したい場合、呼び出し側で `fetch_repository` を先に実行すること。
+///
+/// # Arguments
+/// * `repo` - 対象 worktree のリポジトリ
+/// * `branch_name` - ローカルブランチ名（`"HEAD"` は detached として扱う）
+/// * `head_oid` - 計算基準となる HEAD コミット OID
+///
+/// # Returns
+/// * `Some((ahead, behind))` - upstream が設定されていて計算に成功した場合
+/// * `None` - detached HEAD、upstream 未設定、または計算失敗時
+fn compute_ahead_behind(repo: &Repository, branch_name: &str, head_oid: Oid) -> Option<(u32, u32)> {
+    if branch_name == "HEAD" {
+        return None;
+    }
+    let branch = repo
+        .find_branch(branch_name, git2::BranchType::Local)
+        .ok()?;
+    let upstream = branch.upstream().ok()?;
+    let upstream_oid = upstream.get().peel_to_commit().ok()?.id();
+    let (ahead, behind) = repo.graph_ahead_behind(head_oid, upstream_oid).ok()?;
+    Some((saturating_u32(ahead), saturating_u32(behind)))
+}
+
 /// メインブランチとの関係からブランチステータスを判定する。
 ///
 /// - 同一コミット → `Idle`（分岐直後、独自コミットなし）
@@ -183,6 +221,9 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
 
     let main_branch = get_branch_name(&main_repo);
     let (main_head, main_msg, main_time) = get_last_commit(&main_repo);
+    // ahead/behind 計算は並列スレッド側で行うため、OID は文字列から再パースする。
+    // main_head が空（コミットなし）のとき Oid::from_str は失敗するので None になる。
+    let main_head_oid = Oid::from_str(&main_head).ok();
 
     // サブ worktree のパス一覧を先に収集する
     // （Worktree ハンドルはスレッドをまたげないため、パスにしてから並列化する）
@@ -208,17 +249,22 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
     // main もパスから Repository::open し直して並列実行する。
     // open のコストは数μs で、status walk（数十〜数百ms）に比べて無視できる。
     let main_path_clone = main_path.clone();
+    let main_branch_for_thread = main_branch.clone();
     drop(main_repo);
 
     // main + サブ全 worktree の status 走査を同一スコープで並列実行する。
     // main repo が最大のことが多いので、直列で先に走らせると全体の律速になっていた。
     // libgit2 は別 Repository インスタンスなら別スレッドから使えるので安全。
     let result: Vec<WorktreeInfo> = std::thread::scope(|scope| {
-        // main worktree の count_modified_files を並列スレッドで実行
+        // main worktree の count_modified_files + ahead/behind を並列スレッドで実行
         let main_handle = scope.spawn(move || {
-            Repository::open(&main_path_clone)
-                .map(|repo| count_modified_files(&repo))
-                .unwrap_or(0)
+            let Ok(repo) = Repository::open(&main_path_clone) else {
+                return (0u32, None);
+            };
+            let modified = count_modified_files(&repo);
+            let ab = main_head_oid
+                .and_then(|oid| compute_ahead_behind(&repo, &main_branch_for_thread, oid));
+            (modified, ab)
         });
 
         // サブ worktree も並列で実行
@@ -231,31 +277,43 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
                     let wt_repo = Repository::open(&wt_path).ok()?;
                     let (hash, msg, time) = get_last_commit(&wt_repo);
                     let modified = count_modified_files(&wt_repo);
+                    let branch_name = get_branch_name(&wt_repo);
+                    let head_commit_id = wt_repo
+                        .head()
+                        .ok()
+                        .and_then(|h| h.peel_to_commit().ok())
+                        .map(|c| c.id());
                     let branch_status = main_branch_head
                         .and_then(|main_oid| {
-                            wt_repo
-                                .head()
-                                .ok()
-                                .and_then(|h| h.peel_to_commit().ok())
-                                .map(|c| determine_branch_status(&wt_repo, main_oid, c.id()))
+                            head_commit_id
+                                .map(|oid| determine_branch_status(&wt_repo, main_oid, oid))
                         })
                         .unwrap_or(BranchStatus::Idle);
+                    let (ahead, behind) = head_commit_id
+                        .and_then(|oid| compute_ahead_behind(&wt_repo, &branch_name, oid))
+                        .map(|(a, b)| (Some(a), Some(b)))
+                        .unwrap_or((None, None));
                     Some(WorktreeInfo {
                         path: wt_path,
-                        branch: get_branch_name(&wt_repo),
+                        branch: branch_name,
                         is_main: false,
                         head: hash,
                         last_commit_message: msg,
                         last_commit_time: time,
                         modified_count: modified,
                         branch_status,
+                        ahead,
+                        behind,
                     })
                 })
             })
             .collect();
 
         // main の結果を先頭に配置
-        let main_modified = main_handle.join().unwrap_or(0);
+        let (main_modified, main_ab) = main_handle.join().unwrap_or((0, None));
+        let (main_ahead, main_behind) = main_ab
+            .map(|(a, b)| (Some(a), Some(b)))
+            .unwrap_or((None, None));
         let mut all = vec![WorktreeInfo {
             path: main_path,
             branch: main_branch,
@@ -265,6 +323,8 @@ fn list_worktrees_inner(repository_path: &str) -> Result<Vec<WorktreeInfo>, Stri
             last_commit_time: main_time,
             modified_count: main_modified,
             branch_status: BranchStatus::Idle,
+            ahead: main_ahead,
+            behind: main_behind,
         }];
 
         // サブの結果を追加
@@ -687,6 +747,167 @@ mod tests {
 
         assert_eq!(list_worktrees_inner(&main_path).unwrap().len(), 1);
         assert!(!Path::new(&wt_path).exists());
+    }
+
+    /// テスト用: 指定 OID を `refs/remotes/origin/<branch>` に作成し、
+    /// ローカルブランチの upstream として設定する。
+    ///
+    /// 実際のリモート通信は行わず、ローカル refs のみを操作する。
+    /// `set_upstream` は refspec から remote を逆引きするため、`origin` remote の
+    /// ダミー登録が必要（URL は参照されない）。
+    fn set_upstream(repo: &Repository, local_branch: &str, upstream_oid: Oid) {
+        if repo.find_remote("origin").is_err() {
+            repo.remote("origin", "https://example.com/dummy.git")
+                .unwrap();
+        }
+        let remote_ref = format!("refs/remotes/origin/{}", local_branch);
+        repo.reference(&remote_ref, upstream_oid, true, "test upstream")
+            .unwrap();
+        let mut branch = repo
+            .find_branch(local_branch, git2::BranchType::Local)
+            .unwrap();
+        branch
+            .set_upstream(Some(&format!("origin/{}", local_branch)))
+            .unwrap();
+    }
+
+    #[test]
+    fn test_compute_ahead_behind_returns_none_without_upstream() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let branch_name = get_branch_name(&repo);
+        let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+        assert_eq!(compute_ahead_behind(&repo, &branch_name, head_oid), None);
+    }
+
+    #[test]
+    fn test_compute_ahead_behind_detached_head_returns_none() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+        assert_eq!(compute_ahead_behind(&repo, "HEAD", head_oid), None);
+    }
+
+    #[test]
+    fn test_compute_ahead_behind_returns_zero_when_synced() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let branch_name = get_branch_name(&repo);
+        let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+        set_upstream(&repo, &branch_name, head_oid);
+        assert_eq!(
+            compute_ahead_behind(&repo, &branch_name, head_oid),
+            Some((0, 0))
+        );
+    }
+
+    #[test]
+    fn test_compute_ahead_behind_counts_ahead_commits() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let branch_name = get_branch_name(&repo);
+        let upstream_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+        set_upstream(&repo, &branch_name, upstream_oid);
+
+        // ローカル側に 2 コミット追加（upstream は動かさない）
+        add_empty_commit(&repo, "HEAD", "local 1");
+        let head_oid = add_empty_commit(&repo, "HEAD", "local 2");
+
+        assert_eq!(
+            compute_ahead_behind(&repo, &branch_name, head_oid),
+            Some((2, 0))
+        );
+    }
+
+    #[test]
+    fn test_compute_ahead_behind_counts_behind_commits() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let branch_name = get_branch_name(&repo);
+        let base_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // ローカルに 2 コミット追加 → これを upstream として使う
+        add_empty_commit(&repo, "HEAD", "upstream 1");
+        let upstream_oid = add_empty_commit(&repo, "HEAD", "upstream 2");
+
+        // ローカル HEAD を base に巻き戻して upstream を設定
+        repo.reference(
+            &format!("refs/heads/{}", branch_name),
+            base_oid,
+            true,
+            "rewind for test",
+        )
+        .unwrap();
+        set_upstream(&repo, &branch_name, upstream_oid);
+
+        assert_eq!(
+            compute_ahead_behind(&repo, &branch_name, base_oid),
+            Some((0, 2))
+        );
+    }
+
+    #[test]
+    fn test_compute_ahead_behind_counts_both_directions() {
+        let (dir, repo) = create_test_repo();
+        let _ = dir;
+        let branch_name = get_branch_name(&repo);
+        let base_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        // ローカルブランチを動かさず、base を親とする独立した upstream コミットを作る
+        let sig = Signature::now("Test", "test@example.com").unwrap();
+        let tree_id = {
+            let mut index = repo.index().unwrap();
+            index.write_tree().unwrap()
+        };
+        let tree = repo.find_tree(tree_id).unwrap();
+        let base_commit = repo.find_commit(base_oid).unwrap();
+        let upstream_oid = repo
+            .commit(None, &sig, &sig, "upstream only", &tree, &[&base_commit])
+            .unwrap();
+
+        set_upstream(&repo, &branch_name, upstream_oid);
+
+        // ローカル側に 1 コミット追加 → (ahead=1, behind=1) を期待
+        let head_oid = add_empty_commit(&repo, "HEAD", "local only");
+
+        assert_eq!(
+            compute_ahead_behind(&repo, &branch_name, head_oid),
+            Some((1, 1))
+        );
+    }
+
+    #[test]
+    fn test_saturating_u32_clamps_large_values() {
+        assert_eq!(saturating_u32(0), 0);
+        assert_eq!(saturating_u32(42), 42);
+        assert_eq!(saturating_u32(u32::MAX as usize), u32::MAX);
+        // 64bit 環境でのみ u32::MAX を超えるケースをテスト
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(saturating_u32(u32::MAX as usize + 1), u32::MAX);
+    }
+
+    #[test]
+    fn test_list_worktrees_includes_ahead_behind_when_upstream_set() {
+        let (dir, repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+        let main_branch_name = get_branch_name(&repo);
+        let head_oid = repo.head().unwrap().peel_to_commit().unwrap().id();
+
+        set_upstream(&repo, &main_branch_name, head_oid);
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        assert_eq!(result[0].ahead, Some(0));
+        assert_eq!(result[0].behind, Some(0));
+    }
+
+    #[test]
+    fn test_list_worktrees_ahead_behind_none_without_upstream() {
+        let (dir, _repo) = create_test_repo();
+        let main_path = dir.path().to_str().unwrap().to_string();
+
+        let result = list_worktrees_inner(&main_path).unwrap();
+        assert_eq!(result[0].ahead, None);
+        assert_eq!(result[0].behind, None);
     }
 
     #[test]

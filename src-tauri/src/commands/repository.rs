@@ -1,7 +1,16 @@
 use super::STORE_PATH;
+use git2::{Cred, FetchOptions, RemoteCallbacks};
 use serde::{Deserialize, Serialize};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::StoreExt;
+
+/// `fetch_repository` 全体に対するタイムアウト。
+///
+/// libssh2 レイヤでハンドシェイクが blocking するケース（SSH Agent に鍵がない、
+/// リモート不応答など）への保険。credentials callback からの Err が libgit2 に
+/// 素直に伝播しないケースがあるため、timeout で強制打ち切りする。
+const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
 
 const CONFIG_KEY: &str = "app_config";
 
@@ -87,6 +96,24 @@ pub struct RepositoryInfo {
     pub path: String,
 }
 
+/// `fetch_repository` コマンドの戻り値。
+///
+/// リモートごとに fetch を試み、1 つでも成功すれば `Ok(FetchOutcome)` を返す。
+/// 全 remote が失敗した場合のみエラーとして扱う（フロント側のエラーバナー表示用）。
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FetchOutcome {
+    /// fetch 完了時刻（Unix epoch 秒）。呼び出し側は「Last fetched: X 分前」表示に使う。
+    #[serde(rename = "fetchedAt")]
+    pub fetched_at: i64,
+    /// リポジトリに設定されている remote の総数（fetch 対象の母数）。`0` の場合は
+    /// リモート未設定（`failures` も空、`Err` ではなく `Ok` で返す）。
+    #[serde(rename = "remoteCount")]
+    pub remote_count: u32,
+    /// 失敗した remote の情報。書式は `"<remote-name>: <理由>"`。
+    /// 1 件以上の成功があれば `Ok` として返し、部分失敗はこのフィールドで通知する。
+    pub failures: Vec<String>,
+}
+
 // ===== コマンド =====
 
 /// 指定パスが開ける git リポジトリか検証し、表示用のメタ情報を返す。
@@ -123,6 +150,132 @@ pub fn validate_repository(path: String) -> Result<RepositoryInfo, String> {
         id: path.clone(),
         name,
         path,
+    })
+}
+
+/// 単一リモートに対して fetch を実行する。
+///
+/// 認証は libgit2 の `RemoteCallbacks::credentials` で以下の通り設定する。
+/// - `SSH_KEY`: `ssh_key_from_agent` に委譲。失敗時は即 Err（fall-through しない）
+/// - `USER_PASS_PLAINTEXT` / `DEFAULT`: `credential_helper`（macOS Keychain 等）
+/// - `USERNAME`: `Cred::username`（サーバが username を要求する初期ネゴシエーション用）
+///
+/// 該当 credential type が要求されたら 1 回だけ試し、失敗したら即 Err を返す。
+/// fall-through 形式にすると libssh2 レイヤに進んでハンドシェイクで blocking する
+/// ケースがあるため、早期失敗を libgit2 に伝えるのが狙い。対話的プロンプトは出さない。
+fn fetch_one_remote(repo: &git2::Repository, remote_name: &str) -> Result<(), git2::Error> {
+    let mut remote = repo.find_remote(remote_name)?;
+
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(|url, username_from_url, allowed_types| {
+        if allowed_types.contains(git2::CredentialType::SSH_KEY) {
+            let user = username_from_url.unwrap_or("git");
+            // エラー時はフロントのトーストでそのまま表示できる具体的メッセージに差し替える
+            return Cred::ssh_key_from_agent(user).map_err(|_| {
+                git2::Error::from_str(
+                    "SSH Agent に鍵が登録されていません（ssh-add で登録してください）",
+                )
+            });
+        }
+        if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
+            || allowed_types.contains(git2::CredentialType::DEFAULT)
+        {
+            let config = git2::Config::open_default()?;
+            return Cred::credential_helper(&config, url, username_from_url);
+        }
+        if allowed_types.contains(git2::CredentialType::USERNAME) {
+            let user = username_from_url.unwrap_or("git");
+            return Cred::username(user);
+        }
+        Err(git2::Error::from_str(
+            "利用可能な認証情報がありません（SSH Agent / Keychain を確認してください）",
+        ))
+    });
+
+    let mut fetch_opts = FetchOptions::new();
+    fetch_opts.remote_callbacks(callbacks);
+
+    // refspec 空配列 → remote の既定 refspec（fetch = ...）を使う
+    remote.fetch::<&str>(&[], Some(&mut fetch_opts), None)?;
+    Ok(())
+}
+
+/// Unix epoch 秒を取得する（時計異常時のフォールバックは `0`）。
+fn now_unix_seconds() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+/// リポジトリに設定された全リモートに対して fetch を実行する。
+///
+/// 長時間ブロックする可能性があるため `spawn_blocking` で別スレッドへ逃がし、
+/// さらに [`FETCH_TIMEOUT`] でラップして hang を防ぐ。認証は [`fetch_one_remote`]
+/// のフォールバック順に従い、対話的プロンプトは出さない。
+///
+/// # Arguments
+/// * `repository_path` - 対象リポジトリの絶対パス
+///
+/// # Returns
+/// * `Ok(FetchOutcome)` - 1 つでも成功、または remote 0 件の場合。部分失敗は
+///   `FetchOutcome::failures` で通知する
+/// * `Err(String)` - リポジトリを開けない、全 remote が失敗、またはタイムアウトの場合
+///
+/// # Errors
+/// - `repository_path` を `Repository::open` できない
+/// - `remotes()` 呼び出しの失敗
+/// - 全 remote の fetch が失敗（日本語のエラーメッセージで詳細を返す）
+/// - [`FETCH_TIMEOUT`]（30 秒）を超過した場合: "fetch がタイムアウトしました ..."
+///
+/// # 副作用
+/// 各 remote の `refs/remotes/<remote>/*` を更新する。ネットワーク通信を伴う。
+/// タイムアウト発動時、`spawn_blocking` 内の libgit2 処理は中断できないため
+/// バックグラウンドスレッドとして応答が返るまで残る（実害なしと判断）。
+#[tauri::command]
+pub async fn fetch_repository(repository_path: String) -> Result<FetchOutcome, String> {
+    let handle =
+        tauri::async_runtime::spawn_blocking(move || fetch_repository_inner(&repository_path));
+    match tokio::time::timeout(FETCH_TIMEOUT, handle).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(join_err)) => Err(format!("タスク実行に失敗しました: {}", join_err)),
+        Err(_) => Err(format!(
+            "fetch がタイムアウトしました ({} 秒)。ネットワークまたは認証設定を確認してください",
+            FETCH_TIMEOUT.as_secs()
+        )),
+    }
+}
+
+fn fetch_repository_inner(repository_path: &str) -> Result<FetchOutcome, String> {
+    let repo = git2::Repository::open(repository_path)
+        .map_err(|e| format!("リポジトリを開けませんでした: {}", e))?;
+
+    let remotes = repo
+        .remotes()
+        .map_err(|e| format!("リモート一覧の取得に失敗しました: {}", e))?;
+
+    let remote_names: Vec<String> = remotes.iter().flatten().map(|s| s.to_string()).collect();
+    let remote_count = remote_names.len() as u32;
+
+    let mut failures: Vec<String> = Vec::new();
+    for name in &remote_names {
+        if let Err(e) = fetch_one_remote(&repo, name) {
+            failures.push(format!("{}: {}", name, e));
+        }
+    }
+
+    let all_failed = remote_count > 0 && failures.len() as u32 == remote_count;
+    if all_failed {
+        return Err(format!(
+            "すべての fetch に失敗しました: {}",
+            failures.join(", ")
+        ));
+    }
+
+    Ok(FetchOutcome {
+        fetched_at: now_unix_seconds(),
+        remote_count,
+        failures,
     })
 }
 
@@ -195,6 +348,7 @@ pub fn save_config<R: Runtime>(app: AppHandle<R>, config: AppConfig) -> Result<(
 mod tests {
     use super::*;
     use tauri::test::{mock_builder, mock_context, noop_assets};
+    use tempfile::TempDir;
 
     /// MockRuntime で tauri-plugin-store 込みのテスト用アプリを作る
     ///
@@ -316,6 +470,45 @@ mod tests {
             config.terminal.is_empty(),
             "terminal は空文字にフォールバックすべき"
         );
+    }
+
+    #[test]
+    fn test_fetch_repository_noop_when_no_remotes() {
+        let dir = TempDir::new().unwrap();
+        git2::Repository::init(dir.path()).unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        let outcome = fetch_repository_inner(&path).expect("remote 0 件は Ok を返すべき");
+        assert_eq!(outcome.remote_count, 0);
+        assert!(outcome.failures.is_empty());
+        assert!(outcome.fetched_at > 0);
+    }
+
+    #[test]
+    fn test_fetch_repository_fails_for_invalid_remote_url() {
+        // 存在しないローカルパスを remote として設定したリポジトリで fetch すると、
+        // 唯一の remote が失敗 → 全失敗扱いで Err が返る
+        let dir = TempDir::new().unwrap();
+        let repo = git2::Repository::init(dir.path()).unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        repo.remote("origin", "/tmp/grove-nonexistent-repo-xyz-12345")
+            .unwrap();
+        drop(repo);
+
+        let err = fetch_repository_inner(&path).expect_err("全 remote 失敗時は Err のはず");
+        assert!(
+            err.contains("origin"),
+            "エラーメッセージに remote 名が含まれるべき: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_fetch_repository_returns_err_when_path_is_not_repo() {
+        let err = fetch_repository_inner("/tmp/grove-definitely-not-a-repo-xyz")
+            .expect_err("非リポジトリは Err を返すべき");
+        assert!(err.contains("リポジトリ"));
     }
 
     #[test]

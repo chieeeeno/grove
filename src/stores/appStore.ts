@@ -24,7 +24,9 @@ function worktreesEqual(a: WorktreeInfo[], b: WorktreeInfo[]): boolean {
       x.lastCommitTime !== y.lastCommitTime ||
       x.lastCommitMessage !== y.lastCommitMessage ||
       x.modifiedCount !== y.modifiedCount ||
-      x.branchStatus !== y.branchStatus
+      x.branchStatus !== y.branchStatus ||
+      x.ahead !== y.ahead ||
+      x.behind !== y.behind
     ) {
       return false;
     }
@@ -224,6 +226,41 @@ interface AppStore {
    * @param msg エラーメッセージ、またはクリア時は `null`
    */
   setRefreshError: (msg: string | null) => void;
+
+  // ===== fetch（ahead/behind 用の remote 取得）=====
+
+  /**
+   * リポジトリ ID ごとの最終 fetch 完了時刻（Unix epoch 秒）。
+   * `undefined` はまだ fetch されていない状態。UI ヘッダーの「Last fetched: X 分前」表示に使う。
+   */
+  lastFetchedAt: Record<string, number>;
+  /**
+   * 指定リポジトリの最終 fetch 時刻を記録する。
+   * @param repositoryId 対象のリポジトリ ID
+   * @param fetchedAt Unix epoch 秒
+   */
+  setLastFetchedAt: (repositoryId: string, fetchedAt: number) => void;
+
+  /**
+   * fetch 実行中フラグ（起動時・手動リフレッシュ時に一時的に true）。
+   * スピナー表示の制御に使う。5 秒ポーリングでは fetch しないので true にならない。
+   */
+  isFetching: boolean;
+  /** @param v fetch 中なら true */
+  setIsFetching: (v: boolean) => void;
+
+  /**
+   * 最新の fetch エラーメッセージ。
+   *
+   * 全 remote 失敗 or 部分失敗のサマリを保持する。連続する同一エラーで
+   * トーストが繰り返されないよう、直前値と比較してから通知する運用想定。
+   */
+  fetchError: string | null;
+  /**
+   * fetch エラー状態を設定する。
+   * @param msg エラーメッセージ、またはクリア時は `null`
+   */
+  setFetchError: (msg: string | null) => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -318,6 +355,15 @@ export const useAppStore = create<AppStore>((set) => ({
 
   refreshError: null,
   setRefreshError: (msg) => set((s) => (s.refreshError === msg ? s : { refreshError: msg })),
+
+  // fetch
+  lastFetchedAt: {},
+  setLastFetchedAt: (repositoryId, fetchedAt) =>
+    set((s) => ({ lastFetchedAt: { ...s.lastFetchedAt, [repositoryId]: fetchedAt } })),
+  isFetching: false,
+  setIsFetching: (v) => set((s) => (s.isFetching === v ? s : { isFetching: v })),
+  fetchError: null,
+  setFetchError: (msg) => set((s) => (s.fetchError === msg ? s : { fetchError: msg })),
 }));
 
 /**

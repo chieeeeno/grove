@@ -129,6 +129,44 @@ describe("WorktreeCard", () => {
     });
   });
 
+  describe("ahead/behind 表示", () => {
+    it("upstream 未設定（ahead/behind が null）なら ahead/behind 行を表示しない", () => {
+      render(
+        <WorktreeCard {...defaultProps} worktree={mockWorktree({ ahead: null, behind: null })} />
+      );
+      // tooltip 要素もないことで行自体が描画されていないことを確認
+      expect(screen.queryByTitle(/upstream から/)).toBeNull();
+    });
+
+    it("ahead=3, behind=2 のとき数字と矢印アイコンが表示される", () => {
+      render(
+        <WorktreeCard {...defaultProps} worktree={mockSubWorktree({ ahead: 3, behind: 2 })} />
+      );
+      const row = screen.getByTitle("upstream から 3 先行 / 2 遅れ");
+      expect(row).toBeInTheDocument();
+      expect(row).toHaveTextContent("3");
+      expect(row).toHaveTextContent("2");
+    });
+
+    it("(0, 0) は行を表示しつつ muted スタイルになる（同期済み）", () => {
+      render(
+        <WorktreeCard {...defaultProps} worktree={mockSubWorktree({ ahead: 0, behind: 0 })} />
+      );
+      const row = screen.getByTitle("upstream から 0 先行 / 0 遅れ");
+      expect(row).toBeInTheDocument();
+      expect(row.className).toContain("text-fg-muted");
+      expect(row.className).not.toContain("text-accent-blue");
+    });
+
+    it("divergent (ahead>0 or behind>0) は accent-blue で強調される", () => {
+      render(
+        <WorktreeCard {...defaultProps} worktree={mockSubWorktree({ ahead: 5, behind: 0 })} />
+      );
+      const row = screen.getByTitle("upstream から 5 先行 / 0 遅れ");
+      expect(row.className).toContain("text-accent-blue");
+    });
+  });
+
   describe("Remove ボタン", () => {
     it("main worktree では Remove ボタンが表示されない", () => {
       render(<WorktreeCard {...defaultProps} worktree={mockWorktree({ isMain: true })} />);

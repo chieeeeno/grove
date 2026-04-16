@@ -82,7 +82,7 @@ export interface RepositoryInfo {
 /**
  * `list_worktrees` の戻り値 1 件分。
  *
- * `ahead`/`behind`/`agentStatus` は M0 では返さない（ADR-0010 / Phase 2 で追加予定）。
+ * `agentStatus` は M0 では返さない（Phase 2 で追加予定）。
  */
 export interface WorktreeInfo {
   /** worktree の絶対パス（末尾スラッシュは除去済み） */
@@ -111,6 +111,35 @@ export interface WorktreeInfo {
    * メイン worktree 自身は常に `"idle"`。
    */
   branchStatus: "idle" | "active" | "merged";
+  /**
+   * リモート追跡ブランチ（upstream）に対して、ローカルが先行しているコミット数。
+   * upstream 未設定 / detached HEAD / 計算失敗の場合は `null`。
+   * Rust 側 `Option<u32>` の `None` は JSON の `null` にシリアライズされる。
+   */
+  ahead: number | null;
+  /**
+   * リモート追跡ブランチ（upstream）に対して、ローカルが遅れているコミット数。
+   * upstream 未設定 / detached HEAD / 計算失敗の場合は `null`。
+   */
+  behind: number | null;
+}
+
+/**
+ * `fetch_repository` コマンドの戻り値。
+ *
+ * 1 つでも成功すれば Ok として返り、部分失敗は `failures` に詰めて通知する。
+ * 全 remote が失敗した場合のみ例外が投げられる（呼び出し側で catch）。
+ */
+export interface FetchOutcome {
+  /** fetch 完了時刻（Unix epoch 秒）。「Last fetched: X 分前」表示に使う */
+  fetchedAt: number;
+  /** リポジトリに設定されている remote の総数（`0` は fetch 対象なし） */
+  remoteCount: number;
+  /**
+   * 失敗した remote の情報。書式は `"<remote-name>: <理由>"`。
+   * 空配列なら全成功、1 件以上あれば部分失敗。
+   */
+  failures: string[];
 }
 
 /**

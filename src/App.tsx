@@ -106,6 +106,8 @@ function App() {
   const codeAvailable = useAppStore((s) => s.codeAvailable);
   const terminalAvailable = useAppStore((s) => s.terminalAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
+  const isFetching = useAppStore((s) => s.isFetching);
+  const lastFetchedAt = useAppStore((s) => s.lastFetchedAt);
 
   // actions は参照安定なので個別取得でよい
   const addRepository = useAppStore((s) => s.addRepository);
@@ -501,6 +503,10 @@ function App() {
           selectedRepositoryName={selectedRepo?.name ?? null}
           selectedRepositoryPath={selectedRepo?.path ?? null}
           isRefreshing={isRefreshing}
+          isFetching={isFetching}
+          lastFetchedAt={
+            selectedRepositoryId !== null ? (lastFetchedAt[selectedRepositoryId] ?? null) : null
+          }
           onRefresh={refresh}
         >
           {currentWorktrees === undefined ? (
