@@ -557,11 +557,10 @@ minor は pending バッファに蓄積するだけで各ラウンドでは処�
            → 終了条件クリア（post-review へ）
            docs/review-result/code-review-pr123-20260417-143522-round3.md を保存
            ラウンドサマリーコメントを投稿
-→ post-review: 蓄積 minor 7 件（重複除去後）をユーザーに提示
-              AskUserQuestion → 「個別選択」→ 4 件対応、3 件見送り
-              対応分を commit、見送り分を PR に skipped コメント投稿
+→ post-review: 蓄積 minor 7 件（重複除去後）を集約
+              minor は個別 PR コメント化せず、LGTM コメント内に要約リストとして集約記載（minor-D / ADR-0014）
 → 総評コメント（summary, ✅ 正常終了）を PR に投稿
-→ LGTM コメントを PR に投稿（critical/major=0 かつ最大ループ未到達のため）
+→ LGTM コメントを PR に投稿（critical/major=0 かつ最大ループ未到達、本文に minor 7 件の見送りサマリーを含む）
 → 完了
 ```
 
@@ -577,8 +576,9 @@ post-review の集約時に重複除去する（同じファイル・同じ観�
            自動修正 or 見送り仕分け → 修正 → commit
            round5 の結果ファイル保存
            ラウンドサマリー投稿（⚠️ 強制停止予告を含む）
-→ post-review: minor を一括確認（対応する場合は commit）
-→ 総評コメント（summary, ⚠️ 最大ループ到達で強制停止、レビュー未完了）を投稿
+→ post-review: 蓄積 minor を集約（minor-D / ADR-0014 に従い個別コメント化せず）
+              minor 見送りサマリーは総評コメント本文に記載（LGTM は投稿しないため）
+→ 総評コメント（summary, ⚠️ 最大ループ到達で強制停止、レビュー未完了、minor 見送りサマリーを含む）を投稿
 → LGTM は投稿しない（強制停止のため）
 → 「人間レビュワーによる引き取りをお願いします」で完了
 ```
