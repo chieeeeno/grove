@@ -23,6 +23,8 @@ export const mockWorktree = (overrides: Partial<WorktreeInfo> = {}): WorktreeInf
   lastCommitTime: 0,
   modifiedCount: 0,
   branchStatus: "idle",
+  ahead: null,
+  behind: null,
   ...overrides,
 });
 

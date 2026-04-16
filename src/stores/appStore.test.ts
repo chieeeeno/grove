@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useAppStore, selectEffectiveTerminalId, selectEffectiveTerminalName } from "./appStore";
+import { mockWorktree } from "../test/fixtures";
 
 describe("appStore", () => {
   beforeEach(() => {
@@ -14,6 +15,9 @@ describe("appStore", () => {
       codeAvailable: false,
       isRefreshing: false,
       refreshError: null,
+      lastFetchedAt: {},
+      isFetching: false,
+      fetchError: null,
     });
   });
 
@@ -297,6 +301,82 @@ describe("appStore", () => {
         });
         expect(selectEffectiveTerminalName(useAppStore.getState())).toBe("Terminal");
       });
+    });
+  });
+
+  describe("worktreesEqual: ahead/behind 差分検出", () => {
+    it("ahead が変わった場合は新しい参照に入れ替わる", () => {
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ ahead: 0 })]);
+      const before = useAppStore.getState().worktrees["repo-1"];
+
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ ahead: 3 })]);
+      const after = useAppStore.getState().worktrees["repo-1"];
+
+      expect(after).not.toBe(before);
+      expect(after[0].ahead).toBe(3);
+    });
+
+    it("behind が変わった場合は新しい参照に入れ替わる", () => {
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ behind: 0 })]);
+      const before = useAppStore.getState().worktrees["repo-1"];
+
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ behind: 2 })]);
+      const after = useAppStore.getState().worktrees["repo-1"];
+
+      expect(after).not.toBe(before);
+      expect(after[0].behind).toBe(2);
+    });
+
+    it("ahead/behind が同値なら参照が保たれる（ポーリング no-op 最適化）", () => {
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ ahead: 1, behind: 1 })]);
+      const before = useAppStore.getState().worktrees["repo-1"];
+
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ ahead: 1, behind: 1 })]);
+      const after = useAppStore.getState().worktrees["repo-1"];
+
+      expect(after).toBe(before);
+    });
+
+    it("null と 0 は別値として扱われる（upstream 未設定 vs 同期済み）", () => {
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ ahead: null, behind: null })]);
+      const before = useAppStore.getState().worktrees["repo-1"];
+
+      useAppStore.getState().setWorktrees("repo-1", [mockWorktree({ ahead: 0, behind: 0 })]);
+      const after = useAppStore.getState().worktrees["repo-1"];
+
+      expect(after).not.toBe(before);
+      expect(after[0].ahead).toBe(0);
+    });
+  });
+
+  describe("fetch 状態管理（Issue #8）", () => {
+    it("setLastFetchedAt で repo ごとの fetch 時刻を保持する", () => {
+      useAppStore.getState().setLastFetchedAt("repo-1", 1000);
+      useAppStore.getState().setLastFetchedAt("repo-2", 2000);
+      expect(useAppStore.getState().lastFetchedAt["repo-1"]).toBe(1000);
+      expect(useAppStore.getState().lastFetchedAt["repo-2"]).toBe(2000);
+    });
+
+    it("setLastFetchedAt は既存エントリを上書きする", () => {
+      useAppStore.getState().setLastFetchedAt("repo-1", 1000);
+      useAppStore.getState().setLastFetchedAt("repo-1", 2000);
+      expect(useAppStore.getState().lastFetchedAt["repo-1"]).toBe(2000);
+    });
+
+    it("setIsFetching でフラグを切り替えできる", () => {
+      expect(useAppStore.getState().isFetching).toBe(false);
+      useAppStore.getState().setIsFetching(true);
+      expect(useAppStore.getState().isFetching).toBe(true);
+      useAppStore.getState().setIsFetching(false);
+      expect(useAppStore.getState().isFetching).toBe(false);
+    });
+
+    it("setFetchError でエラーメッセージをセット・クリアできる", () => {
+      expect(useAppStore.getState().fetchError).toBeNull();
+      useAppStore.getState().setFetchError("fetch failed");
+      expect(useAppStore.getState().fetchError).toBe("fetch failed");
+      useAppStore.getState().setFetchError(null);
+      expect(useAppStore.getState().fetchError).toBeNull();
     });
   });
 
