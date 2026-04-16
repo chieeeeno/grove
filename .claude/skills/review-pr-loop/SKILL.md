@@ -59,6 +59,7 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
    - `gh api repos/:owner/:repo/pulls/:n/comments`（行コメント）
    - 本文中のマーカー `<!-- review-pr-loop:round=N;kind=... -->` を含むコメントだけフィルタ
    - `kind` で分類: `skipped`（見送り理由） / `remaining`（残件） / `summary`（総評）
+   - 注: `gh api` の `:owner` / `:repo` は cwd の git リモート設定から自動解決される。明示指定したい場合は `gh api repos/chieeeeno/grove/...` のようにフルパスで書く
 3. `gh pr diff <url>` で最新差分を取得
 
 #### レビュー実行
@@ -126,7 +127,7 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
      - **個別選択**: 項目ごとに対応可否を問う（ラウンド内で再度 `AskUserQuestion`）
      - **全見送**: 全部見送りコメントとして残す
 3. 「対応する」と判断された minor があれば:
-   - ブランチガード（フェーズ 1-15 と同じ）
+   - ブランチガード: `git rev-parse --abbrev-ref HEAD` が `main` / `master` / `HEAD` の場合は commit せず停止（フェーズ 1 の修正フェーズと同条件）
    - 自動修正 → `git add` → `git commit`（push しない）
 4. 見送りになった minor 全件について PR にコメント投稿（見送りコメント）
 5. critical/major の残件について PR に行コメント投稿（残件コメント）
@@ -295,7 +296,7 @@ PR 全体コメントとして `gh pr comment <url> --body "..."` で投稿:
 4. **同一箇所の繰り返し書き換え検出**: 同一ファイル × 同一行範囲を 2 ループ連続で書き換えたら停止
 5. **見送り再評価のループ間追跡**: 2 ループ連続で「見送り妥当」判定なら 3 ループ目以降は再評価スキップ
 6. **コメント誤爆防止**: minimize 対象はマーカー付きスキル由来コメントのみ
-7. **lefthook との協調**: commit 時に pre-commit フックが自動で oxlint / prettier / clippy / vitest を走らせる（lefthook が PATH にある前提）
+7. **lefthook との協調**: lefthook が PATH にある場合、commit 時に pre-commit フックが自動で oxlint / prettier / clippy / vitest を走らせる。ない場合は commit はそのまま成功するため、push 前に `pnpm lint && pnpm test` を人間が実施すること（トラブルシューティング参照）
 
 ## トラブルシューティング
 
@@ -321,17 +322,25 @@ PR 全体コメントとして `gh pr comment <url> --body "..."` で投稿:
 
 ## 実行例
 
+minor は pending バッファに蓄積するだけで各ラウンドでは処理しない。各ラウンドの
+「件数」は critical/major のみで判定し、minor は post-review に回す前提で記述する。
+
 ```
 ユーザー: 現在のブランチでレビューループを回して
 
 → スキル: 現ブランチ `feature/xxx` から PR #123 を検出
-→ Round 1: /simplify + 独自観点で 8 件検出（critical 1, major 3, minor 4）
+→ Round 1: critical 1, major 3 を検出（minor 4 件は pending バッファへ）
            critical 1 + major 3 を自動修正、commit
-→ Round 2: 5 件検出（critical 0, major 1, minor 4）
+→ Round 2: critical 0, major 1 を検出（minor 2 件を pending バッファへ追加）
            major 1 を自動修正、commit
-→ Round 3: 4 件検出（critical 0, major 0, minor 4） → 終了条件クリア
-→ post-review: 蓄積 minor 4 件をユーザーに提示
-              AskUserQuestion → 「個別選択」→ 2 件対応、2 件見送り
+→ Round 3: critical 0, major 0 を検出（minor 1 件を pending バッファへ追加）
+           → 終了条件クリア（post-review へ）
+→ post-review: 蓄積 minor 7 件（重複除去後）をユーザーに提示
+              AskUserQuestion → 「個別選択」→ 4 件対応、3 件見送り
               対応分を commit、見送り分をコメント投稿
 → 総評コメントを PR に投稿、完了
 ```
+
+各ラウンドの minor 件数は延べではなく「そのラウンドで新たに検出された minor」。
+post-review の集約時に重複除去する（同じファイル・同じ観点の指摘は 1 件に
+まとめる）。
