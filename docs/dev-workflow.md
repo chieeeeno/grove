@@ -131,6 +131,61 @@
 
 ---
 
+## コードレビュー運用
+
+### 手動 `/simplify`（現状）
+
+- `/simplify` で差分に対して品質レビュー・自動修正を実行
+- 指摘 → 修正 → 再レビューは人間が意識してループを回す
+
+### 自動レビュースキル `review-pr-loop`（M1）
+
+PR URL を渡すだけで「レビュー → 自動修正 → 再レビュー」を自己ループで回す
+スキル。`/simplify` の内部呼び出し + Grove 独自観点（Rust デスクトップアプリ
+特有の panic / メモリリーク / リソース解放、CLAUDE.md テスト必須・Doc コメ
+ント必須、ADR 整合）を組み合わせる。
+
+#### 使い方
+
+```
+# 現在のブランチに紐づく PR を自動検出
+review-pr-loop を回して
+
+# 明示的に PR URL を指定
+review-pr-loop を https://github.com/chieeeeno/grove/pull/123 に対して回して
+```
+
+現ブランチに PR が無い場合はレビューを開始せず、`gh pr create` で PR を作成
+するよう案内して終了する。
+
+#### 挙動
+
+- 最大 5 ループで critical/major 指摘がゼロになるまで自動修正 → commit を繰り返す
+- `push` は行わない（人間が最終確認して push）
+- minor 指摘はループ中は処理せず、全レビュー終了後に一括でユーザー確認
+  （全対応 / 個別選択 / 全見送）
+- 見送った指摘は「見送り理由 + ラウンド番号」を PR コメントとして残し、
+  次ラウンドで見送り判断自体を再レビュー対象にする
+- 全コメントに `[Round N/5]` を明記
+- 対応済みコメントは GitHub の minimize で自動的に非表示化
+- 総評コメントは絵文字アイキャッチつきで PR 全体コメントとして投稿
+
+#### 制限事項
+
+- `gh` CLI が認証済みである必要がある（`gh auth status` で確認）
+- `lefthook` が PATH にあると commit 時に品質チェックが自動で走る
+- main / master ブランチでは commit しない（別ブランチで作業する前提）
+- ループ終了後の `push` は人間の明示的な操作に委ねる
+
+#### 参照
+
+- `.claude/skills/review-pr-loop/SKILL.md` — スキル本体
+- `.claude/skills/review-pr-loop/review-checklist.md` — 独自レビュー観点
+- `docs/design/review-pr-loop-flow.md` — フロー設計書
+- `docs/adr/0014-auto-review-skill.md` — 運用方針 ADR
+
+---
+
 ## 振り返り・気づき（随時追記）
 
 - 個人開発でも ADR を書くことで「設計者と実装者が同じ人間でも」判断のブレが減る
