@@ -142,7 +142,9 @@ ADR 整合）を自己ループで繰り返し、critical/major 指摘がゼロ�
 
 - `round` はラウンド番号（1..5）、post-review フェーズは終了時のラウンド番号を流用
 - `kind` は種別
-- `id` は UUID（重複投稿検出・再生成検出用）
+- `id` は UUID（重複投稿検出・再生成検出用）。生成は `uuidgen` コマンドで
+  1 コメントごとに新規発行する（macOS/Linux で標準搭載）。
+  `uuidgen | tr 'A-Z' 'a-z'` で小文字化して揃える
 
 ### 見送りコメント（`kind=skipped`）
 

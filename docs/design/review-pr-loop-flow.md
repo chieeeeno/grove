@@ -20,6 +20,7 @@
 | ループ番号可視化 | 全コメントに `[Round N/5]` を明記 |
 | 対応完了コメント | GitHub GraphQL `minimizeComment(RESOLVED)` で非表示化 |
 | 誤爆防止 | マーカー `<!-- review-pr-loop:round=N;kind=... -->` 付きコメントのみを操作対象にする |
+| uuid 生成 | `uuidgen` コマンドで 1 コメントごとに新規発行（macOS/Linux 標準搭載） |
 
 ## フローチャート（全体制御）
 
