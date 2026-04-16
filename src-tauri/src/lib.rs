@@ -33,6 +33,7 @@ pub fn run() {
             repository::validate_repository,
             repository::load_config,
             repository::save_config,
+            repository::fetch_repository,
             // Worktree
             worktree::list_worktrees,
             worktree::get_worktree_status,
