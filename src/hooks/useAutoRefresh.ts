@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAppStore } from "../stores/appStore";
-import { listWorktrees } from "../lib/tauri";
+import { fetchRepository, listWorktrees } from "../lib/tauri";
 import { toastError } from "../lib/toast";
 import type { RepositoryConfig } from "../types";
 
@@ -13,6 +13,11 @@ const MIN_SPIN_DURATION = 500; // 手動リフレッシュ時のスピナー最�
  * マウント時および `selectedRepositoryId` 変更時に即時 1 回 fetch し、以降は
  * `refreshInterval` ごとにポーリングする。`refresh()` はユーザーの手動リフレッシュ
  * 用（Cmd+R / リフレッシュボタン）でスピナー制御を伴う。
+ *
+ * fetch 戦略:
+ * - ポーリング: listWorktrees のみ（ahead/behind は refs/remotes から再計算）
+ * - 選択リポジトリ切替時: lastFetchedAt 未登録なら初回 fetch、登録済みなら skip
+ * - 手動リフレッシュ: 必ず fetch（force=true）
  *
  * ポーリングと手動 refresh の競合は `inFlightRef` でガード:
  * - 手動 refresh は silent と被っていても優先して走る
@@ -32,6 +37,9 @@ export function useAutoRefresh(): {
   const setWorktrees = useAppStore((s) => s.setWorktrees);
   const setIsRefreshing = useAppStore((s) => s.setIsRefreshing);
   const setRefreshError = useAppStore((s) => s.setRefreshError);
+  const setIsFetching = useAppStore((s) => s.setIsFetching);
+  const setLastFetchedAt = useAppStore((s) => s.setLastFetchedAt);
+  const setFetchError = useAppStore((s) => s.setFetchError);
   /** listWorktrees 実行中かどうか。手動 refresh とポーリングの同時実行を防ぐ。 */
   const inFlightRef = useRef(false);
 
@@ -61,7 +69,8 @@ export function useAutoRefresh(): {
   }, [setWorktrees, setRefreshError]);
 
   /**
-   * 内部リフレッシュ（スピナーなし、ポーリング・初回 fetch 用）。
+   * 内部リフレッシュ（スピナーなし、ポーリング用）。
+   * listWorktrees のみを呼び、fetch はしない。
    *
    * 既に実行中（inFlightRef = true）ならサイレントにスキップする。
    *
@@ -78,38 +87,107 @@ export function useAutoRefresh(): {
   }, [fetchAndStore]);
 
   /**
+   * listWorktrees → fetch →（成功時）再 listWorktrees の順で実行する。
+   *
+   * - **list を先に呼ぶ**: fetch が遅延 / hang しても画面は即出す。ahead/behind は
+   *   前回の refs/remotes から計算された値（または未 fetch なら `null`）
+   * - **fetch はベストエフォート**: `shouldFetch` のときだけ実行
+   * - **成功時のみ再 list**: fetch 後に最新 refs で ahead/behind を更新。
+   *   全失敗時は refs/remotes が変わっていないので再 list しない
+   *
+   * `force=false` の場合は `lastFetchedAt[repoId]` 未登録時のみ fetch。
+   * `force=true`（手動リフレッシュ）は常に fetch を走らせる。
+   *
+   * @param force true なら lastFetchedAt の有無によらず必ず fetch する
+   */
+  const fetchAndRefresh = useCallback(
+    async (force: boolean): Promise<void> => {
+      const state = useAppStore.getState();
+      const repo = state.repositories.find((r) => r.id === state.selectedRepositoryId);
+      if (!repo) return;
+      if (!force && inFlightRef.current) return;
+
+      const alreadyFetched = state.lastFetchedAt[repo.id] !== undefined;
+      const shouldFetch = force || !alreadyFetched;
+
+      inFlightRef.current = true;
+      try {
+        // 先に list を走らせ、fetch の hang に画面表示を引きずらせない
+        await fetchAndStore();
+
+        if (!shouldFetch) return;
+
+        setIsFetching(true);
+        let fetchSucceeded = false;
+        try {
+          const outcome = await fetchRepository(repo.path);
+          setLastFetchedAt(repo.id, outcome.fetchedAt);
+          if (outcome.failures.length > 0) {
+            const message = `一部リモートの fetch に失敗しました: ${outcome.failures.join(", ")}`;
+            // 同一メッセージの連続通知はトースト抑制（refreshError と同じ流儀）
+            if (useAppStore.getState().fetchError !== message) {
+              toastError(message);
+            }
+            setFetchError(message);
+          } else {
+            setFetchError(null);
+          }
+          // 部分失敗でも 1 つ以上成功していれば再 list する
+          fetchSucceeded = true;
+        } catch (e) {
+          console.error("fetch 失敗:", e);
+          const message = e instanceof Error ? e.message : String(e);
+          if (useAppStore.getState().fetchError !== message) {
+            toastError(`fetch に失敗しました: ${message}`);
+          }
+          setFetchError(message);
+          // 全失敗時は refs/remotes が更新されていないので再 list しない
+        } finally {
+          setIsFetching(false);
+        }
+
+        if (fetchSucceeded) {
+          await fetchAndStore();
+        }
+      } finally {
+        inFlightRef.current = false;
+      }
+    },
+    [fetchAndStore, setIsFetching, setLastFetchedAt, setFetchError]
+  );
+
+  /**
    * 手動リフレッシュ（スピナー付き、最低表示時間 500ms 保証）。
    *
-   * `inFlightRef` は silent 側が同時実行を skip するためにこちらでも立てるが、
-   * 手動リフレッシュはユーザー操作なので silent と被っていても優先して走らせる
-   * （inFlightRef が立っていても中断しない）。
+   * 必ず fetch + listWorktrees を実行する（force=true）。ユーザー操作起因のため
+   * ポーリングと被っていても優先して走らせる。
    *
    * @returns スピナー表示時間 (≥500ms) 経過後に resolve
    */
   const refresh = useCallback(async (): Promise<void> => {
-    inFlightRef.current = true;
     setIsRefreshing(true);
     const start = Date.now();
     try {
-      await fetchAndStore();
+      await fetchAndRefresh(true);
     } finally {
       const elapsed = Date.now() - start;
       if (elapsed < MIN_SPIN_DURATION) {
         await new Promise((r) => setTimeout(r, MIN_SPIN_DURATION - elapsed));
       }
-      inFlightRef.current = false;
       setIsRefreshing(false);
     }
-  }, [fetchAndStore, setIsRefreshing]);
+  }, [fetchAndRefresh, setIsRefreshing]);
 
-  // 選択リポジトリ変更時の即時 fetch + ポーリング開始を 1 本の useEffect に集約
+  // 選択リポジトリ変更時の初回 fetch + ポーリング開始を 1 本の useEffect に集約
   useEffect(() => {
     if (!selectedRepositoryId) return;
 
-    silentRefresh();
+    // 初回選択（lastFetchedAt 未登録）なら fetch + list、既に fetch 済みなら list のみ
+    void fetchAndRefresh(false);
+    // 以降のポーリングは listWorktrees のみ（fetch は手動リフレッシュ時のみ）
     const id = setInterval(silentRefresh, refreshInterval);
     return () => clearInterval(id);
-  }, [selectedRepositoryId, silentRefresh, refreshInterval]);
+  }, [selectedRepositoryId, silentRefresh, fetchAndRefresh, refreshInterval]);
 
   /**
    * 選択中以外のリポジトリの worktree を裏で pre-fetch する。

@@ -1,5 +1,13 @@
 import { memo, useCallback, useState } from "react";
-import { GitCommitHorizontal, FilePen, Code, SquareTerminal, Trash2 } from "lucide-react";
+import {
+  GitCommitHorizontal,
+  FilePen,
+  Code,
+  SquareTerminal,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
 import { useAppStore, selectEffectiveTerminalName } from "../stores/appStore";
@@ -79,6 +87,9 @@ function WorktreeCard({
   );
   const [isLabelEditing, setIsLabelEditing] = useState(false);
   const hasChanges = worktree.modifiedCount > 0;
+  // upstream 追跡中なら ahead/behind は number、未設定なら null（両方同時に決まる）
+  const hasUpstream = worktree.ahead !== null && worktree.behind !== null;
+  const hasDiverged = hasUpstream && (worktree.ahead! > 0 || worktree.behind! > 0);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl p-4 bg-card border border-border">
@@ -119,6 +130,26 @@ function WorktreeCard({
             {worktree.modifiedCount} changes
           </span>
         </div>
+        {/*
+          upstream 未設定（null）は行非表示、(0, 0) は muted、>0 は accent-blue で強調
+        */}
+        {hasUpstream && (
+          <div
+            className={`flex items-center gap-2 text-[11px] ${
+              hasDiverged ? "text-accent-blue" : "text-fg-muted"
+            }`}
+            title={`upstream から ${worktree.ahead} 先行 / ${worktree.behind} 遅れ`}
+          >
+            <span className="flex items-center gap-0.5">
+              <ArrowUp size={13} className="shrink-0" />
+              {worktree.ahead}
+            </span>
+            <span className="flex items-center gap-0.5">
+              <ArrowDown size={13} className="shrink-0" />
+              {worktree.behind}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* アクション */}

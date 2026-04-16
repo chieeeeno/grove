@@ -1,5 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AppConfig, RepositoryInfo, WorktreeInfo, WorktreeStatus } from "../types";
+import type {
+  AppConfig,
+  FetchOutcome,
+  RepositoryInfo,
+  WorktreeInfo,
+  WorktreeStatus,
+} from "../types";
 
 // ===== リポジトリ =====
 
@@ -40,6 +46,21 @@ export const loadConfig = (): Promise<AppConfig> => invoke("load_config");
  * @throws store オープン失敗 / シリアライズ失敗 / ディスク書き込み失敗時に reject
  */
 export const saveConfig = (config: AppConfig): Promise<void> => invoke("save_config", { config });
+
+/**
+ * リポジトリの全リモートに対して `git fetch` を実行する。
+ *
+ * ネットワーク通信を伴うため遅い。ポーリング（5 秒間隔）では呼ばず、起動時と
+ * 手動リフレッシュ時のみ呼ぶ設計。認証は Rust 側で SSH Agent → Keychain →
+ * username の順にフォールバックし、対話プロンプトは出さない。
+ *
+ * @param repositoryPath 対象リポジトリの絶対パス
+ * @returns `fetchedAt`: Unix epoch 秒 / `remoteCount`: remote 総数 /
+ *          `failures`: `"<remote>: <理由>"` の配列（空配列なら全成功）
+ * @throws リポジトリを開けない、または全 remote が失敗した場合に reject
+ */
+export const fetchRepository = (repositoryPath: string): Promise<FetchOutcome> =>
+  invoke("fetch_repository", { repositoryPath });
 
 // ===== Worktree =====
 

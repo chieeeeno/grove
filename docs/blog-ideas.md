@@ -546,6 +546,43 @@
 
 ---
 
+## M1 機能実装
+
+### fetch と ahead/behind「計算」を責務分離する設計（Issue #8）
+**タグ**: 設計, Rust, git, パフォーマンス
+**一言**: 多くの Git GUI は「fetch」と「ahead/behind 表示」を同じ操作で処理するが、実はこの 2 つは独立した操作。分離すると 5 秒ポーリングでも ahead/behind を「古いけど正確に」表示できる。
+
+**ネタ**:
+- ADR-0010 で M0 は「fetch が重いから ahead/behind 実装見送り」と決めていた
+- M1 で実装するときに前提を疑い直した: そもそも ahead/behind の「値」は fetch しなくても計算できる（ローカルの `refs/remotes/*` と比較するだけ）
+- fetch はリモートの最新を refs/remotes に取り込む操作にすぎない
+- 2 層に分離して責務を分担:
+  - **計算レイヤ（常時・軽量）**: `graph_ahead_behind(local, upstream)` を 5 秒ポーリングに組み込み
+  - **fetch レイヤ（明示的・重い）**: 起動時 1 回 + 手動リフレッシュ時のみ
+- 結果: ポーリングでも ahead/behind が安定して更新される（refs/remotes が最新なら値は最新）
+- ユーザーが fetch するタイミングを明示的に制御できる（オフライン中でも古い値で継続）
+- キャッシュ層は不要（git 自身が refs/remotes に持っている）
+- 「動作が遅い」という理由で機能を諦める前に、重い処理と軽い処理の切り分けができないか疑うと解像度が上がる
+
+---
+
+### libgit2 の認証フォールバックで対話プロンプトを出さない設計（Issue #8）
+**タグ**: Rust, git, Tauri, UX
+**一言**: デスクトップアプリの git fetch で認証プロンプトをポップアップさせると UX が壊れる。SSH Agent → Keychain → username の順で静かにフォールバックする設計。
+
+**ネタ**:
+- git2 の `RemoteCallbacks::credentials` でコールバックを登録する
+- 通常の CLI なら対話的に ssh passphrase を聞けるが、GUI アプリでは TTY がないので詰む
+- フォールバック順:
+  1. SSH 公開鍵: `Cred::ssh_key_from_agent(user)`（起動中の ssh-agent に委譲）
+  2. HTTPS ベーシック: `Cred::credential_helper(config, url, username)`（macOS Keychain / osxkeychain helper）
+  3. username のみ: `Cred::username(user)`（サーバ初期ネゴシエーション用）
+- 全部失敗したら日本語メッセージ付きの `git2::Error::from_str` を返し、呼び出し側（Tauri コマンド）でエラートーストに変換
+- ユーザーが `git` コマンドでは fetch できる状態を前提にする設計（OS 標準の credential 機構を尊重）
+- 部分失敗を `Ok` で返して `failures` 配列に詰める UX 設計も併せて採用（複数リモートの 1 つだけ失敗 → 他は成功として扱う）
+
+---
+
 ## メモ（記事化の優先度が低いもの / アイデア段階）
 
 - Tauri 2 + React 19 の組み合わせで始める際の注意点（テンプレートとの差分など）
