@@ -27,6 +27,9 @@ tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 git2 = { version = "0.20", features = ["vendored-openssl"] }
+# fetch_repository のタイムアウト制御（tokio::time::timeout）用に追加。
+# Tauri 2 が内部で tokio を使っているので、Cargo.lock には既に入っている想定。
+tokio = { version = "1", features = ["time"] }
 
 [dev-dependencies]
 tempfile = "3"

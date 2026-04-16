@@ -1,9 +1,17 @@
 use super::STORE_PATH;
 use git2::{Cred, FetchOptions, RemoteCallbacks};
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::StoreExt;
+
+/// `fetch_repository` 全体に対するタイムアウト。
+///
+/// libssh2 レイヤでハンドシェイクが blocking するケース（SSH Agent に鍵がない、
+/// リモート不応答など）への保険。credentials callback のエラーを libgit2 が
+/// 素直に伝播しないケースがあり、方針 2 の修正だけでは hang を完全には防げないため
+/// 必須実装としている（PR #51 hang 修正のレビューで確認済み）。
+const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
 
 const CONFIG_KEY: &str = "app_config";
 
@@ -148,37 +156,39 @@ pub fn validate_repository(path: String) -> Result<RepositoryInfo, String> {
 
 /// 単一リモートに対して fetch を実行する。
 ///
-/// 認証は libgit2 の `RemoteCallbacks::credentials` に以下のフォールバック順で設定する。
-/// 1. SSH 公開鍵認証: `ssh_key_from_agent`（起動中の ssh-agent に委譲）
-/// 2. HTTPS ベーシック認証: `credential_helper`（macOS Keychain / osxkeychain helper）
-/// 3. ユーザー名のみ: `Cred::username`（サーバが username を要求する初期ネゴシエーション用）
+/// 認証は libgit2 の `RemoteCallbacks::credentials` で以下の通り設定する。
+/// - `SSH_KEY`: `ssh_key_from_agent` に委譲。失敗時は即 Err（fall-through しない）
+/// - `USER_PASS_PLAINTEXT` / `DEFAULT`: `credential_helper`（macOS Keychain 等）
+/// - `USERNAME`: `Cred::username`（サーバが username を要求する初期ネゴシエーション用）
 ///
-/// 対話的な入力プロンプトは出さない。すべて失敗した場合は認証エラーを返す。
+/// **設計意図（PR #51 hang 修正）:** `if let Ok(cred) = ...` の fall-through
+/// 形式だと失敗時に次の credential type を試そうとして libssh2 レイヤに進み、
+/// ハンドシェイクで blocking するケースがある。該当 credential type が要求されたら
+/// 1 回だけ試し、失敗したらその場で Err を返すことで libgit2 側に失敗を即座に
+/// 伝える。対話的プロンプトは出さない。
 fn fetch_one_remote(repo: &git2::Repository, remote_name: &str) -> Result<(), git2::Error> {
     let mut remote = repo.find_remote(remote_name)?;
 
     let mut callbacks = RemoteCallbacks::new();
     callbacks.credentials(|url, username_from_url, allowed_types| {
         if allowed_types.contains(git2::CredentialType::SSH_KEY) {
-            if let Some(user) = username_from_url {
-                if let Ok(cred) = Cred::ssh_key_from_agent(user) {
-                    return Ok(cred);
-                }
-            }
+            let user = username_from_url.unwrap_or("git");
+            // エラー時はフロントのトーストでそのまま表示できる具体的メッセージに差し替える
+            return Cred::ssh_key_from_agent(user).map_err(|_| {
+                git2::Error::from_str(
+                    "SSH Agent に鍵が登録されていません（ssh-add で登録してください）",
+                )
+            });
         }
         if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
             || allowed_types.contains(git2::CredentialType::DEFAULT)
         {
-            if let Ok(config) = git2::Config::open_default() {
-                if let Ok(cred) = Cred::credential_helper(&config, url, username_from_url) {
-                    return Ok(cred);
-                }
-            }
+            let config = git2::Config::open_default()?;
+            return Cred::credential_helper(&config, url, username_from_url);
         }
         if allowed_types.contains(git2::CredentialType::USERNAME) {
-            if let Some(user) = username_from_url {
-                return Cred::username(user);
-            }
+            let user = username_from_url.unwrap_or("git");
+            return Cred::username(user);
         }
         Err(git2::Error::from_str(
             "利用可能な認証情報がありません（SSH Agent / Keychain を確認してください）",
@@ -203,8 +213,9 @@ fn now_unix_seconds() -> i64 {
 
 /// リポジトリに設定された全リモートに対して fetch を実行する。
 ///
-/// 長時間ブロックする可能性があるため `spawn_blocking` で別スレッドへ逃がす。
-/// 認証は [`fetch_one_remote`] のフォールバック順に従い、対話的プロンプトは出さない。
+/// 長時間ブロックする可能性があるため `spawn_blocking` で別スレッドへ逃がし、
+/// さらに [`FETCH_TIMEOUT`] でラップして hang を防ぐ。認証は [`fetch_one_remote`]
+/// のフォールバック順に従い、対話的プロンプトは出さない。
 ///
 /// # Arguments
 /// * `repository_path` - 対象リポジトリの絶対パス
@@ -212,23 +223,38 @@ fn now_unix_seconds() -> i64 {
 /// # Returns
 /// * `Ok(FetchOutcome)` - 1 つでも成功、または remote 0 件の場合。部分失敗は
 ///   `FetchOutcome::failures` で通知する
-/// * `Err(String)` - リポジトリを開けない場合、または全 remote が失敗した場合
+/// * `Err(String)` - リポジトリを開けない、全 remote が失敗、またはタイムアウトの場合
 ///
 /// # Errors
 /// - `repository_path` を `Repository::open` できない
 /// - `remotes()` 呼び出しの失敗
 /// - 全 remote の fetch が失敗（日本語のエラーメッセージで詳細を返す）
+/// - [`FETCH_TIMEOUT`]（30 秒）を超過した場合: "fetch がタイムアウトしました ..."
 ///
 /// # 副作用
 /// 各 remote の `refs/remotes/<remote>/*` を更新する。ネットワーク通信を伴う。
+/// タイムアウト発動時、`spawn_blocking` 内の libgit2 処理は中断できないため
+/// バックグラウンドスレッドとして残る（応答が返るまで）。通常運用では数十件積む
+/// 運用にならないので実害なし（レビュー合意済み）。
 #[tauri::command]
 pub async fn fetch_repository(repository_path: String) -> Result<FetchOutcome, String> {
-    tauri::async_runtime::spawn_blocking(move || fetch_repository_inner(&repository_path))
-        .await
-        .map_err(|e| format!("タスク実行に失敗しました: {}", e))?
+    let handle =
+        tauri::async_runtime::spawn_blocking(move || fetch_repository_inner(&repository_path));
+    match tokio::time::timeout(FETCH_TIMEOUT, handle).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(join_err)) => Err(format!("タスク実行に失敗しました: {}", join_err)),
+        Err(_) => Err(format!(
+            "fetch がタイムアウトしました ({} 秒)。ネットワークまたは認証設定を確認してください",
+            FETCH_TIMEOUT.as_secs()
+        )),
+    }
 }
 
 fn fetch_repository_inner(repository_path: &str) -> Result<FetchOutcome, String> {
+    eprintln!(
+        "[GROVE_DEBUG] fetch_repository: begin path={}",
+        repository_path
+    );
     let repo = git2::Repository::open(repository_path)
         .map_err(|e| format!("リポジトリを開けませんでした: {}", e))?;
 
@@ -238,22 +264,33 @@ fn fetch_repository_inner(repository_path: &str) -> Result<FetchOutcome, String>
 
     let remote_names: Vec<String> = remotes.iter().flatten().map(|s| s.to_string()).collect();
     let remote_count = remote_names.len() as u32;
+    eprintln!("[GROVE_DEBUG] fetch_repository: remotes={:?}", remote_names);
 
     let mut failures: Vec<String> = Vec::new();
     for name in &remote_names {
+        eprintln!("[GROVE_DEBUG] fetch_repository: fetching {}", name);
         if let Err(e) = fetch_one_remote(&repo, name) {
+            eprintln!("[GROVE_DEBUG] fetch_repository: {} FAILED: {}", name, e);
             failures.push(format!("{}: {}", name, e));
+        } else {
+            eprintln!("[GROVE_DEBUG] fetch_repository: {} ok", name);
         }
     }
 
     let all_failed = remote_count > 0 && failures.len() as u32 == remote_count;
     if all_failed {
+        eprintln!("[GROVE_DEBUG] fetch_repository: all failed");
         return Err(format!(
             "すべての fetch に失敗しました: {}",
             failures.join(", ")
         ));
     }
 
+    eprintln!(
+        "[GROVE_DEBUG] fetch_repository: done remote_count={} failures={}",
+        remote_count,
+        failures.len()
+    );
     Ok(FetchOutcome {
         fetched_at: now_unix_seconds(),
         remote_count,
@@ -277,6 +314,7 @@ fn fetch_repository_inner(repository_path: &str) -> Result<FetchOutcome, String>
 /// tauri-plugin-store のハンドル取得に失敗した場合のみ（ディスク障害等）。
 #[tauri::command]
 pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
+    eprintln!("[GROVE_DEBUG] load_config: begin");
     let store = app
         .store(STORE_PATH)
         .map_err(|e| format!("ストアを開けませんでした: {}", e))?;
@@ -286,6 +324,11 @@ pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
         .and_then(|v| serde_json::from_value(v).ok())
         .unwrap_or_default();
 
+    eprintln!(
+        "[GROVE_DEBUG] load_config: done repos={} selected={:?}",
+        config.repositories.len(),
+        config.selected_repository_id
+    );
     Ok(config)
 }
 
