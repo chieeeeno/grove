@@ -255,7 +255,7 @@ gh api repos/:owner/:repo/pulls/<pr-number>/reviews -X POST \
 {
   "commit_id": "<HEAD SHA>",
   "event": "COMMENT",
-  "body": "<!-- review-pr-loop:round=N;kind=summary_header -->\nRound N のレビュー残件です。",
+  "body": "Round N のレビュー残件です。",
   "comments": [
     {"path": "src/foo.ts", "line": 42, "side": "RIGHT", "body": "<!-- ... -->\n🟠 指摘内容..."},
     {"path": "src/bar.rs", "line": 100, "side": "RIGHT", "body": "<!-- ... -->\n🟡 指摘内容..."}
@@ -263,6 +263,11 @@ gh api repos/:owner/:repo/pulls/<pr-number>/reviews -X POST \
 }
 JSON
 ```
+
+> **注**: レビュー全体の `body`（ヘッダー部分）にはマーカーを付けない。
+> ヘッダーは minimize の対象外であり、kind 一覧（skipped / remaining /
+> round-summary / summary / lgtm）にも含まれない。マーカーは
+> minimize / フィルタリングが必要な個別コメントにのみ付与する。
 
 **本文テンプレート**（重大度に応じて絵文字を 🔴 / 🟠 / 🟡 から選択）:
 
