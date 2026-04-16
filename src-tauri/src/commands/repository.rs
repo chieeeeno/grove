@@ -8,9 +8,8 @@ use tauri_plugin_store::StoreExt;
 /// `fetch_repository` 全体に対するタイムアウト。
 ///
 /// libssh2 レイヤでハンドシェイクが blocking するケース（SSH Agent に鍵がない、
-/// リモート不応答など）への保険。credentials callback のエラーを libgit2 が
-/// 素直に伝播しないケースがあり、方針 2 の修正だけでは hang を完全には防げないため
-/// 必須実装としている（PR #51 hang 修正のレビューで確認済み）。
+/// リモート不応答など）への保険。credentials callback からの Err が libgit2 に
+/// 素直に伝播しないケースがあるため、timeout で強制打ち切りする。
 const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
 
 const CONFIG_KEY: &str = "app_config";
@@ -161,11 +160,9 @@ pub fn validate_repository(path: String) -> Result<RepositoryInfo, String> {
 /// - `USER_PASS_PLAINTEXT` / `DEFAULT`: `credential_helper`（macOS Keychain 等）
 /// - `USERNAME`: `Cred::username`（サーバが username を要求する初期ネゴシエーション用）
 ///
-/// **設計意図（PR #51 hang 修正）:** `if let Ok(cred) = ...` の fall-through
-/// 形式だと失敗時に次の credential type を試そうとして libssh2 レイヤに進み、
-/// ハンドシェイクで blocking するケースがある。該当 credential type が要求されたら
-/// 1 回だけ試し、失敗したらその場で Err を返すことで libgit2 側に失敗を即座に
-/// 伝える。対話的プロンプトは出さない。
+/// 該当 credential type が要求されたら 1 回だけ試し、失敗したら即 Err を返す。
+/// fall-through 形式にすると libssh2 レイヤに進んでハンドシェイクで blocking する
+/// ケースがあるため、早期失敗を libgit2 に伝えるのが狙い。対話的プロンプトは出さない。
 fn fetch_one_remote(repo: &git2::Repository, remote_name: &str) -> Result<(), git2::Error> {
     let mut remote = repo.find_remote(remote_name)?;
 
@@ -234,8 +231,7 @@ fn now_unix_seconds() -> i64 {
 /// # 副作用
 /// 各 remote の `refs/remotes/<remote>/*` を更新する。ネットワーク通信を伴う。
 /// タイムアウト発動時、`spawn_blocking` 内の libgit2 処理は中断できないため
-/// バックグラウンドスレッドとして残る（応答が返るまで）。通常運用では数十件積む
-/// 運用にならないので実害なし（レビュー合意済み）。
+/// バックグラウンドスレッドとして応答が返るまで残る（実害なしと判断）。
 #[tauri::command]
 pub async fn fetch_repository(repository_path: String) -> Result<FetchOutcome, String> {
     let handle =

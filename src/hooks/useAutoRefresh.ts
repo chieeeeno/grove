@@ -89,22 +89,14 @@ export function useAutoRefresh(): {
   /**
    * listWorktrees → fetch →（成功時）再 listWorktrees の順で実行する。
    *
-   * 責務分離の設計（PR #51 動作不具合の修正計画）:
-   * - **list を先に呼ぶ**: fetch がネットワーク遅延や認証問題で hang しても、
-   *   画面（worktree カード）は即座に出せる。ahead/behind は前回の refs/remotes
-   *   から計算済みの値（または未 fetch なら `null`）で表示される
-   * - **fetch はベストエフォート**: `shouldFetch` のときだけ走らせる
-   * - **成功時のみ再 list**: fetch 後に最新 refs で ahead/behind を更新する。
-   *   fetch 失敗時は再 list しない（refs/remotes は変わっていないため）
+   * - **list を先に呼ぶ**: fetch が遅延 / hang しても画面は即出す。ahead/behind は
+   *   前回の refs/remotes から計算された値（または未 fetch なら `null`）
+   * - **fetch はベストエフォート**: `shouldFetch` のときだけ実行
+   * - **成功時のみ再 list**: fetch 後に最新 refs で ahead/behind を更新。
+   *   全失敗時は refs/remotes が変わっていないので再 list しない
    *
-   * `force=false` の場合は `lastFetchedAt[repoId]` が未登録のときだけ fetch する
-   * （リポジトリ初回選択時 or 起動直後のケース）。`force=true`（手動リフレッシュ）は
-   * 常に fetch を走らせる。
-   *
-   * fetch の結果は以下の 3 通り:
-   * - 全成功（failures 空）: fetchError を null にクリア、再 list で ahead/behind 更新
-   * - 部分失敗（failures に要素あり）: トースト + fetchError にサマリ、再 list 実施
-   * - 全失敗（Rust から Err）: トースト + fetchError、再 list は **しない**
+   * `force=false` の場合は `lastFetchedAt[repoId]` 未登録時のみ fetch。
+   * `force=true`（手動リフレッシュ）は常に fetch を走らせる。
    *
    * @param force true なら lastFetchedAt の有無によらず必ず fetch する
    */
