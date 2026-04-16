@@ -19,7 +19,6 @@ vi.mock("@tauri-apps/api/event", () => ({
 describe("useMenuEvents", () => {
   const onRefresh = vi.fn();
   const onOpenSettings = vi.fn();
-  const onSelectRepository = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,7 +26,7 @@ describe("useMenuEvents", () => {
   });
 
   it("menu-refresh イベントで onRefresh が呼ばれる", () => {
-    renderHook(() => useMenuEvents({ onRefresh, onOpenSettings, onSelectRepository }));
+    renderHook(() => useMenuEvents({ onRefresh, onOpenSettings }));
 
     const callback = listeners.get("menu-refresh");
     expect(callback).toBeDefined();
@@ -35,11 +34,10 @@ describe("useMenuEvents", () => {
     callback!();
     expect(onRefresh).toHaveBeenCalledOnce();
     expect(onOpenSettings).not.toHaveBeenCalled();
-    expect(onSelectRepository).not.toHaveBeenCalled();
   });
 
   it("menu-settings イベントで onOpenSettings が呼ばれる", () => {
-    renderHook(() => useMenuEvents({ onRefresh, onOpenSettings, onSelectRepository }));
+    renderHook(() => useMenuEvents({ onRefresh, onOpenSettings }));
 
     const callback = listeners.get("menu-settings");
     expect(callback).toBeDefined();
@@ -47,38 +45,18 @@ describe("useMenuEvents", () => {
     callback!();
     expect(onOpenSettings).toHaveBeenCalledOnce();
     expect(onRefresh).not.toHaveBeenCalled();
-    expect(onSelectRepository).not.toHaveBeenCalled();
   });
 
-  it("menu-select-repository イベントで onSelectRepository が payload インデックス付きで呼ばれる", () => {
-    renderHook(() => useMenuEvents({ onRefresh, onOpenSettings, onSelectRepository }));
-
-    const callback = listeners.get("menu-select-repository");
-    expect(callback).toBeDefined();
-
-    // Tauri の `listen` コールバックは `Event<T>` を受け取り、payload にインデックスが入る
-    callback!({ payload: 0 });
-    expect(onSelectRepository).toHaveBeenNthCalledWith(1, 0);
-
-    callback!({ payload: 5 });
-    expect(onSelectRepository).toHaveBeenNthCalledWith(2, 5);
-
-    expect(onRefresh).not.toHaveBeenCalled();
-    expect(onOpenSettings).not.toHaveBeenCalled();
-  });
-
-  it("アンマウント時にすべての unlisten が呼ばれる", async () => {
-    const { unmount } = renderHook(() =>
-      useMenuEvents({ onRefresh, onOpenSettings, onSelectRepository })
-    );
+  it("アンマウント時に unlisten が呼ばれる", async () => {
+    const { unmount } = renderHook(() => useMenuEvents({ onRefresh, onOpenSettings }));
 
     unmount();
 
     // useEffect のクリーンアップは Promise の then で unlisten を呼ぶため、
     // microtask を消化する必要がある
     await vi.waitFor(() => {
-      // menu-refresh / menu-settings / menu-select-repository の 3 つ分
-      expect(mockUnlisten).toHaveBeenCalledTimes(3);
+      // menu-refresh と menu-settings の 2 つ分
+      expect(mockUnlisten).toHaveBeenCalledTimes(2);
     });
   });
 });

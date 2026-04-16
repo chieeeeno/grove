@@ -11,6 +11,7 @@ import PreflightBanner from "./components/PreflightBanner";
 import SettingsDialog from "./components/SettingsDialog";
 import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useMenuEvents } from "./hooks/useMenuEvents";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useTheme } from "./hooks/useTheme";
 import { useAppStore, selectEffectiveTerminalId } from "./stores/appStore";
 import { dirName } from "./lib/path";
@@ -170,17 +171,18 @@ function App() {
   // 設定ダイアログの状態
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // メニューバーイベント（Cmd+R で再読み込み、Cmd+, で設定、Cmd+1〜9 でリポジトリ切り替え）
+  // メニューバーイベント（Cmd+R で再読み込み、Cmd+, で設定）
   const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
+  useMenuEvents({ onRefresh: refresh, onOpenSettings: handleOpenSettings });
 
   /**
-   * メニュー「リポジトリ > N 番目のリポジトリ」（Cmd+1〜Cmd+9）から呼ばれる。
+   * Cmd+1〜Cmd+9 から呼ばれるリポジトリ切り替えハンドラ。
    *
    * @param index - 0-origin のリポジトリインデックス（Cmd+1 → 0）
    *
    * @remarks
-   * - `repositories` 配列の範囲外インデックスは no-op（メニュー項目は常に 9 個
-   *   enabled だが、登録リポジトリがそれ未満の場合に何も起きないのが正しい挙動）
+   * - `repositories` 配列の範囲外インデックスは no-op（登録リポジトリ数未満の
+   *   キーを押した場合に何も起きないのが正しい挙動）
    * - 既に選択中のリポジトリを再選択した場合も no-op（`saveConfig` も呼ばない）
    * - 選択変更時は `handleSelectRepository` と同様に `saveConfigSilently` で永続化
    */
@@ -196,9 +198,7 @@ function App() {
     [selectRepository]
   );
 
-  useMenuEvents({
-    onRefresh: refresh,
-    onOpenSettings: handleOpenSettings,
+  const { isMetaDown } = useKeyboardShortcuts({
     onSelectRepository: handleSelectRepositoryByIndex,
   });
 
@@ -494,6 +494,7 @@ function App() {
         <Sidebar
           repositories={sidebarRepos}
           selectedId={selectedRepositoryId}
+          isMetaDown={isMetaDown}
           onSelectRepository={handleSelectRepository}
           onAddRepository={handleAddRepository}
           onRemoveRepository={handleRemoveRepository}
