@@ -246,7 +246,7 @@ sequenceDiagram
 
 ### 🛠️ このラウンドでの対応
 - 自動修正: N 件（commit SHA: `<abbr sha>`）
-- 見送り: M 件
+- 見送り（critical/major）: M 件（`kind=skipped` コメントで理由記録）
 
 ### 次アクション
 **このラウンドの終了種別**: <継続 | post-review フェーズへ移行 | ⚠️ 強制停止> — <理由を 1 行で補足>
