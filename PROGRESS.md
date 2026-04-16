@@ -335,6 +335,19 @@ Playwright も WebKitGTK/WKWebView に直接接続できない。
 
 ---
 
+## M1 に着手済み / 完了
+
+M1 スコープのうち、M0 進行中に先行着手したもの。
+
+- ✅ **自動コードレビュースキル `review-pr-loop` 整備**（Issue #55、ADR-0014、2026-04-16）
+  - `.claude/skills/review-pr-loop/SKILL.md` + `review-checklist.md`
+  - `docs/design/review-pr-loop-flow.md`（フロー設計書）
+  - `docs/adr/0014-auto-review-skill.md`（運用方針 ADR）
+  - `docs/dev-workflow.md` に使い方セクションを追記
+  - `docs/review-loop-dogfooding.md`（dogfooding ログ、セルフレビュー 1 件）
+
+---
+
 ## M0 スコープ外（M1 以降）
 
 実装しないことを明示しておく。間違って着手しないための安全装置。
@@ -364,3 +377,6 @@ Playwright も WebKitGTK/WKWebView に直接接続できない。
 | [grove-design.md](./grove-design.md) | 設計書 / §11 フロー図 / データモデル / Tauri commands |
 | [docs/adr/](./docs/adr/) | 全意思決定の根拠（13 件） |
 | [NEXT.md](./NEXT.md) | セッション間引き継ぎメモ |
+| [docs/dev-workflow.md](./docs/dev-workflow.md) | 開発ワークフローの記録 / 自動レビュースキルの使い方 |
+| [docs/design/review-pr-loop-flow.md](./docs/design/review-pr-loop-flow.md) | review-pr-loop スキルのフロー設計書 |
+| [docs/review-loop-dogfooding.md](./docs/review-loop-dogfooding.md) | review-pr-loop dogfooding ログ |
