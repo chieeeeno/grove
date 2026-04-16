@@ -87,18 +87,24 @@ export function useAutoRefresh(): {
   }, [fetchAndStore]);
 
   /**
-   * 全リモートの fetch → listWorktrees を順に実行する。
+   * listWorktrees → fetch →（成功時）再 listWorktrees の順で実行する。
+   *
+   * 責務分離の設計（PR #51 動作不具合の修正計画）:
+   * - **list を先に呼ぶ**: fetch がネットワーク遅延や認証問題で hang しても、
+   *   画面（worktree カード）は即座に出せる。ahead/behind は前回の refs/remotes
+   *   から計算済みの値（または未 fetch なら `null`）で表示される
+   * - **fetch はベストエフォート**: `shouldFetch` のときだけ走らせる
+   * - **成功時のみ再 list**: fetch 後に最新 refs で ahead/behind を更新する。
+   *   fetch 失敗時は再 list しない（refs/remotes は変わっていないため）
    *
    * `force=false` の場合は `lastFetchedAt[repoId]` が未登録のときだけ fetch する
    * （リポジトリ初回選択時 or 起動直後のケース）。`force=true`（手動リフレッシュ）は
-   * 常に fetch を走らせる。いずれの経路でも最後に listWorktrees を呼んで
-   * ahead/behind を最新 refs で再計算する。
+   * 常に fetch を走らせる。
    *
    * fetch の結果は以下の 3 通り:
-   * - 全成功（failures 空）: fetchError を null にクリア
-   * - 部分失敗（failures に要素あり）: トースト + fetchError にサマリ
-   * - 全失敗（Rust から Err）: トースト + fetchError。listWorktrees は続行
-   *   （前回 refs を使って ahead/behind を計算するため）
+   * - 全成功（failures 空）: fetchError を null にクリア、再 list で ahead/behind 更新
+   * - 部分失敗（failures に要素あり）: トースト + fetchError にサマリ、再 list 実施
+   * - 全失敗（Rust から Err）: トースト + fetchError、再 list は **しない**
    *
    * @param force true なら lastFetchedAt の有無によらず必ず fetch する
    */
@@ -114,34 +120,45 @@ export function useAutoRefresh(): {
 
       inFlightRef.current = true;
       try {
-        if (shouldFetch) {
-          setIsFetching(true);
-          try {
-            const outcome = await fetchRepository(repo.path);
-            setLastFetchedAt(repo.id, outcome.fetchedAt);
-            if (outcome.failures.length > 0) {
-              const message = `一部リモートの fetch に失敗しました: ${outcome.failures.join(", ")}`;
-              // 同一メッセージの連続通知はトースト抑制（refreshError と同じ流儀）
-              if (useAppStore.getState().fetchError !== message) {
-                toastError(message);
-              }
-              setFetchError(message);
-            } else {
-              setFetchError(null);
-            }
-          } catch (e) {
-            console.error("fetch 失敗:", e);
-            const message = e instanceof Error ? e.message : String(e);
+        // ① 先に list を走らせて画面を出す（fetch の hang に画面表示が引きずられない）
+        await fetchAndStore();
+
+        if (!shouldFetch) return;
+
+        // ② fetch をベストエフォートで実行
+        setIsFetching(true);
+        let fetchSucceeded = false;
+        try {
+          const outcome = await fetchRepository(repo.path);
+          setLastFetchedAt(repo.id, outcome.fetchedAt);
+          if (outcome.failures.length > 0) {
+            const message = `一部リモートの fetch に失敗しました: ${outcome.failures.join(", ")}`;
+            // 同一メッセージの連続通知はトースト抑制（refreshError と同じ流儀）
             if (useAppStore.getState().fetchError !== message) {
-              toastError(`fetch に失敗しました: ${message}`);
+              toastError(message);
             }
             setFetchError(message);
-            // fetch 失敗でも listWorktrees は続行（前回 refs/remotes を元に計算）
-          } finally {
-            setIsFetching(false);
+          } else {
+            setFetchError(null);
           }
+          // 部分失敗でも 1 つ以上 fetch できているので再 list する
+          fetchSucceeded = true;
+        } catch (e) {
+          console.error("fetch 失敗:", e);
+          const message = e instanceof Error ? e.message : String(e);
+          if (useAppStore.getState().fetchError !== message) {
+            toastError(`fetch に失敗しました: ${message}`);
+          }
+          setFetchError(message);
+          // fetch 全失敗時は refs/remotes が更新されていないので再 list しない
+        } finally {
+          setIsFetching(false);
         }
-        await fetchAndStore();
+
+        // ③ fetch が成功（or 部分成功）したら再度 list を呼んで ahead/behind を更新
+        if (fetchSucceeded) {
+          await fetchAndStore();
+        }
       } finally {
         inFlightRef.current = false;
       }

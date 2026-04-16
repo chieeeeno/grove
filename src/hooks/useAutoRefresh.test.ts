@@ -49,24 +49,27 @@ describe("useAutoRefresh", () => {
   it("マウント時に即時 fetch + 5秒間隔でポーリングする", async () => {
     renderHook(() => useAutoRefresh());
 
-    // マウント時に即時 1 回呼ばれる（選択 repo の初期表示用）
+    // 初回マウントでは list（画面表示用）→ fetch → list（ahead/behind 更新）の
+    // 順で 2 回 list が呼ばれる。microtask を十分進めて全ての await を解決する。
     await act(async () => {
       await Promise.resolve();
-    });
-    expect(listWorktreeCalls()).toHaveLength(1);
-    expect(listWorktreeCalls()[0][1]).toEqual({ repositoryPath: "/mock/repo" });
-
-    // 5秒後
-    await act(async () => {
-      vi.advanceTimersByTime(5000);
+      await Promise.resolve();
+      await Promise.resolve();
     });
     expect(listWorktreeCalls()).toHaveLength(2);
+    expect(listWorktreeCalls()[0][1]).toEqual({ repositoryPath: "/mock/repo" });
 
-    // 10秒後
+    // 5 秒後のポーリングは silentRefresh（list のみ、fetch なし）で +1
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
     expect(listWorktreeCalls()).toHaveLength(3);
+
+    // 10 秒後で +1
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(listWorktreeCalls()).toHaveLength(4);
   });
 
   it("selectedRepositoryId が null の場合はポーリングしない", async () => {
@@ -83,11 +86,13 @@ describe("useAutoRefresh", () => {
   it("unmount 時に clearInterval する", async () => {
     const { unmount } = renderHook(() => useAutoRefresh());
 
-    // 初回の即時 fetch を解決
+    // 初回マウントで list → fetch → list の計 2 回
     await act(async () => {
       await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
     });
-    expect(listWorktreeCalls()).toHaveLength(1);
+    expect(listWorktreeCalls()).toHaveLength(2);
 
     unmount();
 
@@ -95,19 +100,21 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(10000);
     });
     // unmount 後は呼ばれない
-    expect(listWorktreeCalls()).toHaveLength(1);
+    expect(listWorktreeCalls()).toHaveLength(2);
   });
 
   it("refresh() を手動で呼べる", async () => {
     const { result } = renderHook(() => useAutoRefresh());
 
-    // 初回の即時 fetch を解決
+    // 初回マウントで list → fetch → list の計 2 回
     await act(async () => {
       await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
     });
-    expect(listWorktreeCalls()).toHaveLength(1);
+    expect(listWorktreeCalls()).toHaveLength(2);
 
-    // 手動 refresh を開始（内部で setTimeout を使うので即 await しない）
+    // 手動 refresh を開始（list → fetch → list で +2 回、MIN_SPIN_DURATION 500ms 待つ）
     let done = false;
     act(() => {
       result.current.refresh().then(() => {
@@ -120,7 +127,7 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(500);
     });
 
-    expect(listWorktreeCalls()).toHaveLength(2);
+    expect(listWorktreeCalls()).toHaveLength(4);
     expect(done).toBe(true);
   });
 
@@ -160,7 +167,7 @@ describe("useAutoRefresh", () => {
 
   it("手動リフレッシュ中はポーリングが skip される", async () => {
     // listWorktrees を pending にしたいので、mock を先に置き換える。
-    // マウント時の初回 silent fetch もこの pending にはまり inFlightRef を保持する。
+    // マウント時の初回 fetch+list もこの pending にはまり inFlightRef を保持する。
     // その状態でポーリングを走らせても skip されることを検証する。
     invokeSpy.mockImplementation((cmd: string) => {
       if (cmd === "list_worktrees") {
@@ -176,13 +183,13 @@ describe("useAutoRefresh", () => {
 
     renderHook(() => useAutoRefresh());
 
-    // fetch_repository の解決を完了させてから listWorktrees 呼び出しに到達させる
+    // 新順序では list が先。1 回目の list が pending になるので fetch まで到達しない
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // マウント直後の即時 fetch で list_worktrees が 1 回呼ばれ、その promise は pending のまま
+    // マウント直後の list（1 回目）で呼ばれ、その promise は pending のまま
     expect(listWorktreeCalls()).toHaveLength(1);
 
     // pending 中にポーリングが走っても skip される
@@ -270,13 +277,54 @@ describe("useAutoRefresh", () => {
 
     it("初回選択時に fetch_repository が呼ばれ、lastFetchedAt が記録される", async () => {
       renderHook(() => useAutoRefresh());
+      // 新順序: list → fetch → list の microtask を全て解決
       await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
         await Promise.resolve();
       });
 
       expect(fetchCalls()).toHaveLength(1);
       expect(fetchCalls()[0][1]).toEqual({ repositoryPath: "/mock/repo" });
       expect(useAppStore.getState().lastFetchedAt["repo-1"]).toBe(123);
+    });
+
+    it("fetch pending 中でも listWorktrees が先に呼ばれる（画面表示を阻害しない）", async () => {
+      // fetch を pending にしても、list は先に呼ばれて画面が出ることを検証
+      invokeSpy.mockImplementation((cmd: string) => {
+        if (cmd === "list_worktrees") return [mockWorktree()];
+        if (cmd === "fetch_repository") {
+          return new Promise(() => {
+            // 意図的に resolve しない
+          });
+        }
+        return null;
+      });
+
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // fetch は pending だが、list は先に 1 回呼ばれている
+      expect(listWorktreeCalls()).toHaveLength(1);
+      expect(fetchCalls()).toHaveLength(1);
+      // store にも worktrees がセットされている（画面表示可能な状態）
+      expect(useAppStore.getState().worktrees["repo-1"]).toHaveLength(1);
+    });
+
+    it("fetch 成功後に listWorktrees が再度呼ばれる（ahead/behind 更新）", async () => {
+      renderHook(() => useAutoRefresh());
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // 初回マウントで list が 2 回呼ばれる（画面表示用 + fetch 後の更新用）
+      expect(listWorktreeCalls()).toHaveLength(2);
+      expect(fetchCalls()).toHaveLength(1);
     });
 
     it("ポーリングでは fetch_repository は呼ばれない", async () => {
@@ -393,7 +441,9 @@ describe("useAutoRefresh", () => {
       });
 
       renderHook(() => useAutoRefresh());
+      // 新順序: list 解決 → fetch 開始（pending）のタイミングまで microtask を進める
       await act(async () => {
+        await Promise.resolve();
         await Promise.resolve();
       });
 
