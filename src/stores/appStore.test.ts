@@ -349,7 +349,7 @@ describe("appStore", () => {
     });
   });
 
-  describe("fetch 状態管理（Issue #8）", () => {
+  describe("fetch 状態管理", () => {
     it("setLastFetchedAt で repo ごとの fetch 時刻を保持する", () => {
       useAppStore.getState().setLastFetchedAt("repo-1", 1000);
       useAppStore.getState().setLastFetchedAt("repo-2", 2000);

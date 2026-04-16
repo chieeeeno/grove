@@ -49,8 +49,7 @@ describe("useAutoRefresh", () => {
   it("マウント時に即時 fetch + 5秒間隔でポーリングする", async () => {
     renderHook(() => useAutoRefresh());
 
-    // 初回マウントでは list（画面表示用）→ fetch → list（ahead/behind 更新）の
-    // 順で 2 回 list が呼ばれる。microtask を十分進めて全ての await を解決する。
+    // list → fetch → list の 3 段階を全て解決させるため microtask を複数回進める
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -86,7 +85,6 @@ describe("useAutoRefresh", () => {
   it("unmount 時に clearInterval する", async () => {
     const { unmount } = renderHook(() => useAutoRefresh());
 
-    // 初回マウントで list → fetch → list の計 2 回
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -106,7 +104,6 @@ describe("useAutoRefresh", () => {
   it("refresh() を手動で呼べる", async () => {
     const { result } = renderHook(() => useAutoRefresh());
 
-    // 初回マウントで list → fetch → list の計 2 回
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -114,7 +111,7 @@ describe("useAutoRefresh", () => {
     });
     expect(listWorktreeCalls()).toHaveLength(2);
 
-    // 手動 refresh を開始（list → fetch → list で +2 回、MIN_SPIN_DURATION 500ms 待つ）
+    // 手動 refresh（list → fetch → list で +2 回、MIN_SPIN_DURATION 500ms 待つ）
     let done = false;
     act(() => {
       result.current.refresh().then(() => {
@@ -166,9 +163,8 @@ describe("useAutoRefresh", () => {
   });
 
   it("手動リフレッシュ中はポーリングが skip される", async () => {
-    // listWorktrees を pending にしたいので、mock を先に置き換える。
-    // マウント時の初回 fetch+list もこの pending にはまり inFlightRef を保持する。
-    // その状態でポーリングを走らせても skip されることを検証する。
+    // listWorktrees を pending にして inFlightRef を立てたまま維持し、
+    // その状態でポーリングが skip されることを検証する。
     invokeSpy.mockImplementation((cmd: string) => {
       if (cmd === "list_worktrees") {
         return new Promise(() => {
@@ -183,13 +179,12 @@ describe("useAutoRefresh", () => {
 
     renderHook(() => useAutoRefresh());
 
-    // 新順序では list が先。1 回目の list が pending になるので fetch まで到達しない
+    // 1 回目の list が pending のまま止まるので fetch まで到達しない
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // マウント直後の list（1 回目）で呼ばれ、その promise は pending のまま
     expect(listWorktreeCalls()).toHaveLength(1);
 
     // pending 中にポーリングが走っても skip される
@@ -272,12 +267,11 @@ describe("useAutoRefresh", () => {
     });
   });
 
-  describe("fetch 統合（Issue #8）", () => {
+  describe("fetch 統合", () => {
     const fetchCalls = () => invokeSpy.mock.calls.filter(([cmd]) => cmd === "fetch_repository");
 
     it("初回選択時に fetch_repository が呼ばれ、lastFetchedAt が記録される", async () => {
       renderHook(() => useAutoRefresh());
-      // 新順序: list → fetch → list の microtask を全て解決
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
@@ -441,7 +435,7 @@ describe("useAutoRefresh", () => {
       });
 
       renderHook(() => useAutoRefresh());
-      // 新順序: list 解決 → fetch 開始（pending）のタイミングまで microtask を進める
+      // list が解決してから fetch が開始されるタイミングまで microtask を進める
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();

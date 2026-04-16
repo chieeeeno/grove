@@ -14,7 +14,7 @@ const MIN_SPIN_DURATION = 500; // 手動リフレッシュ時のスピナー最�
  * `refreshInterval` ごとにポーリングする。`refresh()` はユーザーの手動リフレッシュ
  * 用（Cmd+R / リフレッシュボタン）でスピナー制御を伴う。
  *
- * fetch 戦略（Issue #8 / ADR-0010）:
+ * fetch 戦略:
  * - ポーリング: listWorktrees のみ（ahead/behind は refs/remotes から再計算）
  * - 選択リポジトリ切替時: lastFetchedAt 未登録なら初回 fetch、登録済みなら skip
  * - 手動リフレッシュ: 必ず fetch（force=true）
@@ -112,12 +112,11 @@ export function useAutoRefresh(): {
 
       inFlightRef.current = true;
       try {
-        // ① 先に list を走らせて画面を出す（fetch の hang に画面表示が引きずられない）
+        // 先に list を走らせ、fetch の hang に画面表示を引きずらせない
         await fetchAndStore();
 
         if (!shouldFetch) return;
 
-        // ② fetch をベストエフォートで実行
         setIsFetching(true);
         let fetchSucceeded = false;
         try {
@@ -133,7 +132,7 @@ export function useAutoRefresh(): {
           } else {
             setFetchError(null);
           }
-          // 部分失敗でも 1 つ以上 fetch できているので再 list する
+          // 部分失敗でも 1 つ以上成功していれば再 list する
           fetchSucceeded = true;
         } catch (e) {
           console.error("fetch 失敗:", e);
@@ -142,12 +141,11 @@ export function useAutoRefresh(): {
             toastError(`fetch に失敗しました: ${message}`);
           }
           setFetchError(message);
-          // fetch 全失敗時は refs/remotes が更新されていないので再 list しない
+          // 全失敗時は refs/remotes が更新されていないので再 list しない
         } finally {
           setIsFetching(false);
         }
 
-        // ③ fetch が成功（or 部分成功）したら再度 list を呼んで ahead/behind を更新
         if (fetchSucceeded) {
           await fetchAndStore();
         }

@@ -33,7 +33,7 @@ describe("MainArea", () => {
     });
   });
 
-  describe("Last fetched 表示（Issue #8）", () => {
+  describe("Last fetched 表示", () => {
     it("lastFetchedAt=null のとき『Last fetched:』テキストは表示されない", () => {
       render(<MainArea {...baseProps} lastFetchedAt={null} />);
       expect(screen.queryByText(/Last fetched:/)).toBeNull();

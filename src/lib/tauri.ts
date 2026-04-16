@@ -48,7 +48,7 @@ export const loadConfig = (): Promise<AppConfig> => invoke("load_config");
 export const saveConfig = (config: AppConfig): Promise<void> => invoke("save_config", { config });
 
 /**
- * リポジトリの全リモートに対して `git fetch` を実行する（Issue #8 / ADR-0010）。
+ * リポジトリの全リモートに対して `git fetch` を実行する。
  *
  * ネットワーク通信を伴うため遅い。ポーリング（5 秒間隔）では呼ばず、起動時と
  * 手動リフレッシュ時のみ呼ぶ設計。認証は Rust 側で SSH Agent → Keychain →

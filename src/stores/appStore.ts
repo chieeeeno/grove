@@ -227,7 +227,7 @@ interface AppStore {
    */
   setRefreshError: (msg: string | null) => void;
 
-  // ===== fetch（ahead/behind 用の remote 取得、ADR-0010 / Issue #8）=====
+  // ===== fetch（ahead/behind 用の remote 取得）=====
 
   /**
    * リポジトリ ID ごとの最終 fetch 完了時刻（Unix epoch 秒）。

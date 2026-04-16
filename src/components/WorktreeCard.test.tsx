@@ -129,7 +129,7 @@ describe("WorktreeCard", () => {
     });
   });
 
-  describe("ahead/behind 表示（Issue #8）", () => {
+  describe("ahead/behind 表示", () => {
     it("upstream 未設定（ahead/behind が null）なら ahead/behind 行を表示しない", () => {
       render(
         <WorktreeCard {...defaultProps} worktree={mockWorktree({ ahead: null, behind: null })} />

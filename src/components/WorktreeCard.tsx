@@ -131,10 +131,7 @@ function WorktreeCard({
           </span>
         </div>
         {/*
-          ahead/behind 表示（Issue #8）
-          - upstream 未設定（null）は行を非表示
-          - 同期済み (0, 0) は muted で表示
-          - divergent (>0) は accent-blue で強調
+          upstream 未設定（null）は行非表示、(0, 0) は muted、>0 は accent-blue で強調
         */}
         {hasUpstream && (
           <div

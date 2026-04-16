@@ -29,7 +29,7 @@ interface MainAreaProps {
   isRefreshing: boolean;
   /**
    * fetch（リモート取得）実行中フラグ。
-   * 手動リフレッシュ時 or 初回選択時に一時的に true になる（Issue #8）
+   * 手動リフレッシュ時 or 初回選択時に一時的に true になる。
    */
   isFetching: boolean;
   /**
@@ -68,10 +68,6 @@ export default function MainArea({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/*
-                Last fetched タイムスタンプ（Issue #8）
-                lastFetchedAt は Unix epoch 秒。null なら未 fetch なので表示しない
-              */}
               {lastFetchedAt !== null && (
                 <span
                   className="text-[11px] text-fg-muted shrink-0"
