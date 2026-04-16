@@ -528,8 +528,8 @@ minor は pending バッファに蓄積するだけで各ラウンドでは処�
 ```
 ユーザー: 現在のブランチでレビューループを回して
 
-→ スキル: 現ブランチ `feature/xxx` から PR #123 を検出
-         SESSION_TS=20260417-143522 を取得
+→ スキル: SESSION_TS=20260417-143522 を取得
+         現ブランチ `feature/xxx` から PR #123 を検出
 → Round 1: critical 1, major 3 を検出（minor 4 件は pending バッファへ）
            critical 1 + major 3 を自動修正、commit
            docs/review-result/code-review-pr123-20260417-143522-round1.md を保存
