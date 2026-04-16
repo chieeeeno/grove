@@ -251,10 +251,6 @@ pub async fn fetch_repository(repository_path: String) -> Result<FetchOutcome, S
 }
 
 fn fetch_repository_inner(repository_path: &str) -> Result<FetchOutcome, String> {
-    eprintln!(
-        "[GROVE_DEBUG] fetch_repository: begin path={}",
-        repository_path
-    );
     let repo = git2::Repository::open(repository_path)
         .map_err(|e| format!("リポジトリを開けませんでした: {}", e))?;
 
@@ -264,33 +260,22 @@ fn fetch_repository_inner(repository_path: &str) -> Result<FetchOutcome, String>
 
     let remote_names: Vec<String> = remotes.iter().flatten().map(|s| s.to_string()).collect();
     let remote_count = remote_names.len() as u32;
-    eprintln!("[GROVE_DEBUG] fetch_repository: remotes={:?}", remote_names);
 
     let mut failures: Vec<String> = Vec::new();
     for name in &remote_names {
-        eprintln!("[GROVE_DEBUG] fetch_repository: fetching {}", name);
         if let Err(e) = fetch_one_remote(&repo, name) {
-            eprintln!("[GROVE_DEBUG] fetch_repository: {} FAILED: {}", name, e);
             failures.push(format!("{}: {}", name, e));
-        } else {
-            eprintln!("[GROVE_DEBUG] fetch_repository: {} ok", name);
         }
     }
 
     let all_failed = remote_count > 0 && failures.len() as u32 == remote_count;
     if all_failed {
-        eprintln!("[GROVE_DEBUG] fetch_repository: all failed");
         return Err(format!(
             "すべての fetch に失敗しました: {}",
             failures.join(", ")
         ));
     }
 
-    eprintln!(
-        "[GROVE_DEBUG] fetch_repository: done remote_count={} failures={}",
-        remote_count,
-        failures.len()
-    );
     Ok(FetchOutcome {
         fetched_at: now_unix_seconds(),
         remote_count,
@@ -314,7 +299,6 @@ fn fetch_repository_inner(repository_path: &str) -> Result<FetchOutcome, String>
 /// tauri-plugin-store のハンドル取得に失敗した場合のみ（ディスク障害等）。
 #[tauri::command]
 pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
-    eprintln!("[GROVE_DEBUG] load_config: begin");
     let store = app
         .store(STORE_PATH)
         .map_err(|e| format!("ストアを開けませんでした: {}", e))?;
@@ -324,11 +308,6 @@ pub fn load_config<R: Runtime>(app: AppHandle<R>) -> Result<AppConfig, String> {
         .and_then(|v| serde_json::from_value(v).ok())
         .unwrap_or_default();
 
-    eprintln!(
-        "[GROVE_DEBUG] load_config: done repos={} selected={:?}",
-        config.repositories.len(),
-        config.selected_repository_id
-    );
     Ok(config)
 }
 
