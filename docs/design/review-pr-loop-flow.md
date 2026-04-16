@@ -47,8 +47,8 @@ flowchart TD
     CheckDone -- Yes --> PostReview([ループ終了<br/>post-review へ])
     CheckDone -- No --> SplitFix[critical/major の修正 / 見送り仕分け<br/>minor は pending バッファに蓄積]
     SplitFix --> PostSkipped[critical/major の見送り項目を<br/>PR コメント投稿 Round N]
-    PostSkipped --> BranchGuard{現ブランチが<br/>main/master?}
-    BranchGuard -- Yes --> AbortBranch[main への commit 禁止で停止]
+    PostSkipped --> BranchGuard{現ブランチが<br/>main/master/detached HEAD?}
+    BranchGuard -- Yes --> AbortBranch[main/master/HEAD への直接 commit 禁止で停止]
     AbortBranch --> EndAbort([終了])
     BranchGuard -- No --> ApplyFix[critical/major の自動修正を実装]
     ApplyFix --> LoopGuard{同一ファイル同一行を<br/>2 回書き換え?}
@@ -64,7 +64,7 @@ flowchart TD
     HasMinor -- Yes --> AskUserMinor[AskUserQuestion<br/>minor 一覧を提示し対応要否を確認<br/>全対応 / 個別選択 / 全見送]
     AskUserMinor --> HasFixTargets{対応する minor あり?}
     HasFixTargets -- Yes --> FixMinor[選ばれた minor を自動修正]
-    FixMinor --> MinorBranchGuard{現ブランチが<br/>main/master?}
+    FixMinor --> MinorBranchGuard{現ブランチが<br/>main/master/detached HEAD?}
     MinorBranchGuard -- Yes --> AbortBranch
     MinorBranchGuard -- No --> CommitMinor[git commit<br/>push はしない]
     CommitMinor --> PostMinorSkipped[残った minor を<br/>見送りコメントとして投稿]
@@ -115,7 +115,7 @@ sequenceDiagram
             Skill->>User: AskUserQuestion<br/>minor 一覧を提示し対応要否を確認<br/>（全対応 / 個別選択 / 全見送）
             User-->>Skill: 判断
             opt 対応する minor あり
-                Skill->>Git: 現ブランチが main/master でないことを確認
+                Skill->>Git: 現ブランチが main/master/detached HEAD でないことを確認
                 Skill->>Skill: 選ばれた minor を自動修正
                 Skill->>Git: git add + git commit（push はしない）
                 Git-->>Skill: lefthook pre-commit 通過
@@ -127,7 +127,7 @@ sequenceDiagram
     else 継続
         Skill->>Skill: critical/major の修正 / 見送り仕分け<br/>minor は pending バッファに蓄積（この時点では判断しない）
         Skill->>GH: critical/major の見送り項目コメント投稿（Round N + 理由）
-        Skill->>Git: 現ブランチが main/master でないことを確認
+        Skill->>Git: 現ブランチが main/master/detached HEAD でないことを確認
         Skill->>Skill: 同一箇所を 2 回書き換えていないか確認
         Skill->>Skill: critical/major の自動修正を実装
         Skill->>Git: git add + git commit（push はしない）
@@ -227,10 +227,10 @@ sequenceDiagram
 
 ## 安全装置まとめ
 
-- `main` / `master` への直接 commit は git rev-parse でブロック
+- `main` / `master` / detached HEAD への直接 commit は `git rev-parse --abbrev-ref HEAD` でブロック（detached HEAD は戻り値が `HEAD` になる）
 - force push は実行しない（push 自体しない設計）
 - 同一ファイル × 同一行範囲を 2 ループ連続で書き換えた場合は無限ループとして停止
 - 同じ指摘を 2 ループ連続で「見送り」と判断した場合、3 ループ目以降は再評価をスキップ（総評には明記）
 - minimize 対象は `<!-- review-pr-loop:... -->` マーカー付きコメントのみ（他者コメント誤爆防止）
 - minor 指摘はループ中は自動判断せず pending バッファに蓄積し、全レビュー終了後の post-review フェーズでまとめてユーザーに提示 → AskUserQuestion で「全対応 / 個別選択 / 全見送」を確認する
-- post-review での minor 修正も main/master ブランチでは実行しない（同じ branch guard を通す）
+- post-review での minor 修正も main/master/detached HEAD では実行しない（同じ branch guard を通す）

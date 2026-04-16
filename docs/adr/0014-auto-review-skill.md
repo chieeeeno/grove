@@ -130,7 +130,7 @@ PR URL を渡すだけで自己ループでレビュー・修正・再レビュ�
 
 本 ADR で固定する安全装置:
 
-1. **main / master への直接 commit 禁止**: `git rev-parse --abbrev-ref HEAD` で検証し、main/master なら commit せず停止
+1. **main / master / detached HEAD への直接 commit 禁止**: `git rev-parse --abbrev-ref HEAD` で検証し、値が `main` / `master` / `HEAD` なら commit せず停止（detached HEAD 時の戻り値は `HEAD`）
 2. **force push 禁止**: そもそも push しない設計なので該当しない
 3. **無限ループ抑止**: 最大 5 ループに到達したら必ず停止
 4. **同一箇所の繰り返し書き換え検出**: 同一ファイル × 同一行範囲を 2 ループ連続で書き換えたら停止
