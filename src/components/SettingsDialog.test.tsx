@@ -9,12 +9,15 @@ describe("SettingsDialog", () => {
   const defaultProps = {
     onChangeTheme: vi.fn(),
     onChangeRefreshInterval: vi.fn(),
+    onChangeEditor: vi.fn(),
     onChangeTerminal: vi.fn(),
     onClose: vi.fn(),
   };
 
   beforeEach(() => {
     useAppStore.setState({
+      installedEditors: [],
+      selectedEditor: "",
       installedTerminals: [],
       selectedTerminal: "",
     });
@@ -45,7 +48,7 @@ describe("SettingsDialog", () => {
     render(<SettingsDialog {...defaultProps} onChangeRefreshInterval={onChangeRefreshInterval} />);
 
     const selects = screen.getAllByRole("combobox");
-    // 自動更新間隔は 2 番目のセレクトボックス
+    // installedEditors / installedTerminals が空の場合、自動更新は 2 番目のセレクトボックス
     await user.selectOptions(selects[1], "10000");
 
     expect(onChangeRefreshInterval).toHaveBeenCalledWith(10000);
@@ -147,10 +150,50 @@ describe("SettingsDialog", () => {
       render(<SettingsDialog {...defaultProps} onChangeTerminal={onChangeTerminal} />);
 
       const selects = screen.getAllByRole("combobox");
-      // ターミナルはテーマの次（2番目）
+      // installedEditors が空 / installedTerminals が 1 件以上の場合、ターミナルは 2 番目
       await user.selectOptions(selects[1], "ghostty");
 
       expect(onChangeTerminal).toHaveBeenCalledWith("ghostty");
+    });
+  });
+
+  describe("エディタ選択", () => {
+    it("検出済みエディタがある場合にドロップダウンが表示される", () => {
+      useAppStore.setState({
+        installedEditors: [
+          { id: "vscode", name: "VS Code", path: "/Applications/Visual Studio Code.app" },
+          { id: "zed", name: "Zed", path: "/Applications/Zed.app" },
+        ],
+        selectedEditor: "vscode",
+      });
+      render(<SettingsDialog {...defaultProps} />);
+      expect(screen.getByText("エディタ")).toBeInTheDocument();
+      expect(screen.getByText("VS Code")).toBeInTheDocument();
+      expect(screen.getByText("Zed")).toBeInTheDocument();
+    });
+
+    it("検出済みエディタが 0 件の場合はドロップダウンが表示されない", () => {
+      render(<SettingsDialog {...defaultProps} />);
+      expect(screen.queryByText("エディタ")).not.toBeInTheDocument();
+    });
+
+    it("エディタを変更すると onChangeEditor が呼ばれる", async () => {
+      const onChangeEditor = vi.fn();
+      const user = userEvent.setup();
+      useAppStore.setState({
+        installedEditors: [
+          { id: "vscode", name: "VS Code", path: "/Applications/Visual Studio Code.app" },
+          { id: "zed", name: "Zed", path: "/Applications/Zed.app" },
+        ],
+        selectedEditor: "vscode",
+      });
+      render(<SettingsDialog {...defaultProps} onChangeEditor={onChangeEditor} />);
+
+      const selects = screen.getAllByRole("combobox");
+      // テーマの次に「エディタ」セレクトが配置される
+      await user.selectOptions(selects[1], "zed");
+
+      expect(onChangeEditor).toHaveBeenCalledWith("zed");
     });
   });
 });

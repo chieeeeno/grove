@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Trees, GitBranch, Plus, Settings, X } from "lucide-react";
+import { getVersion } from "@tauri-apps/api/app";
 import { REPOSITORY_SHORTCUT_COUNT } from "../hooks/useKeyboardShortcuts";
 
 // ===== 型 =====
@@ -91,13 +93,22 @@ export default function Sidebar({
   onRemoveRepository,
   onOpenSettings,
 }: SidebarProps) {
+  // tauri.conf.json の version（Tauri 2 では未設定時に src-tauri/Cargo.toml の version が
+  // 自動採用される）を実行時に取得し、ロゴ脇に表示する。ハードコード回避のための一元化。
+  const [version, setVersion] = useState<string>("");
+  useEffect(() => {
+    getVersion()
+      .then(setVersion)
+      .catch((e) => console.error("バージョン取得に失敗:", e));
+  }, []);
+
   return (
     <aside className="flex flex-col gap-4 py-5 px-4 h-full shrink-0 w-[220px] bg-sidebar border-r border-border">
       {/* ロゴ */}
       <div className="flex items-center gap-2">
         <Trees size={20} className="text-accent-green shrink-0" />
         <span className="text-[18px] font-bold text-fg">Grove</span>
-        <span className="text-[11px] text-fg-muted">v0.1.0</span>
+        {version && <span className="text-[11px] text-fg-muted">v{version}</span>}
       </div>
 
       {/* 区切り線 */}

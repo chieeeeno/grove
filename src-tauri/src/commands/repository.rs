@@ -44,7 +44,10 @@ pub struct RepositoryConfig {
 pub struct AppConfig {
     /// 登録済みリポジトリ一覧。順序はサイドバー表示順と一致する。
     pub repositories: Vec<RepositoryConfig>,
-    /// 使用するエディタ識別子。M0 では `"vscode"` のみサポート。
+    /// 使用するエディタ識別子。`detect_installed_editors` が返す `EditorApp::id` の値
+    /// （例: `"vscode"`, `"zed"`）。
+    /// 既存ユーザーが保存した `"vscode"` 値はそのまま有効。空文字（既定値）の場合は
+    /// フロント側で検出リストの先頭をフォールバックとして使用する。
     pub editor: String,
     /// UI テーマ。`"system"` / `"dark"` / `"light"` の 3 値（#16 で実装済み）。
     pub theme: String,

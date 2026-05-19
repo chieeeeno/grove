@@ -9,7 +9,7 @@ const noop = vi.fn();
 
 const defaultProps = {
   label: "test-label",
-  codeAvailable: true,
+  editorAvailable: true,
   terminalAvailable: true,
   onOpenInEditor: noop,
   onOpenInTerminal: noop,
@@ -20,6 +20,10 @@ const defaultProps = {
 describe("WorktreeCard", () => {
   beforeEach(() => {
     useAppStore.setState({
+      installedEditors: [
+        { id: "vscode", name: "VS Code", path: "/Applications/Visual Studio Code.app" },
+      ],
+      selectedEditor: "vscode",
       installedTerminals: [
         { id: "terminal", name: "Terminal", path: "/System/Applications/Utilities/Terminal.app" },
       ],
@@ -81,17 +85,31 @@ describe("WorktreeCard", () => {
     });
   });
 
-  describe("VS Code ボタン", () => {
-    it("codeAvailable=true のとき VS Code ボタンが有効", () => {
-      render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} codeAvailable={true} />);
+  describe("エディタボタン", () => {
+    it("editorAvailable=true のときエディタボタンが有効", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} editorAvailable={true} />);
       const btn = screen.getByRole("button", { name: /VS Code/ });
       expect(btn).not.toBeDisabled();
     });
 
-    it("codeAvailable=false のとき VS Code ボタンが無効化される", () => {
-      render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} codeAvailable={false} />);
+    it("editorAvailable=false のときエディタボタンが無効化され、ツールチップで理由が示される", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} editorAvailable={false} />);
       const btn = screen.getByRole("button", { name: /VS Code/ });
       expect(btn).toBeDisabled();
+      expect(btn).toHaveAttribute("title", "VS Code が見つかりません");
+    });
+
+    it("選択中のエディタ名がボタンラベルに表示される（Zed）", () => {
+      useAppStore.setState({
+        installedEditors: [
+          { id: "vscode", name: "VS Code", path: "/Applications/Visual Studio Code.app" },
+          { id: "zed", name: "Zed", path: "/Applications/Zed.app" },
+        ],
+        selectedEditor: "zed",
+      });
+      render(<WorktreeCard {...defaultProps} worktree={mockWorktree()} />);
+      const btn = screen.getByRole("button", { name: /Zed/ });
+      expect(btn).toBeInTheDocument();
     });
   });
 

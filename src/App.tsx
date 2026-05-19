@@ -13,7 +13,12 @@ import { useAutoRefresh } from "./hooks/useAutoRefresh";
 import { useMenuEvents } from "./hooks/useMenuEvents";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useTheme } from "./hooks/useTheme";
-import { useAppStore, selectEffectiveTerminalId } from "./stores/appStore";
+import {
+  useAppStore,
+  selectEffectiveEditorId,
+  selectEffectiveEditorName,
+  selectEffectiveTerminalId,
+} from "./stores/appStore";
 import { dirName } from "./lib/path";
 import {
   validateRepository,
@@ -26,7 +31,8 @@ import {
   checkBeforeRemove,
   removeWorktree,
   deleteLabel,
-  checkCodeCommand,
+  checkEditorAvailable,
+  detectInstalledEditors,
   detectInstalledTerminals,
   loadOrder,
   saveOrder,
@@ -80,7 +86,7 @@ function buildConfigFromStore(): AppConfig {
   const state = useAppStore.getState();
   return {
     repositories: state.repositories,
-    editor: "vscode",
+    editor: state.selectedEditor,
     theme: state.theme,
     refreshInterval: state.refreshInterval,
     terminal: state.selectedTerminal,
@@ -104,7 +110,7 @@ function App() {
   const worktrees = useAppStore((s) => s.worktrees);
   const worktreeOrder = useAppStore((s) => s.worktreeOrder);
   const labels = useAppStore((s) => s.labels);
-  const codeAvailable = useAppStore((s) => s.codeAvailable);
+  const editorAvailable = useAppStore((s) => s.editorAvailable);
   const terminalAvailable = useAppStore((s) => s.terminalAvailable);
   const isRefreshing = useAppStore((s) => s.isRefreshing);
   const isFetching = useAppStore((s) => s.isFetching);
@@ -122,7 +128,9 @@ function App() {
   const setAllWorktreeOrder = useAppStore((s) => s.setAllWorktreeOrder);
   const setWorktreeOrder = useAppStore((s) => s.setWorktreeOrder);
   const setTheme = useAppStore((s) => s.setTheme);
-  const setCodeAvailable = useAppStore((s) => s.setCodeAvailable);
+  const setInstalledEditors = useAppStore((s) => s.setInstalledEditors);
+  const setSelectedEditor = useAppStore((s) => s.setSelectedEditor);
+  const setEditorAvailable = useAppStore((s) => s.setEditorAvailable);
   const setInstalledTerminals = useAppStore((s) => s.setInstalledTerminals);
   const setSelectedTerminal = useAppStore((s) => s.setSelectedTerminal);
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
@@ -166,6 +174,26 @@ function App() {
   const handleChangeTerminal = useCallback(
     (id: string) => saveSettingWithToast(() => setSelectedTerminal(id)),
     [saveSettingWithToast, setSelectedTerminal]
+  );
+
+  /**
+   * エディタ変更ハンドラ。
+   *
+   * 設定を保存した直後に `check_editor_available` で利用可否を再判定し、
+   * `editorAvailable` フラグと PreflightBanner / ボタンの有効/無効を新エディタに合わせる。
+   * エディタ未検出時（id 空）は false にフォールバック。
+   */
+  const handleChangeEditor = useCallback(
+    async (id: string) => {
+      await saveSettingWithToast(() => setSelectedEditor(id));
+      try {
+        const available = id ? await checkEditorAvailable(id) : false;
+        setEditorAvailable(available);
+      } catch (e) {
+        console.error("エディタ利用可否の判定に失敗:", e);
+      }
+    },
+    [saveSettingWithToast, setSelectedEditor, setEditorAvailable]
   );
 
   // 設定ダイアログの状態
@@ -225,6 +253,9 @@ function App() {
         if (config.terminal) {
           setSelectedTerminal(config.terminal);
         }
+        if (config.editor) {
+          setSelectedEditor(config.editor);
+        }
         // 保存済み ID を優先し、リポジトリが削除済みの場合は先頭にフォールバック
         const savedId = config.selectedRepositoryId;
         const initialId =
@@ -250,16 +281,30 @@ function App() {
 
     loadLabels().then(setAllLabels).catch(console.error);
     loadOrder().then(setAllWorktreeOrder).catch(console.error);
-    checkCodeCommand().then(setCodeAvailable).catch(console.error);
+    detectInstalledEditors()
+      .then((editors) => {
+        setInstalledEditors(editors);
+        // 起動時点で確定している実効エディタ ID で利用可否を判定する。
+        // selectedEditor が空のときは loadConfig 完了前のフォールバック（先頭エディタ）を採用。
+        const id = selectEffectiveEditorId(useAppStore.getState());
+        if (id) {
+          checkEditorAvailable(id).then(setEditorAvailable).catch(console.error);
+        } else {
+          setEditorAvailable(false);
+        }
+      })
+      .catch(console.error);
     detectInstalledTerminals().then(setInstalledTerminals).catch(console.error);
   }, [
     setRepositories,
     selectRepository,
     setTheme,
     setSelectedTerminal,
+    setSelectedEditor,
     setAllLabels,
     setAllWorktreeOrder,
-    setCodeAvailable,
+    setInstalledEditors,
+    setEditorAvailable,
     setInstalledTerminals,
     setRefreshInterval,
     prefetchAll,
@@ -390,10 +435,12 @@ function App() {
     [setWorktreeOrder]
   );
 
-  const handleOpenInEditor = useCallback(
-    (worktreePath: string) => openWithRetry(openInEditor, "VS Code", worktreePath),
-    []
-  );
+  const handleOpenInEditor = useCallback((worktreePath: string) => {
+    const state = useAppStore.getState();
+    const editorId = selectEffectiveEditorId(state);
+    const editorName = selectEffectiveEditorName(state);
+    openWithRetry((path) => openInEditor(path, editorId), editorName, worktreePath);
+  }, []);
   const handleOpenInTerminal = useCallback((worktreePath: string) => {
     const terminalId = selectEffectiveTerminalId(useAppStore.getState());
     openWithRetry((path) => openInTerminal(path, terminalId), "ターミナル", worktreePath);
@@ -489,7 +536,10 @@ function App() {
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: "var(--bg-app)" }}>
-      <PreflightBanner codeUnavailable={!codeAvailable} terminalUnavailable={!terminalAvailable} />
+      <PreflightBanner
+        editorUnavailable={!editorAvailable}
+        terminalUnavailable={!terminalAvailable}
+      />
       <div className="flex flex-1 min-h-0">
         <Sidebar
           repositories={sidebarRepos}
@@ -519,7 +569,7 @@ function App() {
                 labels={labels}
                 worktreeOrder={worktreeOrder[selectedRepositoryId!] ?? []}
                 repositoryId={selectedRepositoryId!}
-                codeAvailable={codeAvailable}
+                editorAvailable={editorAvailable}
                 terminalAvailable={terminalAvailable}
                 onOpenInEditor={handleOpenInEditor}
                 onOpenInTerminal={handleOpenInTerminal}
@@ -545,6 +595,7 @@ function App() {
           <SettingsDialog
             onChangeTheme={handleChangeTheme}
             onChangeRefreshInterval={handleChangeRefreshInterval}
+            onChangeEditor={handleChangeEditor}
             onChangeTerminal={handleChangeTerminal}
             onClose={() => setIsSettingsOpen(false)}
           />

@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Grove",
-  "version": "0.1.0",
   "identifier": "io.github.chieeeeno.grove",
   "build": {
     "beforeDevCommand": "pnpm dev",

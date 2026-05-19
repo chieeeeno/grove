@@ -1,6 +1,10 @@
 import { useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
-import { useAppStore, selectEffectiveTerminalId } from "../stores/appStore";
+import {
+  useAppStore,
+  selectEffectiveEditorId,
+  selectEffectiveTerminalId,
+} from "../stores/appStore";
 
 const THEME_OPTIONS = [
   { value: "system" as const, label: "システム" },
@@ -64,6 +68,7 @@ function SettingsSelect<T extends string | number>({
 interface SettingsDialogProps {
   onChangeTheme: (theme: "system" | "dark" | "light") => void;
   onChangeRefreshInterval: (interval: number) => void;
+  onChangeEditor: (editorId: string) => void;
   onChangeTerminal: (terminalId: string) => void;
   onClose: () => void;
 }
@@ -71,12 +76,15 @@ interface SettingsDialogProps {
 export default function SettingsDialog({
   onChangeTheme,
   onChangeRefreshInterval,
+  onChangeEditor,
   onChangeTerminal,
   onClose,
 }: SettingsDialogProps) {
   // App レベルでの購読を避け、ダイアログ内部で store を直接購読する
   const theme = useAppStore((s) => s.theme);
   const refreshInterval = useAppStore((s) => s.refreshInterval);
+  const installedEditors = useAppStore((s) => s.installedEditors);
+  const effectiveEditorId = useAppStore(selectEffectiveEditorId);
   const installedTerminals = useAppStore((s) => s.installedTerminals);
   const effectiveTerminalId = useAppStore(selectEffectiveTerminalId);
 
@@ -130,7 +138,16 @@ export default function SettingsDialog({
           onChange={onChangeTheme}
         />
 
-        {/* TODO: エディタ選択（M1 で複数エディタ対応予定） */}
+        {/* エディタアプリ */}
+        {installedEditors.length > 0 && (
+          <SettingsSelect
+            label="エディタ"
+            description="worktree を開くエディタアプリを選択"
+            value={effectiveEditorId}
+            options={installedEditors.map((e) => ({ value: e.id, label: e.name }))}
+            onChange={onChangeEditor}
+          />
+        )}
 
         {/* ターミナルアプリ */}
         {installedTerminals.length > 0 && (

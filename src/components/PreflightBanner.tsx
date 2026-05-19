@@ -1,57 +1,59 @@
 import { memo, useEffect, useState } from "react";
 import { CircleAlert, X } from "lucide-react";
+import { useAppStore, selectEffectiveEditorName } from "../stores/appStore";
 
 interface PreflightBannerProps {
-  /** `code` コマンドが利用不可のとき true */
-  codeUnavailable: boolean;
+  /** 選択中エディタアプリが利用不可のとき true */
+  editorUnavailable: boolean;
   /** 対応するターミナルアプリが利用不可のとき true */
   terminalUnavailable: boolean;
 }
 
 /** 個別バナーの dismiss 状態を管理するキー */
-type BannerKey = "code" | "terminal";
+type BannerKey = "editor" | "terminal";
 
-const BANNER_MESSAGES: Record<BannerKey, { message: string }> = {
-  code: {
-    message:
-      "code コマンドが見つかりません。VS Code で「Shell Command: Install 'code' command in PATH」を実行してください。",
-  },
-  terminal: {
-    message:
-      "対応するターミナルアプリが見つかりません。Terminal.app, Ghostty, iTerm2, Alacritty, Warp, kitty のいずれかをインストールしてください。",
-  },
-};
+const TERMINAL_BANNER_MESSAGE =
+  "対応するターミナルアプリが見つかりません。Terminal.app, Ghostty, iTerm2, Alacritty, Warp, kitty, cmux のいずれかをインストールしてください。";
 
 /**
  * ADR-0012 に基づく事前警告バナー。
  *
- * `code` コマンドや対応ターミナルアプリが利用不可の場合に上部にバナー警告を表示する。
+ * 選択中エディタアプリや対応ターミナルアプリが利用不可の場合に上部にバナー警告を表示する。
  * 各バナーは個別に dismiss 可能で、問題が解消→再発した場合は再表示される。
+ * エディタ用のメッセージは選択中エディタの表示名を含めて生成する。
  *
  * @param props PreflightBannerProps
  * @returns 警告バナー群、または表示対象がなければ null
  */
-function PreflightBanner({ codeUnavailable, terminalUnavailable }: PreflightBannerProps) {
+function PreflightBanner({ editorUnavailable, terminalUnavailable }: PreflightBannerProps) {
+  const editorName = useAppStore(selectEffectiveEditorName);
+
   const [dismissed, setDismissed] = useState<Record<BannerKey, boolean>>({
-    code: false,
+    editor: false,
     terminal: false,
   });
 
   // 問題が解消したら dismiss 状態をリセット（再発時に再表示するため）
   useEffect(() => {
-    if (!codeUnavailable) setDismissed((prev) => (prev.code ? { ...prev, code: false } : prev));
-  }, [codeUnavailable]);
+    if (!editorUnavailable)
+      setDismissed((prev) => (prev.editor ? { ...prev, editor: false } : prev));
+  }, [editorUnavailable]);
   useEffect(() => {
     if (!terminalUnavailable)
       setDismissed((prev) => (prev.terminal ? { ...prev, terminal: false } : prev));
   }, [terminalUnavailable]);
 
+  const messages: Record<BannerKey, string> = {
+    editor: `${editorName} が見つかりません。${editorName} をインストールするか、設定で別のエディタを選択してください。`,
+    terminal: TERMINAL_BANNER_MESSAGE,
+  };
+
   const flagByKey: Record<BannerKey, boolean> = {
-    code: codeUnavailable,
+    editor: editorUnavailable,
     terminal: terminalUnavailable,
   };
 
-  const visibleBanners = (Object.keys(BANNER_MESSAGES) as BannerKey[]).filter(
+  const visibleBanners = (Object.keys(messages) as BannerKey[]).filter(
     (key) => flagByKey[key] && !dismissed[key]
   );
 
@@ -68,7 +70,7 @@ function PreflightBanner({ codeUnavailable, terminalUnavailable }: PreflightBann
           <div className="flex items-center gap-2.5">
             <CircleAlert size={16} style={{ color: "var(--accent-yellow)", flexShrink: 0 }} />
             <span className="text-[12px] font-medium" style={{ color: "var(--accent-yellow)" }}>
-              {BANNER_MESSAGES[key].message}
+              {messages[key]}
             </span>
           </div>
           <button

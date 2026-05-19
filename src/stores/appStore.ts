@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { RepositoryConfig, TerminalApp, WorktreeInfo } from "../types";
+import type { EditorApp, RepositoryConfig, TerminalApp, WorktreeInfo } from "../types";
 
 /**
  * 2 つの worktree 配列が内容的に同一かを判定する。
@@ -184,10 +184,29 @@ interface AppStore {
 
   // ===== UI 状態 =====
 
-  /** `code` コマンドが利用可能か（ADR-0012 preflight 用。起動時に 1 回判定） */
-  codeAvailable: boolean;
-  /** @param v `code` コマンドの利用可否 */
-  setCodeAvailable: (v: boolean) => void;
+  /** 検出済みエディタアプリ一覧（起動時に `detect_installed_editors` で取得） */
+  installedEditors: EditorApp[];
+  /**
+   * 検出済みエディタアプリ一覧を設定する。
+   * @param editors 検出されたエディタアプリ配列
+   */
+  setInstalledEditors: (editors: EditorApp[]) => void;
+
+  /** 選択中のエディタアプリ識別子（`AppConfig.editor` と同期） */
+  selectedEditor: string;
+  /**
+   * 選択中のエディタアプリを変更する（in-memory のみ。永続化は `saveConfig` IPC で別途行う）。
+   * @param id エディタアプリ識別子
+   */
+  setSelectedEditor: (id: string) => void;
+
+  /**
+   * 選択中エディタが利用可能か（ADR-0012 preflight 用）。
+   * 起動時と `setSelectedEditor` 後に `check_editor_available` の結果で更新する。
+   */
+  editorAvailable: boolean;
+  /** @param v 選択中エディタの利用可否 */
+  setEditorAvailable: (v: boolean) => void;
 
   /** 検出済みターミナルアプリ一覧（起動時に `detect_installed_terminals` で取得） */
   installedTerminals: TerminalApp[];
@@ -341,8 +360,12 @@ export const useAppStore = create<AppStore>((set) => ({
   setRefreshInterval: (v) => set({ refreshInterval: v }),
 
   // UI
-  codeAvailable: false,
-  setCodeAvailable: (v) => set((s) => (s.codeAvailable === v ? s : { codeAvailable: v })),
+  installedEditors: [],
+  setInstalledEditors: (editors) => set({ installedEditors: editors }),
+  selectedEditor: "",
+  setSelectedEditor: (id) => set((s) => (s.selectedEditor === id ? s : { selectedEditor: id })),
+  editorAvailable: false,
+  setEditorAvailable: (v) => set((s) => (s.editorAvailable === v ? s : { editorAvailable: v })),
   installedTerminals: [],
   setInstalledTerminals: (terminals) =>
     set({ installedTerminals: terminals, terminalAvailable: terminals.length > 0 }),
@@ -365,6 +388,39 @@ export const useAppStore = create<AppStore>((set) => ({
   fetchError: null,
   setFetchError: (msg) => set((s) => (s.fetchError === msg ? s : { fetchError: msg })),
 }));
+
+/**
+ * 実効エディタ ID を導出するセレクタ。
+ *
+ * `selectedEditor` が設定済みかつ `installedEditors` に含まれていればそれを返し、
+ * それ以外（未設定 / 検出リストに無い）は `installedEditors` の先頭をフォールバックとして返す。
+ *
+ * @param state AppStore の状態
+ * @returns 実効エディタ ID。検出済みエディタが 0 件の場合は空文字
+ */
+export function selectEffectiveEditorId(state: AppStore): string {
+  const selected = state.selectedEditor;
+  if (selected && state.installedEditors.some((e) => e.id === selected)) {
+    return selected;
+  }
+  return state.installedEditors[0]?.id ?? "";
+}
+
+/**
+ * 実効エディタの表示名を導出するセレクタ。
+ *
+ * `selectEffectiveEditorId` で得た ID に対応する `EditorApp.name` を返す。
+ * 該当するエディタが見つからない場合は `"エディタ"` をフォールバックとして返す。
+ *
+ * @param state AppStore の状態
+ * @returns 実効エディタの表示名。未検出時は `"エディタ"`
+ */
+export function selectEffectiveEditorName(state: AppStore): string {
+  const id = selectEffectiveEditorId(state);
+  if (!id) return "エディタ";
+  const found = state.installedEditors.find((e) => e.id === id);
+  return found?.name ?? "エディタ";
+}
 
 /**
  * 実効ターミナル ID を導出するセレクタ。

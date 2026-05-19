@@ -66,7 +66,7 @@ export default function DeleteDialog({
         {/* worktree 情報 */}
         <div className="flex flex-col gap-2 rounded-lg px-4 py-3 bg-card">
           <div className="flex items-center gap-2">
-            <FolderGit2 size={14} className="text-fg-muted" />
+            <FolderGit2 size={14} className="text-fg-muted shrink-0" />
             <span className="text-[14px] font-medium text-fg">{worktreeName}</span>
           </div>
           <span className="text-[11px] text-fg-muted">{worktreePath}</span>
@@ -85,13 +85,24 @@ export default function DeleteDialog({
         {/* 区切り線 */}
         <div className="h-px bg-border" />
 
-        {/* ブランチ削除チェックボックス */}
+        {/*
+          ブランチ削除チェックボックス。
+          ネイティブ <input type="checkbox"> を sr-only で視覚的に隠し、<label> でラップする
+          ことでラベルテキストクリックでも標準の HTML 挙動でトグルされる。視覚は隣接 <div>
+          で描画し、Space キーや自動 toggle はネイティブ input が担う。
+        */}
         <label className="flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={deleteBranch}
+            onChange={(e) => setDeleteBranch(e.target.checked)}
+            className="sr-only"
+          />
           <div
+            aria-hidden="true"
             className={`flex items-center justify-center rounded shrink-0 w-[18px] h-[18px] border-2 ${
               deleteBranch ? "bg-accent border-accent" : "bg-transparent border-border"
             }`}
-            onClick={() => setDeleteBranch(!deleteBranch)}
           >
             {deleteBranch && (
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
