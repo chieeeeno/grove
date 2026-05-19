@@ -26,6 +26,53 @@ describe("DeleteDialog", () => {
     expect(screen.getByText(/未コミットの変更が 3 件あります/)).toBeInTheDocument();
   });
 
+  describe("ブランチ削除チェックボックス", () => {
+    it("ラベルテキスト「ブランチも一緒に削除する」のクリックでチェック状態がトグルされる", async () => {
+      const user = userEvent.setup();
+      render(<DeleteDialog {...defaultProps} />);
+
+      const checkbox = screen.getByRole("checkbox");
+      expect(checkbox).not.toBeChecked();
+
+      await user.click(screen.getByText("ブランチも一緒に削除する"));
+      expect(checkbox).toBeChecked();
+
+      await user.click(screen.getByText("ブランチも一緒に削除する"));
+      expect(checkbox).not.toBeChecked();
+    });
+
+    it("ブランチ名テキストのクリックでもチェック状態がトグルされる", async () => {
+      const user = userEvent.setup();
+      render(<DeleteDialog {...defaultProps} />);
+
+      const checkbox = screen.getByRole("checkbox");
+      expect(checkbox).not.toBeChecked();
+
+      await user.click(screen.getByText("feature/abc"));
+      expect(checkbox).toBeChecked();
+    });
+
+    it("削除ボタン押下で deleteBranch の値が onConfirm に渡る", async () => {
+      const onConfirm = vi.fn();
+      const user = userEvent.setup();
+      render(<DeleteDialog {...defaultProps} onConfirm={onConfirm} />);
+
+      await user.click(screen.getByText("ブランチも一緒に削除する"));
+      await user.click(screen.getByRole("button", { name: /削除/ }));
+
+      expect(onConfirm).toHaveBeenCalledWith(true);
+    });
+  });
+
+  it("worktree 名横のフォルダアイコンが shrink-0 を持つ", () => {
+    render(<DeleteDialog {...defaultProps} />);
+    // 名前テキストが長くてもアイコンが縮まないよう shrink-0 を付与している (issue #66)
+    const nameRow = screen.getByText("feature-abc").parentElement;
+    const icon = nameRow?.querySelector("svg");
+    expect(icon).not.toBeNull();
+    expect(icon).toHaveClass("shrink-0");
+  });
+
   it("背景オーバーレイクリックで onCancel が呼ばれる", async () => {
     const onCancel = vi.fn();
     const user = userEvent.setup();
