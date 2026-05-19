@@ -1,15 +1,15 @@
 ---
 name: adr-add
-description: docs/adr/ に番号採番付きの新規 ADR（Architecture Decision Record）ファイルを生成する。引数 slug（kebab-case 推奨、自動正規化あり）を渡すと、既存 ADR の最大番号 +1 で NNNN-<slug>.md を作成し、template.md のテンプレート（4 節構成）を流し込んだ上でファイルパスを返す。
+description: docs/adr/ に番号採番付きの新規 ADR（Architecture Decision Record）ファイルを生成する。引数 slug（kebab-case 推奨、自動正規化あり）を渡すと、既存 ADR の最大番号 +1 で NNNN-<slug>.md を作成し、template.md のテンプレート（日本語節構成: 背景 / 検討した選択肢 / 決定 / 理由）を流し込んだ上でファイルパスを返す。
 disable-model-invocation: true
 ---
 
 # adr-add
 
 Grove リポジトリ向けの ADR 追加 skill。`docs/adr/` 配下に整然と並ぶ
-`NNNN-<slug>.md` 形式（4 桁ゼロパディング、kebab-case slug、Status / Context /
-Decision / Consequences の 4 節）の運用を維持するため、採番ミスとテンプレ揺れを
-機械的に防ぐ。
+`NNNN-<slug>.md` 形式（4 桁ゼロパディング、kebab-case slug、太字メタ情報
+`**日付**` / `**ステータス**` + 日本語節「背景 / 検討した選択肢 / 決定 / 理由」
+の 4 節構成）の運用を維持するため、採番ミスとテンプレ揺れを機械的に防ぐ。
 
 参照:
 
@@ -72,9 +72,10 @@ Decision / Consequences の 4 節）の運用を維持するため、採番ミ�
 
 ## 注意事項
 
-- ADR の **本文**（Context/Decision/Consequences の中身）は書かない。テンプレート
-  をそのまま入れて返すだけ。中身はユーザーが書くか、後で別途 Claude に依頼する。
-- ADR のステータス遷移（Proposed → Accepted/Superseded 等）の運用は本 skill の
-  範囲外。生成時点では `Proposed` 固定。
+- ADR の **本文**（背景・検討した選択肢・決定・理由の中身）は書かない。
+  テンプレートをそのまま入れて返すだけ。中身はユーザーが書くか、後で別途
+  Claude に依頼する。
+- ADR のステータス遷移（草案 → 確定 / 棄却 等）の運用は本 skill の範囲外。
+  生成時点では `草案` 固定（既存 ADR は確定後に「確定」へ書き換える運用）。
 - M1 以降で ADR の節構成や運用が変わった場合は `template.md` のみ更新すれば skill
   本体は変えなくて済むよう、テンプレ依存の責任分離を維持する。
