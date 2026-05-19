@@ -11,7 +11,9 @@ set -euo pipefail
 DMG_DIR="src-tauri/target/release/bundle/dmg"
 APP_DIR="src-tauri/target/release/bundle/macos"
 
-APP_VERSION=$(node -e "process.stdout.write(require('./src-tauri/tauri.conf.json').version)")
+# バージョン一次ソースは src-tauri/Cargo.toml。tauri.conf.json の version は省略済みで、
+# Tauri ビルドは自動で Cargo.toml を参照する（フロントは getVersion() で同値を表示する）。
+APP_VERSION=$(grep -m1 '^version = ' src-tauri/Cargo.toml | sed -E 's/version = "(.*)"/\1/')
 BETA_TAG_PREFIX="v${APP_VERSION}-beta"
 
 DRY_RUN=false

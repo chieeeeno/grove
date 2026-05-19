@@ -1,6 +1,13 @@
 [package]
 name = "grove"
-version = "0.1.0"
+# === アプリのバージョン番号（一次ソース） ===
+# tauri.conf.json は `version` を省略しているため、Tauri は自動的にここを参照する。
+# フロントエンドは @tauri-apps/api/app の getVersion() で同値を実行時取得する
+# （src/components/Sidebar.tsx）。リリーススクリプト（scripts/release-beta.sh）
+# もこのファイルから抽出する。
+# 同期メモ: package.json の `version` は npm エコシステム都合で残しており、リリース時
+# に手動で合わせる運用（cargo-edit + pnpm version などのスクリプト化は未対応）。
+version = "0.2.0"
 description = "Git Worktree Manager GUI with Claude Code agent visibility"
 authors = ["chieeeeno"]
 license = "Apache-2.0"
