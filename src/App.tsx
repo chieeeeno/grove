@@ -182,6 +182,9 @@ function App() {
    * 設定を保存した直後に `check_editor_available` で利用可否を再判定し、
    * `editorAvailable` フラグと PreflightBanner / ボタンの有効/無効を新エディタに合わせる。
    * エディタ未検出時（id 空）は false にフォールバック。
+   * 判定 IPC が reject した場合は ADR-0012 の事前警告 UX を維持するため
+   * `editorAvailable=false` にフォールバックし、起動を試みる前にバナー警告とボタン無効化で
+   * ユーザーへ通知する。
    */
   const handleChangeEditor = useCallback(
     async (id: string) => {
@@ -191,6 +194,7 @@ function App() {
         setEditorAvailable(available);
       } catch (e) {
         console.error("エディタ利用可否の判定に失敗:", e);
+        setEditorAvailable(false);
       }
     },
     [saveSettingWithToast, setSelectedEditor, setEditorAvailable]
