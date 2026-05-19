@@ -32,6 +32,7 @@ const KNOWN_TERMINALS: &[(&str, &str, &[&str])] = &[
     ("alacritty", "Alacritty", &["/Applications/Alacritty.app"]),
     ("warp", "Warp", &["/Applications/Warp.app"]),
     ("kitty", "kitty", &["/Applications/kitty.app"]),
+    ("cmux", "cmux", &["/Applications/cmux.app"]),
 ];
 
 /// `KNOWN_TERMINALS` から `id` に一致するエントリのパスを解決する。
@@ -168,5 +169,16 @@ mod tests {
     fn test_resolve_terminal_with_invalid_id() {
         let result = resolve_terminal("nonexistent");
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_known_terminals_contains_cmux() {
+        // issue #66: cmux を選択肢に追加した。id・表示名・パス候補の不変条件を固定する
+        let cmux = KNOWN_TERMINALS
+            .iter()
+            .find(|(id, _, _)| *id == "cmux")
+            .expect("cmux が KNOWN_TERMINALS に登録されているべき");
+        assert_eq!(cmux.1, "cmux");
+        assert_eq!(cmux.2, &["/Applications/cmux.app"]);
     }
 }
