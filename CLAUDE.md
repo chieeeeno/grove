@@ -87,6 +87,19 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --lib  # clippy
 - private helper でも、呼び出し側が気にすべき制約（エラー時のフォールバック値等）が
   あれば必ず記載
 
+## PR 作成ルール
+
+PR を作成する際は `.github/pull_request_template.md` に沿って本文を構成すること。
+
+- 必須セクション: **Summary / 変更内容 / 設計判断 / Test plan / 関連** — 省略不可
+- 任意セクション: **スコープ外 / 既知の制限** — 該当事項がなければセクションごと削除
+- 文体は過去 PR（例: #63, #58, #51, #43）に揃える:
+  - Summary は箇条書きで 2〜5 行、何をやったかを短く
+  - 変更内容は `\| ファイル / 箇所 \| 変更内容 \|` の表 or 機能別の箇条書き
+  - 設計判断はトレードオフ・却下案・参照 ADR を明記
+  - Test plan はチェックボックス（`- [x]` 済 / `- [ ]` 未）で自動テストと手動 E2E を区別
+  - 関連は `Closes #N` と関連 ADR / PR をリンク
+
 ## アーキテクチャ概要
 
 Grove は Git worktree を GUI 管理するデスクトップアプリ（Tauri 2）。フロントエンド（React + TypeScript）と Rust バックエンドが Tauri IPC を通じて通信する。
