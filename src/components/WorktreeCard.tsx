@@ -10,7 +10,11 @@ import {
 } from "lucide-react";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
-import { useAppStore, selectEffectiveTerminalName } from "../stores/appStore";
+import {
+  useAppStore,
+  selectEffectiveEditorName,
+  selectEffectiveTerminalName,
+} from "../stores/appStore";
 import EditableLabel from "./EditableLabel";
 import BranchStatusBadge from "./BranchStatusBadge";
 
@@ -27,17 +31,17 @@ interface WorktreeCardProps {
   /** ヘッダーに表示するユーザー設定ラベル。未設定時は dirName(path) を渡す */
   label: string;
   /**
-   * `code` コマンドが利用可能か（ADR-0012 preflight）。
-   * false のとき VS Code ボタンを無効化し、ツールチップで理由を表示する
+   * 選択中エディタアプリが利用可能か（ADR-0012 preflight）。
+   * false のときエディタボタンを無効化し、ツールチップで理由を表示する
    */
-  codeAvailable: boolean;
+  editorAvailable: boolean;
   /**
    * ターミナルアプリが利用可能か（ADR-0012 preflight）。
    * false のとき Terminal ボタンを無効化し、ツールチップで理由を表示する
    */
   terminalAvailable: boolean;
   /**
-   * 「VS Code で開く」ボタンを押したときに呼ばれる。
+   * 「{エディタ} で開く」ボタンを押したときに呼ばれる。
    * @param worktreePath 対象 worktree の絶対パス
    */
   onOpenInEditor: (worktreePath: string) => void;
@@ -69,13 +73,14 @@ interface WorktreeCardProps {
 function WorktreeCard({
   worktree,
   label,
-  codeAvailable,
+  editorAvailable,
   terminalAvailable,
   onOpenInEditor,
   onOpenInTerminal,
   onRemove,
   onSaveLabel,
 }: WorktreeCardProps) {
+  const editorName = useAppStore(selectEffectiveEditorName);
   const terminalName = useAppStore(selectEffectiveTerminalName);
   const path = worktree.path;
   const handleOpenInEditor = useCallback(() => onOpenInEditor(path), [onOpenInEditor, path]);
@@ -155,14 +160,14 @@ function WorktreeCard({
       {/* アクション */}
       <div className="flex items-center justify-end gap-2">
         <button
-          onClick={codeAvailable ? handleOpenInEditor : undefined}
-          disabled={!codeAvailable}
+          onClick={editorAvailable ? handleOpenInEditor : undefined}
+          disabled={!editorAvailable}
           className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
-            ${codeAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
-          title={codeAvailable ? undefined : "code コマンドが必要です"}
+            ${editorAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
+          title={editorAvailable ? undefined : `${editorName} が見つかりません`}
         >
           <Code size={14} />
-          VS Code で開く
+          {editorName} で開く
         </button>
         <button
           onClick={terminalAvailable ? handleOpenInTerminal : undefined}

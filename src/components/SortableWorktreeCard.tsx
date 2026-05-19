@@ -15,11 +15,11 @@ interface SortableWorktreeCardProps {
   worktree: WorktreeInfo;
   /** ヘッダーに表示するユーザー設定ラベル */
   label: string;
-  /** `code` コマンドが利用可能か */
-  codeAvailable: boolean;
+  /** 選択中エディタアプリが利用可能か */
+  editorAvailable: boolean;
   /** ターミナルアプリが利用可能か */
   terminalAvailable: boolean;
-  /** 「VS Code で開く」コールバック */
+  /** 「{エディタ} で開く」コールバック */
   onOpenInEditor: (worktreePath: string) => void;
   /** 「Terminal で開く」コールバック */
   onOpenInTerminal: (worktreePath: string) => void;
@@ -42,7 +42,7 @@ export default function SortableWorktreeCard({
   id,
   worktree,
   label,
-  codeAvailable,
+  editorAvailable,
   terminalAvailable,
   onOpenInEditor,
   onOpenInTerminal,
@@ -65,7 +65,7 @@ export default function SortableWorktreeCard({
       <WorktreeCard
         worktree={worktree}
         label={label}
-        codeAvailable={codeAvailable}
+        editorAvailable={editorAvailable}
         terminalAvailable={terminalAvailable}
         onOpenInEditor={onOpenInEditor}
         onOpenInTerminal={onOpenInTerminal}

@@ -32,7 +32,7 @@ interface WorktreeGridProps {
   worktreeOrder: string[];
   /** 対象リポジトリの ID（onReorder に渡す） */
   repositoryId: string;
-  codeAvailable: boolean;
+  editorAvailable: boolean;
   terminalAvailable: boolean;
   onOpenInEditor: (worktreePath: string) => void;
   onOpenInTerminal: (worktreePath: string) => void;
@@ -61,7 +61,7 @@ export default function WorktreeGrid({
   labels,
   worktreeOrder,
   repositoryId,
-  codeAvailable,
+  editorAvailable,
   terminalAvailable,
   onOpenInEditor,
   onOpenInTerminal,
@@ -118,7 +118,7 @@ export default function WorktreeGrid({
           key={wt.path}
           worktree={wt}
           label={labels[wt.path] ?? dirName(wt.path)}
-          codeAvailable={codeAvailable}
+          editorAvailable={editorAvailable}
           terminalAvailable={terminalAvailable}
           onOpenInEditor={onOpenInEditor}
           onOpenInTerminal={onOpenInTerminal}
@@ -142,7 +142,7 @@ export default function WorktreeGrid({
               id={wt.path}
               worktree={wt}
               label={labels[wt.path] ?? dirName(wt.path)}
-              codeAvailable={codeAvailable}
+              editorAvailable={editorAvailable}
               terminalAvailable={terminalAvailable}
               onOpenInEditor={onOpenInEditor}
               onOpenInTerminal={onOpenInTerminal}
@@ -158,7 +158,7 @@ export default function WorktreeGrid({
               <WorktreeCard
                 worktree={activeWorktree}
                 label={labels[activeWorktree.path] ?? dirName(activeWorktree.path)}
-                codeAvailable={codeAvailable}
+                editorAvailable={editorAvailable}
                 terminalAvailable={terminalAvailable}
                 onOpenInEditor={onOpenInEditor}
                 onOpenInTerminal={onOpenInTerminal}

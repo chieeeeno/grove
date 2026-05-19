@@ -1,8 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   AppConfig,
+  EditorApp,
   FetchOutcome,
   RepositoryInfo,
+  TerminalApp,
   WorktreeInfo,
   WorktreeStatus,
 } from "../types";
@@ -228,30 +230,41 @@ export const setWindowTheme = (theme: "system" | "dark" | "light"): Promise<void
 // ===== エディタ =====
 
 /**
- * VS Code で指定パスを開く（子プロセスとして `code <path>` を spawn）。
+ * インストール済みの既知エディタアプリを検出して一覧を返す。
  *
- * 親プロセスは起動完了を待たずに即 resolve する。ADR-0012 により、呼び出し側は
- * 事前に `checkCodeCommand` で可否を確認してボタンを無効化しておく想定なので、
- * 通常は成功する。
+ * 起動時に 1 回呼ばれる想定。設定ダイアログ表示時にも再呼び出し可能
+ * （キャッシュなしで毎回走査するが、パス存在チェックのみなので十分高速）。
  *
- * @param path 開く対象の絶対パス。ファイル・ディレクトリどちらでも可
- *             （`code` の引数仕様に従う）
- * @returns spawn 完了時に resolve する Promise
- * @throws `code` コマンドが見つからない / spawn 失敗時に reject
+ * @returns 検出されたエディタアプリの配列。何もインストールされていなければ空配列
  */
-export const openInEditor = (path: string): Promise<void> => invoke("open_in_editor", { path });
+export const detectInstalledEditors = (): Promise<EditorApp[]> =>
+  invoke("detect_installed_editors");
 
 /**
- * `code` コマンドが PATH 上で実行可能かを調べる（ADR-0012 preflight）。
+ * 指定パスを選択中のエディタアプリで開く（`open -a <app> <path>` を spawn）。
  *
- * アプリ起動時に 1 回だけ呼ばれる想定。Rust 側でキャッシュ済みなので、起動後の
- * 再呼び出しは即返る（初回のみログインシェル経由の解決で数十〜数百 ms かかる
- * 可能性あり）。
+ * 親プロセスは起動完了を待たずに即 resolve する。ADR-0012 により、呼び出し側は
+ * 事前に `checkEditorAvailable` で可否を確認してボタンを無効化しておく想定。
  *
- * @returns `code` が実行可能なら true。false のときフロントは上部バナー警告と
+ * @param path 開く対象の絶対パス（ファイル or ディレクトリ）
+ * @param editorId 使用するエディタアプリの識別子（`EditorApp.id`）
+ * @returns spawn 完了時に resolve する Promise
+ * @throws 指定エディタが見つからない / spawn 失敗時に reject
+ */
+export const openInEditor = (path: string, editorId: string): Promise<void> =>
+  invoke("open_in_editor", { path, editorId });
+
+/**
+ * 指定エディタが利用可能か（`.app` バンドルが存在するか）を返す（ADR-0012 preflight）。
+ *
+ * アプリ起動時と設定ダイアログでエディタを切り替えた直後に呼ぶ想定。
+ *
+ * @param editorId 確認するエディタ識別子（`AppConfig.editor` の値）
+ * @returns 指定エディタが利用可能なら true。false のときフロントは上部バナー警告と
  *          関連ボタン無効化を表示する
  */
-export const checkCodeCommand = (): Promise<boolean> => invoke("check_code_command");
+export const checkEditorAvailable = (editorId: string): Promise<boolean> =>
+  invoke("check_editor_available", { editorId });
 
 // ===== ターミナル =====
 
@@ -263,7 +276,7 @@ export const checkCodeCommand = (): Promise<boolean> => invoke("check_code_comma
  *
  * @returns 検出されたターミナルアプリの配列。何もインストールされていなければ空配列
  */
-export const detectInstalledTerminals = (): Promise<import("../types").TerminalApp[]> =>
+export const detectInstalledTerminals = (): Promise<TerminalApp[]> =>
   invoke("detect_installed_terminals");
 
 /**

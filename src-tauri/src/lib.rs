@@ -48,8 +48,9 @@ pub fn run() {
             order::save_order,
             order::delete_order,
             // エディタ
+            editor::detect_installed_editors,
             editor::open_in_editor,
-            editor::check_code_command,
+            editor::check_editor_available,
             // ターミナル
             terminal::detect_installed_terminals,
             terminal::open_in_terminal,
