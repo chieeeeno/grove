@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { toast } from "sonner";
-import { toastRetryableError, toastError } from "./toast";
+import { toastRetryableError, toastError, toastSuccess } from "./toast";
 
 vi.mock("sonner", () => ({
   toast: {
     error: vi.fn(),
+    success: vi.fn(),
   },
 }));
 
@@ -17,6 +18,13 @@ describe("toast ユーティリティ", () => {
     it("toast.error にメッセージを渡す", () => {
       toastError("テストエラー");
       expect(toast.error).toHaveBeenCalledWith("テストエラー");
+    });
+  });
+
+  describe("toastSuccess", () => {
+    it("toast.success にメッセージを渡す", () => {
+      toastSuccess("テスト成功");
+      expect(toast.success).toHaveBeenCalledWith("テスト成功");
     });
   });
 

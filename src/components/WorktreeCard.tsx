@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   GitCommitHorizontal,
   FilePen,
@@ -7,7 +7,10 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
+  Copy,
+  Check,
 } from "lucide-react";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
 import {
@@ -15,8 +18,15 @@ import {
   selectEffectiveEditorName,
   selectEffectiveTerminalName,
 } from "../stores/appStore";
+import { toastError, toastSuccess } from "../lib/toast";
 import EditableLabel from "./EditableLabel";
 import BranchStatusBadge from "./BranchStatusBadge";
+
+/**
+ * Copy ボタンの「コピー直後」アイコン（Check）を表示する持続時間（ミリ秒）。
+ * 同一カード連打時は最新クリックを優先するため setTimeout を都度クリアする。
+ */
+const COPY_FEEDBACK_DURATION_MS = 1500;
 
 /**
  * `WorktreeCard` の props。
@@ -91,6 +101,64 @@ function WorktreeCard({
     [onSaveLabel, path]
   );
   const [isLabelEditing, setIsLabelEditing] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  // Copy → Check アイコン切替の setTimeout を保持。連打時に都度クリアして最新クリックを優先する。
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // writeText が pending な間の二重起動を防ぐ。true の間にクリックが来たら早期 return する
+  const isCopyingRef = useRef(false);
+  // アンマウント後の state 更新を抑止するためのマウントフラグ
+  const isMountedRef = useRef(true);
+
+  // アンマウント時にタイマーが残らないように cleanup する。
+  // 同時に isMountedRef を false にして、pending 中の writeText が解決した後の
+  // state 更新を no-op にする
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (copyResetTimerRef.current !== null) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  /**
+   * worktree の絶対パスをクリップボードへ書き込み、UI フィードバックを発火する。
+   *
+   * 成功時はアイコンを {@link COPY_FEEDBACK_DURATION_MS} ミリ秒だけ Check に切り替え、
+   * `toastSuccess` で「パスをコピーしました」を表示する。失敗時（クリップボード API 拒否や
+   * Tauri plugin エラー）はアイコンは Copy のまま、`toastError` で日本語エラーを通知する。
+   *
+   * 同一カードを連打した場合は既存のリセットタイマーをクリアし、最新クリックの 1.5 秒を採用する。
+   * `writeText` が pending な間の追加クリックは破棄する（多重起動防止）。
+   * `writeText` 解決時にコンポーネントが unmount 済みなら、state 更新と setTimeout 登録を
+   * skip して React 警告とリークを避ける。
+   *
+   * @returns 書き込みおよびフィードバック処理が完了したら resolve する Promise
+   */
+  const handleCopyPath = useCallback(async (): Promise<void> => {
+    if (isCopyingRef.current) return;
+    isCopyingRef.current = true;
+    try {
+      await writeText(path);
+      if (!isMountedRef.current) return;
+      setIsCopied(true);
+      if (copyResetTimerRef.current !== null) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+      copyResetTimerRef.current = setTimeout(() => {
+        setIsCopied(false);
+        copyResetTimerRef.current = null;
+      }, COPY_FEEDBACK_DURATION_MS);
+      toastSuccess("パスをコピーしました");
+    } catch {
+      if (!isMountedRef.current) return;
+      toastError("パスのコピーに失敗しました");
+    } finally {
+      isCopyingRef.current = false;
+    }
+  }, [path]);
+
   const hasChanges = worktree.modifiedCount > 0;
   // upstream 追跡中なら ahead/behind は number、未設定なら null（両方同時に決まる）
   const hasUpstream = worktree.ahead !== null && worktree.behind !== null;
@@ -163,7 +231,7 @@ function WorktreeCard({
           onClick={editorAvailable ? handleOpenInEditor : undefined}
           disabled={!editorAvailable}
           className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
-            ${editorAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
+            ${editorAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-accent/25 cursor-not-allowed opacity-60"}`}
           title={editorAvailable ? undefined : `${editorName} が見つかりません`}
         >
           <Code size={14} />
@@ -172,12 +240,21 @@ function WorktreeCard({
         <button
           onClick={terminalAvailable ? handleOpenInTerminal : undefined}
           disabled={!terminalAvailable}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium border-0 outline-none transition-colors duration-150
-            ${terminalAvailable ? "bg-fg-muted/20 text-fg-secondary hover:bg-fg-muted/30 active:bg-fg-muted/40 cursor-pointer" : "bg-fg-muted/10 text-fg-muted cursor-not-allowed opacity-60"}`}
+          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
+            ${terminalAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-accent/25 cursor-not-allowed opacity-60"}`}
           title={terminalAvailable ? undefined : "ターミナルアプリが見つかりません"}
         >
           <SquareTerminal size={14} />
           {terminalName} で開く
+        </button>
+        <button
+          type="button"
+          aria-label="パスをコピー"
+          onClick={handleCopyPath}
+          className="flex items-center justify-center self-stretch rounded-md px-2.5 text-white border-0 outline-none cursor-pointer bg-accent hover:bg-vs-hover active:bg-vs-active transition-colors duration-150"
+          title={isCopied ? "コピーしました" : "パスをコピー"}
+        >
+          {isCopied ? <Check size={14} /> : <Copy size={14} />}
         </button>
         {!worktree.isMain && (
           <button
