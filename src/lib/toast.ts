@@ -30,3 +30,15 @@ export function toastRetryableError(message: string, onRetry: () => void): void 
 export function toastError(message: string): void {
   toast.error(message);
 }
+
+/**
+ * シンプルな成功トースト表示。
+ *
+ * `toast.success` の薄いラッパー。全成功トーストをこのモジュール経由に統一し、
+ * 将来の表示ポリシー変更（duration、スタイル等）を一箇所で制御するための関数。
+ *
+ * @param message 成功メッセージ（日本語）
+ */
+export function toastSuccess(message: string): void {
+  toast.success(message);
+}
