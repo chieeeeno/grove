@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   GitCommitHorizontal,
   FilePen,
@@ -7,7 +7,10 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
+  Copy,
+  Check,
 } from "lucide-react";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { WorktreeInfo } from "../types";
 import { relativeTime } from "../lib/time";
 import {
@@ -15,8 +18,15 @@ import {
   selectEffectiveEditorName,
   selectEffectiveTerminalName,
 } from "../stores/appStore";
+import { toastError, toastSuccess } from "../lib/toast";
 import EditableLabel from "./EditableLabel";
 import BranchStatusBadge from "./BranchStatusBadge";
+
+/**
+ * Copy ボタンの「コピー直後」アイコン（Check）を表示する持続時間（ミリ秒）。
+ * 同一カード連打時は最新クリックを優先するため setTimeout を都度クリアする。
+ */
+const COPY_FEEDBACK_DURATION_MS = 1500;
 
 /**
  * `WorktreeCard` の props。
@@ -91,6 +101,45 @@ function WorktreeCard({
     [onSaveLabel, path]
   );
   const [isLabelEditing, setIsLabelEditing] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  // Copy → Check アイコン切替の setTimeout を保持。連打時に都度クリアして最新クリックを優先する。
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // アンマウント時にタイマーが残らないように cleanup する
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current !== null) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  /**
+   * worktree の絶対パスをクリップボードへ書き込み、UI フィードバックを発火する。
+   *
+   * 成功時はアイコンを {@link COPY_FEEDBACK_DURATION_MS} ミリ秒だけ Check に切り替え、
+   * `toastSuccess` で「パスをコピーしました」を表示する。失敗時（クリップボード API 拒否や
+   * Tauri plugin エラー）はアイコンは Copy のまま、`toastError` で日本語エラーを通知する。
+   *
+   * 同一カードを連打した場合は既存のリセットタイマーをクリアし、最新クリックの 1.5 秒を採用する。
+   */
+  const handleCopyPath = useCallback(async () => {
+    try {
+      await writeText(path);
+      setIsCopied(true);
+      if (copyResetTimerRef.current !== null) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+      copyResetTimerRef.current = setTimeout(() => {
+        setIsCopied(false);
+        copyResetTimerRef.current = null;
+      }, COPY_FEEDBACK_DURATION_MS);
+      toastSuccess("パスをコピーしました");
+    } catch {
+      toastError("パスのコピーに失敗しました");
+    }
+  }, [path]);
+
   const hasChanges = worktree.modifiedCount > 0;
   // upstream 追跡中なら ahead/behind は number、未設定なら null（両方同時に決まる）
   const hasUpstream = worktree.ahead !== null && worktree.behind !== null;
@@ -172,12 +221,21 @@ function WorktreeCard({
         <button
           onClick={terminalAvailable ? handleOpenInTerminal : undefined}
           disabled={!terminalAvailable}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium border-0 outline-none transition-colors duration-150
-            ${terminalAvailable ? "bg-fg-muted/20 text-fg-secondary hover:bg-fg-muted/30 active:bg-fg-muted/40 cursor-pointer" : "bg-fg-muted/10 text-fg-muted cursor-not-allowed opacity-60"}`}
+          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
+            ${terminalAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
           title={terminalAvailable ? undefined : "ターミナルアプリが見つかりません"}
         >
           <SquareTerminal size={14} />
           {terminalName} で開く
+        </button>
+        <button
+          type="button"
+          aria-label="パスをコピー"
+          onClick={handleCopyPath}
+          className="flex items-center justify-center self-stretch rounded-md px-2.5 text-white border-0 outline-none cursor-pointer bg-accent hover:bg-vs-hover active:bg-vs-active transition-colors duration-150"
+          title={isCopied ? "コピーしました" : "パスをコピー"}
+        >
+          {isCopied ? <Check size={14} /> : <Copy size={14} />}
         </button>
         {!worktree.isMain && (
           <button

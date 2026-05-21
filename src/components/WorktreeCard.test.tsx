@@ -1,9 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import WorktreeCard from "./WorktreeCard";
 import { mockWorktree, mockSubWorktree } from "../test/fixtures";
 import { useAppStore } from "../stores/appStore";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import * as toastModule from "../lib/toast";
+
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: vi.fn(),
+}));
 
 const noop = vi.fn();
 
@@ -194,6 +200,115 @@ describe("WorktreeCard", () => {
     it("non-main worktree では Remove ボタンが表示される", () => {
       render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree()} />);
       expect(screen.getByRole("button", { name: /Remove/ })).toBeInTheDocument();
+    });
+  });
+
+  describe("Copy ボタン", () => {
+    let toastSuccessSpy: ReturnType<typeof vi.spyOn>;
+    let toastErrorSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      vi.mocked(writeText).mockReset();
+      vi.mocked(writeText).mockResolvedValue();
+      toastSuccessSpy = vi.spyOn(toastModule, "toastSuccess").mockImplementation(() => {});
+      toastErrorSpy = vi.spyOn(toastModule, "toastError").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      toastSuccessSpy.mockRestore();
+      toastErrorSpy.mockRestore();
+    });
+
+    it("main worktree でも Copy ボタンが表示される", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockWorktree({ isMain: true })} />);
+      expect(screen.getByRole("button", { name: "パスをコピー" })).toBeInTheDocument();
+    });
+
+    it("non-main worktree でも Copy ボタンが表示される", () => {
+      render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree()} />);
+      expect(screen.getByRole("button", { name: "パスをコピー" })).toBeInTheDocument();
+    });
+
+    it("クリックで writeText に worktree.path が渡され、toastSuccess が発火する", async () => {
+      const wt = mockSubWorktree({ path: "/repo/feature-x" });
+      render(<WorktreeCard {...defaultProps} worktree={wt} />);
+      const btn = screen.getByRole("button", { name: "パスをコピー" });
+
+      await userEvent.click(btn);
+
+      expect(writeText).toHaveBeenCalledWith("/repo/feature-x");
+      expect(toastSuccessSpy).toHaveBeenCalledWith("パスをコピーしました");
+      expect(toastErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it("コピー成功直後は title が「コピーしました」になり、1.5 秒後に「パスをコピー」に戻る", async () => {
+      vi.useFakeTimers();
+      try {
+        render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree()} />);
+        const btn = screen.getByRole("button", { name: "パスをコピー" });
+
+        await act(async () => {
+          fireEvent.click(btn);
+        });
+
+        expect(btn).toHaveAttribute("title", "コピーしました");
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1500);
+        });
+
+        expect(btn).toHaveAttribute("title", "パスをコピー");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("連打しても最新クリックを起点に 1.5 秒のフィードバックが維持される", async () => {
+      vi.useFakeTimers();
+      try {
+        render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree()} />);
+        const btn = screen.getByRole("button", { name: "パスをコピー" });
+
+        await act(async () => {
+          fireEvent.click(btn);
+        });
+
+        // 1 秒進めた直後にもう一度クリック → タイマーがリセットされるはず
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1000);
+        });
+        await act(async () => {
+          fireEvent.click(btn);
+        });
+
+        // 最初のクリックから 1.5 秒（= 1 秒 + 500 ms）経過しても、まだ「コピーしました」のまま
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(500);
+        });
+        expect(btn).toHaveAttribute("title", "コピーしました");
+
+        // 2 回目のクリックから 1.5 秒経過後に元に戻る
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1000);
+        });
+        expect(btn).toHaveAttribute("title", "パスをコピー");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("writeText が失敗したら toastError を出し、title は元のまま", async () => {
+      vi.mocked(writeText).mockRejectedValueOnce(new Error("permission denied"));
+      render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree()} />);
+      const btn = screen.getByRole("button", { name: "パスをコピー" });
+
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+
+      expect(toastErrorSpy).toHaveBeenCalledWith("パスのコピーに失敗しました");
+      expect(toastSuccessSpy).not.toHaveBeenCalled();
+      expect(btn).toHaveAttribute("title", "パスをコピー");
     });
   });
 });
