@@ -231,7 +231,7 @@ function WorktreeCard({
           onClick={editorAvailable ? handleOpenInEditor : undefined}
           disabled={!editorAvailable}
           className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
-            ${editorAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
+            ${editorAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-accent/25 cursor-not-allowed opacity-60"}`}
           title={editorAvailable ? undefined : `${editorName} が見つかりません`}
         >
           <Code size={14} />
@@ -241,7 +241,7 @@ function WorktreeCard({
           onClick={terminalAvailable ? handleOpenInTerminal : undefined}
           disabled={!terminalAvailable}
           className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-white border-0 outline-none transition-colors duration-150
-            ${terminalAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-[#4F6EF740] cursor-not-allowed opacity-60"}`}
+            ${terminalAvailable ? "bg-accent hover:bg-vs-hover active:bg-vs-active cursor-pointer" : "bg-accent/25 cursor-not-allowed opacity-60"}`}
           title={terminalAvailable ? undefined : "ターミナルアプリが見つかりません"}
         >
           <SquareTerminal size={14} />
