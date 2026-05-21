@@ -104,10 +104,18 @@ function WorktreeCard({
   const [isCopied, setIsCopied] = useState(false);
   // Copy → Check アイコン切替の setTimeout を保持。連打時に都度クリアして最新クリックを優先する。
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // writeText が pending な間の二重起動を防ぐ。true の間にクリックが来たら早期 return する
+  const isCopyingRef = useRef(false);
+  // アンマウント後の state 更新を抑止するためのマウントフラグ
+  const isMountedRef = useRef(true);
 
-  // アンマウント時にタイマーが残らないように cleanup する
+  // アンマウント時にタイマーが残らないように cleanup する。
+  // 同時に isMountedRef を false にして、pending 中の writeText が解決した後の
+  // state 更新を no-op にする
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (copyResetTimerRef.current !== null) {
         clearTimeout(copyResetTimerRef.current);
       }
@@ -122,10 +130,18 @@ function WorktreeCard({
    * Tauri plugin エラー）はアイコンは Copy のまま、`toastError` で日本語エラーを通知する。
    *
    * 同一カードを連打した場合は既存のリセットタイマーをクリアし、最新クリックの 1.5 秒を採用する。
+   * `writeText` が pending な間の追加クリックは破棄する（多重起動防止）。
+   * `writeText` 解決時にコンポーネントが unmount 済みなら、state 更新と setTimeout 登録を
+   * skip して React 警告とリークを避ける。
+   *
+   * @returns 書き込みおよびフィードバック処理が完了したら resolve する Promise
    */
-  const handleCopyPath = useCallback(async () => {
+  const handleCopyPath = useCallback(async (): Promise<void> => {
+    if (isCopyingRef.current) return;
+    isCopyingRef.current = true;
     try {
       await writeText(path);
+      if (!isMountedRef.current) return;
       setIsCopied(true);
       if (copyResetTimerRef.current !== null) {
         clearTimeout(copyResetTimerRef.current);
@@ -136,7 +152,10 @@ function WorktreeCard({
       }, COPY_FEEDBACK_DURATION_MS);
       toastSuccess("パスをコピーしました");
     } catch {
+      if (!isMountedRef.current) return;
       toastError("パスのコピーに失敗しました");
+    } finally {
+      isCopyingRef.current = false;
     }
   }, [path]);
 

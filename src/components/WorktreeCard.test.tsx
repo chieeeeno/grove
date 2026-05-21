@@ -310,5 +310,64 @@ describe("WorktreeCard", () => {
       expect(toastSuccessSpy).not.toHaveBeenCalled();
       expect(btn).toHaveAttribute("title", "パスをコピー");
     });
+
+    it("writeText pending 中の再クリックは無視され、writeText / toastSuccess は 1 回ずつしか呼ばれない", async () => {
+      let resolveWrite: (() => void) | undefined;
+      vi.mocked(writeText).mockReset();
+      vi.mocked(writeText).mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveWrite = resolve;
+          })
+      );
+
+      render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree({ path: "/repo/x" })} />);
+      const btn = screen.getByRole("button", { name: "パスをコピー" });
+
+      // 1 回目: writeText 走行開始（pending のまま）
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+      // 2 回目: pending 中の再クリックは破棄される
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(writeText).toHaveBeenCalledWith("/repo/x");
+
+      // pending を解決して後処理を流す
+      await act(async () => {
+        resolveWrite?.();
+      });
+
+      expect(toastSuccessSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("writeText pending 中に unmount されても setIsCopied / toastSuccess は呼ばれない", async () => {
+      let resolveWrite: (() => void) | undefined;
+      vi.mocked(writeText).mockReset();
+      vi.mocked(writeText).mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveWrite = resolve;
+          })
+      );
+
+      const { unmount } = render(<WorktreeCard {...defaultProps} worktree={mockSubWorktree()} />);
+      const btn = screen.getByRole("button", { name: "パスをコピー" });
+
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+
+      // unmount → 続けて writeText を resolve
+      unmount();
+      await act(async () => {
+        resolveWrite?.();
+      });
+
+      expect(toastSuccessSpy).not.toHaveBeenCalled();
+    });
   });
 });
