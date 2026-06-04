@@ -3,7 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { Toaster, toast } from "sonner";
 import { toastError, toastRetryableError } from "./lib/toast";
 import Sidebar from "./components/Sidebar";
-import MainArea from "./components/MainArea";
+import MainArea, { CenteredMessage } from "./components/MainArea";
 import WorktreeGrid from "./components/WorktreeGrid";
 import WorktreeGridSkeleton from "./components/WorktreeGridSkeleton";
 import DeleteDialog from "./components/DeleteDialog";
@@ -20,6 +20,7 @@ import {
   selectEffectiveTerminalId,
 } from "./stores/appStore";
 import { dirName } from "./lib/path";
+import { filterWorktrees } from "./lib/filterWorktrees";
 import {
   validateRepository,
   loadConfig,
@@ -115,6 +116,7 @@ function App() {
   const isRefreshing = useAppStore((s) => s.isRefreshing);
   const isFetching = useAppStore((s) => s.isFetching);
   const lastFetchedAt = useAppStore((s) => s.lastFetchedAt);
+  const worktreeFilter = useAppStore((s) => s.worktreeFilter);
 
   // actions は参照安定なので個別取得でよい
   const addRepository = useAppStore((s) => s.addRepository);
@@ -134,6 +136,7 @@ function App() {
   const setInstalledTerminals = useAppStore((s) => s.setInstalledTerminals);
   const setSelectedTerminal = useAppStore((s) => s.setSelectedTerminal);
   const setRefreshInterval = useAppStore((s) => s.setRefreshInterval);
+  const setWorktreeFilter = useAppStore((s) => s.setWorktreeFilter);
 
   // テーマ適用（CSS 変数切替 + Tauri ウィンドウテーマ同期）
   const resolvedTheme = useTheme();
@@ -528,6 +531,14 @@ function App() {
     [selectedRepo, worktrees]
   );
 
+  // 絞り込みクエリが非空なら有効。空クエリ時は filterWorktrees が元配列を同一参照で返すため、
+  // currentWorktrees の参照安定性（ポーリング no-op 最適化）がそのまま維持される。
+  const queryActive = worktreeFilter.trim() !== "";
+  const filteredWorktrees = useMemo(
+    () => filterWorktrees(currentWorktrees ?? [], worktreeFilter, labels),
+    [currentWorktrees, worktreeFilter, labels]
+  );
+
   const sidebarRepos = useMemo(
     () =>
       repositories.map((r) => ({
@@ -537,6 +548,49 @@ function App() {
       })),
     [repositories, worktrees]
   );
+
+  // MainArea に渡すグリッド本体。空状態を 4 ケースに分岐する:
+  // - undefined: 未取得 → スケルトン
+  // - 0 件: 取得済みだが worktree なし → undefined を渡し MainArea 既定の「worktree がありません」案内に委ねる
+  // - 絞り込み中で一致 0 件 → 空状態 + クリア導線
+  // - それ以外 → 絞り込み結果（空クエリ時は全件）をグリッド表示
+  let gridContent: React.ReactNode;
+  if (currentWorktrees === undefined) {
+    gridContent = <WorktreeGridSkeleton />;
+  } else if (currentWorktrees.length === 0) {
+    gridContent = undefined;
+  } else if (queryActive && filteredWorktrees.length === 0) {
+    gridContent = (
+      <CenteredMessage
+        title={`『${worktreeFilter.trim()}』に一致する worktree がありません`}
+        action={
+          <button
+            onClick={() => setWorktreeFilter("")}
+            className="text-[12px] rounded-md px-3 py-1.5 border border-border outline-none cursor-pointer bg-card hover:bg-card-hover text-fg-secondary transition-colors duration-150"
+          >
+            絞り込みをクリア
+          </button>
+        }
+      />
+    );
+  } else {
+    gridContent = (
+      <WorktreeGrid
+        worktrees={filteredWorktrees}
+        labels={labels}
+        worktreeOrder={worktreeOrder[selectedRepositoryId!] ?? []}
+        repositoryId={selectedRepositoryId!}
+        editorAvailable={editorAvailable}
+        terminalAvailable={terminalAvailable}
+        dndDisabled={queryActive}
+        onOpenInEditor={handleOpenInEditor}
+        onOpenInTerminal={handleOpenInTerminal}
+        onRemove={handleRemoveWorktree}
+        onSaveLabel={handleSaveLabel}
+        onReorder={handleReorder}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: "var(--bg-app)" }}>
@@ -562,27 +616,12 @@ function App() {
           lastFetchedAt={
             selectedRepositoryId !== null ? (lastFetchedAt[selectedRepositoryId] ?? null) : null
           }
+          showFilter={currentWorktrees !== undefined && currentWorktrees.length > 0}
+          filterMatchCount={filteredWorktrees.length}
+          filterTotalCount={currentWorktrees?.length ?? 0}
           onRefresh={refresh}
         >
-          {currentWorktrees === undefined ? (
-            <WorktreeGridSkeleton />
-          ) : (
-            currentWorktrees.length > 0 && (
-              <WorktreeGrid
-                worktrees={currentWorktrees}
-                labels={labels}
-                worktreeOrder={worktreeOrder[selectedRepositoryId!] ?? []}
-                repositoryId={selectedRepositoryId!}
-                editorAvailable={editorAvailable}
-                terminalAvailable={terminalAvailable}
-                onOpenInEditor={handleOpenInEditor}
-                onOpenInTerminal={handleOpenInTerminal}
-                onRemove={handleRemoveWorktree}
-                onSaveLabel={handleSaveLabel}
-                onReorder={handleReorder}
-              />
-            )
-          )}
+          {gridContent}
         </MainArea>
         {deleteTarget && (
           <DeleteDialog

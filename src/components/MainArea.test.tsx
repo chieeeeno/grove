@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import MainArea from "./MainArea";
+import MainArea, { CenteredMessage } from "./MainArea";
 
 const noop = vi.fn();
 
@@ -10,6 +10,9 @@ const baseProps = {
   isRefreshing: false,
   isFetching: false,
   lastFetchedAt: null as number | null,
+  showFilter: false,
+  filterMatchCount: 0,
+  filterTotalCount: 0,
   onRefresh: noop,
 };
 
@@ -74,6 +77,38 @@ describe("MainArea", () => {
       const btn = screen.getByTitle(/リフレッシュ/);
       expect(btn).not.toBeDisabled();
       expect(btn.querySelector("svg")?.getAttribute("class")).not.toContain("animate-spin");
+    });
+  });
+
+  describe("絞り込み入力（showFilter）", () => {
+    it("showFilter=true のとき絞り込み入力が表示される", () => {
+      render(
+        <MainArea {...baseProps} showFilter={true} filterMatchCount={2} filterTotalCount={5} />
+      );
+      expect(screen.getByPlaceholderText("絞り込み…")).toBeInTheDocument();
+    });
+
+    it("showFilter=false のとき絞り込み入力は表示されない", () => {
+      render(<MainArea {...baseProps} showFilter={false} />);
+      expect(screen.queryByPlaceholderText("絞り込み…")).toBeNull();
+    });
+
+    it("リポジトリ未選択のときは showFilter=true でも入力は表示されない", () => {
+      render(<MainArea {...baseProps} selectedRepositoryName={null} showFilter={true} />);
+      expect(screen.queryByPlaceholderText("絞り込み…")).toBeNull();
+    });
+  });
+
+  describe("CenteredMessage", () => {
+    it("title と action を描画する", () => {
+      render(<CenteredMessage title="一致なし" action={<button>クリア</button>} />);
+      expect(screen.getByText("一致なし")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "クリア" })).toBeInTheDocument();
+    });
+
+    it("action 未指定でも title を描画する", () => {
+      render(<CenteredMessage title="案内のみ" />);
+      expect(screen.getByText("案内のみ")).toBeInTheDocument();
     });
   });
 });

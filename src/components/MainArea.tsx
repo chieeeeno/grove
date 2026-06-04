@@ -1,5 +1,6 @@
 import { FolderGit2, RefreshCw } from "lucide-react";
 import StatusHelpPopover from "./StatusHelpPopover";
+import WorktreeFilterInput from "./WorktreeFilterInput";
 import { relativeTime } from "../lib/time";
 
 // ===== サブコンポーネント =====
@@ -7,15 +8,27 @@ import { relativeTime } from "../lib/time";
 interface CenteredMessageProps {
   title: string;
   subtitle?: string;
+  /**
+   * title / subtitle の下に表示する任意のアクション要素。
+   * 一致 0 件の空状態で「絞り込みをクリア」ボタンを差し込む用途に使う。
+   */
+  action?: React.ReactNode;
 }
 
-/** 中央寄せの案内メッセージ（未選択時・空状態で共用） */
-function CenteredMessage({ title, subtitle }: CenteredMessageProps) {
+/**
+ * 中央寄せの案内メッセージ（未選択時・空状態で共用）。
+ * `action` を渡すとメッセージ下部にボタン等を表示できる。
+ *
+ * @param props {@link CenteredMessageProps}
+ * @returns 中央寄せの案内ブロック
+ */
+export function CenteredMessage({ title, subtitle, action }: CenteredMessageProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-fg-muted">
       <FolderGit2 size={40} className="text-border" />
       <p className="text-[14px]">{title}</p>
       {subtitle && <p className="text-[12px]">{subtitle}</p>}
+      {action}
     </div>
   );
 }
@@ -37,6 +50,15 @@ interface MainAreaProps {
    * `null` はまだ fetch されていない状態（fetch 失敗中 or 未選択）で、ヘッダー表示も省略する
    */
   lastFetchedAt: number | null;
+  /**
+   * 絞り込み入力を表示するか。worktree が 1 件以上ある時のみ true を渡す
+   * （リポジトリ未選択時はヘッダー自体が描画されないため、実質「選択中 かつ 1 件以上」）。
+   */
+  showFilter: boolean;
+  /** 絞り込みに一致した worktree 件数（件数表示用） */
+  filterMatchCount: number;
+  /** 絞り込み対象の worktree 総数（件数表示用） */
+  filterTotalCount: number;
   onRefresh: () => void;
   children?: React.ReactNode;
 }
@@ -47,6 +69,9 @@ export default function MainArea({
   isRefreshing,
   isFetching,
   lastFetchedAt,
+  showFilter,
+  filterMatchCount,
+  filterTotalCount,
   onRefresh,
   children,
 }: MainAreaProps) {
@@ -68,6 +93,10 @@ export default function MainArea({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {showFilter && (
+                <WorktreeFilterInput matchCount={filterMatchCount} totalCount={filterTotalCount} />
+              )}
+
               {lastFetchedAt !== null && (
                 <span
                   className="text-[11px] text-fg-muted shrink-0"
