@@ -583,6 +583,20 @@
 
 ---
 
+### worktree のライブ絞り込み検索と、`?? ` が隠していた空状態バグ（Issue #70）
+**タグ**: React, TypeScript, UX, リファクタリング
+**一言**: worktree グリッドにインクリメンタル絞り込みを足す過程で、`children ?? デフォルト` が `false` を素通りさせる落とし穴を踏み抜いた話。
+
+**ネタ**:
+- 検索は純粋関数 `filterWorktrees(worktrees, query, labels)` に切り出して単体テスト可能にする（既存の `sortWorktrees` と同じ lib パターン）。表示名（ラベル優先・未設定時 `dirName`）とブランチ名への大小無視部分一致
+- 空クエリ時は**引数の配列を同一参照でそのまま返す**のがミソ。`useMemo` の結果参照が安定し、ポーリングの no-op 最適化（`React.memo` 連鎖）を壊さない
+- 絞り込み中は DnD を無効化する。`SortableContext`/`DndContext` を使わず素の `WorktreeCard` を描画しつつ、並び順は `sortWorktrees` で従来通り尊重
+- 落とし穴: 元コードの空状態は `currentWorktrees.length > 0 && <Grid/>` が `false` を返し、`MainArea` 側の `children ?? <案内/>` が `false` を**素通り**させていた（`??` は null/undefined しか拾わない）。「worktree がありません」案内が実は表示されていなかった
+- 修正: 分岐を `gridContent` 変数に抽出し、0 件ケースは明示的に `undefined` を渡す。ネストした三項より読みやすく、`undefined ?? 案内` で意図通り案内が出る
+- Enter 単独確定を避ける UX 原則（ADR）を検索入力にも適用 — 確定概念がないので Enter は no-op、`Cmd+F` フォーカス / `Esc` クリアのみ
+
+---
+
 ## メモ（記事化の優先度が低いもの / アイデア段階）
 
 - Tauri 2 + React 19 の組み合わせで始める際の注意点（テンプレートとの差分など）
