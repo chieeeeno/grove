@@ -11,6 +11,7 @@ describe("appStore", () => {
       worktrees: {},
       worktreeOrder: {},
       labels: {},
+      worktreeFilter: "",
       theme: "system",
       codeAvailable: false,
       isRefreshing: false,
@@ -186,6 +187,36 @@ describe("appStore", () => {
 
       useAppStore.getState().removeRepository("repo-1");
       expect(useAppStore.getState().worktreeOrder["repo-1"]).toBeUndefined();
+    });
+  });
+
+  describe("worktreeFilter（絞り込みクエリ）", () => {
+    it("初期値は空文字", () => {
+      expect(useAppStore.getState().worktreeFilter).toBe("");
+    });
+
+    it("setWorktreeFilter でクエリを設定できる", () => {
+      useAppStore.getState().setWorktreeFilter("feature");
+      expect(useAppStore.getState().worktreeFilter).toBe("feature");
+    });
+
+    it("setWorktreeFilter は同値なら state 参照を変えない（再レンダー抑制）", () => {
+      useAppStore.getState().setWorktreeFilter("feature");
+      const before = useAppStore.getState();
+      useAppStore.getState().setWorktreeFilter("feature");
+      expect(useAppStore.getState()).toBe(before);
+    });
+
+    it("selectRepository でクエリが空文字にリセットされる", () => {
+      useAppStore.getState().setWorktreeFilter("feature");
+      useAppStore.getState().selectRepository("repo-1");
+      expect(useAppStore.getState().worktreeFilter).toBe("");
+    });
+
+    it("selectRepository(null) でもクエリがリセットされる", () => {
+      useAppStore.getState().setWorktreeFilter("feature");
+      useAppStore.getState().selectRepository(null);
+      expect(useAppStore.getState().worktreeFilter).toBe("");
     });
   });
 
