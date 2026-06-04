@@ -9,8 +9,9 @@ const defaultProps = {
   labels: {},
   worktreeOrder: [],
   repositoryId: "repo-1",
-  codeAvailable: true,
+  editorAvailable: true,
   terminalAvailable: true,
+  dndDisabled: false,
   onOpenInEditor: noop,
   onOpenInTerminal: noop,
   onRemove: noop,
@@ -53,5 +54,45 @@ describe("WorktreeGrid", () => {
     const indexB = allText.indexOf("feature-b");
     const indexA = allText.indexOf("feature-a");
     expect(indexB).toBeLessThan(indexA);
+  });
+
+  describe("dndDisabled（絞り込み中の DnD 無効化）", () => {
+    it("dndDisabled=false のとき non-main カードは sortable になる", () => {
+      const { container } = render(
+        <WorktreeGrid
+          {...defaultProps}
+          worktrees={[mainWt, featureA, featureB]}
+          dndDisabled={false}
+        />
+      );
+      // dnd-kit の useSortable は aria-roledescription="sortable" を付与する
+      expect(container.querySelectorAll('[aria-roledescription="sortable"]')).toHaveLength(2);
+    });
+
+    it("dndDisabled=true のとき sortable 属性を持たない素のカードを描画する", () => {
+      const { container } = render(
+        <WorktreeGrid
+          {...defaultProps}
+          worktrees={[mainWt, featureA, featureB]}
+          dndDisabled={true}
+        />
+      );
+      expect(container.querySelector('[aria-roledescription="sortable"]')).toBeNull();
+      // カード自体は全件描画される（各カードは「パスをコピー」ボタンを 1 つ持つ）
+      expect(screen.getAllByLabelText("パスをコピー")).toHaveLength(3);
+    });
+
+    it("dndDisabled=true でも worktreeOrder の並び順を尊重する", () => {
+      const { container } = render(
+        <WorktreeGrid
+          {...defaultProps}
+          worktrees={[mainWt, featureA, featureB]}
+          worktreeOrder={["/repo/feature-b", "/repo/feature-a"]}
+          dndDisabled={true}
+        />
+      );
+      const allText = container.textContent ?? "";
+      expect(allText.indexOf("feature-b")).toBeLessThan(allText.indexOf("feature-a"));
+    });
   });
 });

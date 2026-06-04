@@ -71,6 +71,10 @@ interface AppStore {
 
   /**
    * 選択中リポジトリを変更する。
+   *
+   * 副作用: 絞り込みクエリ（`worktreeFilter`）を空文字へリセットする
+   * （リポジトリ切替で前のクエリを引き継がない）。
+   *
    * @param id 新しい選択 ID。`null` を渡すと選択解除
    */
   selectRepository: (id: string | null) => void;
@@ -234,6 +238,17 @@ interface AppStore {
   setIsRefreshing: (v: boolean) => void;
 
   /**
+   * worktree グリッドの絞り込みクエリ（ランタイム UI 状態、永続化しない）。
+   * 空文字（trim 後が空）は全件表示を表す。`selectRepository` でリセットされる。
+   */
+  worktreeFilter: string;
+  /**
+   * 絞り込みクエリを設定する。同値の場合は state 参照を変えず再レンダーを抑制する。
+   * @param v 新しいクエリ文字列（trim はフィルタ適用側の `filterWorktrees` で行う）
+   */
+  setWorktreeFilter: (v: string) => void;
+
+  /**
    * 最新のリフレッシュエラーメッセージ。
    *
    * ポーリングエラーが発生したときにセットし、連続する同一エラーでトーストが
@@ -299,7 +314,7 @@ export const useAppStore = create<AppStore>((set) => ({
         worktreeOrder: remainingOrder,
       };
     }),
-  selectRepository: (id) => set({ selectedRepositoryId: id }),
+  selectRepository: (id) => set({ selectedRepositoryId: id, worktreeFilter: "" }),
 
   // Worktree
   worktrees: {},
@@ -375,6 +390,8 @@ export const useAppStore = create<AppStore>((set) => ({
   terminalAvailable: false,
   isRefreshing: false,
   setIsRefreshing: (v) => set({ isRefreshing: v }),
+  worktreeFilter: "",
+  setWorktreeFilter: (v) => set((s) => (s.worktreeFilter === v ? s : { worktreeFilter: v })),
 
   refreshError: null,
   setRefreshError: (msg) => set((s) => (s.refreshError === msg ? s : { refreshError: msg })),

@@ -19,7 +19,7 @@ import {
 import type { WorktreeInfo } from "../types";
 import WorktreeCard from "./WorktreeCard";
 import SortableWorktreeCard from "./SortableWorktreeCard";
-import { dirName } from "../lib/path";
+import { resolveWorktreeDisplayName } from "../lib/filterWorktrees";
 import { sortWorktrees } from "../lib/sortWorktrees";
 
 /** WorktreeGrid / WorktreeGridSkeleton で共有するグリッドレイアウトクラス */
@@ -34,6 +34,11 @@ interface WorktreeGridProps {
   repositoryId: string;
   editorAvailable: boolean;
   terminalAvailable: boolean;
+  /**
+   * true のとき DnD（並び替え）を無効化し、素の `WorktreeCard` のみを描画する。
+   * 絞り込みクエリが非空の間に true を渡す。並び順自体は `sortWorktrees` で従来通り尊重される。
+   */
+  dndDisabled: boolean;
   onOpenInEditor: (worktreePath: string) => void;
   onOpenInTerminal: (worktreePath: string) => void;
   onRemove: (worktreePath: string) => void;
@@ -63,6 +68,7 @@ export default function WorktreeGrid({
   repositoryId,
   editorAvailable,
   terminalAvailable,
+  dndDisabled,
   onOpenInEditor,
   onOpenInTerminal,
   onRemove,
@@ -110,6 +116,28 @@ export default function WorktreeGrid({
     setActiveId(null);
   }, []);
 
+  // 絞り込み中（dndDisabled）は DnD 機構を一切使わず、sortWorktrees の並び順のまま
+  // 素の WorktreeCard を描画する。main も non-main も同じ扱い。
+  if (dndDisabled) {
+    return (
+      <div className={WORKTREE_GRID_CLASS}>
+        {sorted.map((wt) => (
+          <WorktreeCard
+            key={wt.path}
+            worktree={wt}
+            label={resolveWorktreeDisplayName(wt.path, labels)}
+            editorAvailable={editorAvailable}
+            terminalAvailable={terminalAvailable}
+            onOpenInEditor={onOpenInEditor}
+            onOpenInTerminal={onOpenInTerminal}
+            onRemove={onRemove}
+            onSaveLabel={onSaveLabel}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className={WORKTREE_GRID_CLASS}>
       {/* main worktree: ドラッグ不可、先頭固定 */}
@@ -117,7 +145,7 @@ export default function WorktreeGrid({
         <WorktreeCard
           key={wt.path}
           worktree={wt}
-          label={labels[wt.path] ?? dirName(wt.path)}
+          label={resolveWorktreeDisplayName(wt.path, labels)}
           editorAvailable={editorAvailable}
           terminalAvailable={terminalAvailable}
           onOpenInEditor={onOpenInEditor}
@@ -141,7 +169,7 @@ export default function WorktreeGrid({
               key={wt.path}
               id={wt.path}
               worktree={wt}
-              label={labels[wt.path] ?? dirName(wt.path)}
+              label={resolveWorktreeDisplayName(wt.path, labels)}
               editorAvailable={editorAvailable}
               terminalAvailable={terminalAvailable}
               onOpenInEditor={onOpenInEditor}
@@ -157,7 +185,7 @@ export default function WorktreeGrid({
             <div className="opacity-80" style={{ cursor: "grabbing" }}>
               <WorktreeCard
                 worktree={activeWorktree}
-                label={labels[activeWorktree.path] ?? dirName(activeWorktree.path)}
+                label={resolveWorktreeDisplayName(activeWorktree.path, labels)}
                 editorAvailable={editorAvailable}
                 terminalAvailable={terminalAvailable}
                 onOpenInEditor={onOpenInEditor}
