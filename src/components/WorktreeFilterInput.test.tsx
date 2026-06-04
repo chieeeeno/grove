@@ -10,6 +10,12 @@ describe("WorktreeFilterInput", () => {
     useAppStore.setState({ worktreeFilter: "" });
   });
 
+  it("入力欄は searchbox role と aria-label を持つ（accessibility）", () => {
+    render(<WorktreeFilterInput matchCount={0} totalCount={3} />);
+    const input = screen.getByRole("searchbox", { name: "worktree を絞り込み" });
+    expect(input).toBeInTheDocument();
+  });
+
   it("入力すると store のクエリが更新される（ライブ絞り込み）", async () => {
     const user = userEvent.setup();
     render(<WorktreeFilterInput matchCount={0} totalCount={3} />);

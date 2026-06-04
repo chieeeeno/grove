@@ -69,6 +69,8 @@ export default function WorktreeFilterInput({ matchCount, totalCount }: Worktree
         <input
           ref={inputRef}
           type="text"
+          role="searchbox"
+          aria-label="worktree を絞り込み"
           value={worktreeFilter}
           onChange={(e) => setWorktreeFilter(e.target.value)}
           onKeyDown={handleKeyDown}
