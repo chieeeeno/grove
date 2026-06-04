@@ -565,6 +565,7 @@ function App() {
         title={`『${worktreeFilter.trim()}』に一致する worktree がありません`}
         action={
           <button
+            type="button"
             onClick={() => setWorktreeFilter("")}
             className="text-[12px] rounded-md px-3 py-1.5 border border-border outline-none cursor-pointer bg-card hover:bg-card-hover text-fg-secondary transition-colors duration-150"
           >
